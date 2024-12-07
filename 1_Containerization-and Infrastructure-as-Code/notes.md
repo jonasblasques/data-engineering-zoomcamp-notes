@@ -1,6 +1,6 @@
-## Introduction to Docker
+# Introduction to Docker
 
-# Creating a simple "data pipeline" in Docker
+## Creating a simple "data pipeline" in Docker
 
 Let's create an example pipeline. We will create a dummy pipeline.py Python script that receives an argument and prints it.
 
@@ -38,11 +38,12 @@ ENTRYPOINT ["python", "pipeline.py"]
 
 Let's build the image:
 
-'docker build -t zoomcampw1 .'
+    docker build -t zoomcampw1 .
 
 We can now run the container and pass an argument to it, so that our pipeline will receive it:
 
-'docker run -it zoomcampw1 some_number'
+    docker run -it zoomcampw1 some_number
 
 You should get the same output you did when you ran the pipeline script by itself:
+
     job finished successfully for day = <some_number>
