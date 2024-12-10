@@ -138,6 +138,8 @@ It should print:
 
 Even though we have the DDL instructions, we still need specific instructions for Postgres to connect to it and create the table. We will use sqlalchemy for this. 
 
+Lets create a new python file importdata.py:
+
 ``` python
 
 import pandas as pd
@@ -151,6 +153,8 @@ engine = create_engine('postgresql://root2:root2@localhost:5433/ny_taxi')
 
 print(pd.io.sql.get_schema(df, name='yellow_taxi_data', con=engine))
 ```
+
+In a new terminal, run python importdata.py
 
 It should print:
 
@@ -301,3 +305,62 @@ Under General give the Server a name: Docker localhost
 
 Under Connection add the same host name: pg-database, port:5432 user:root2 and password:root2 you used when running the container.
 
+
+## Using the ingestion script with Docker
+
+We will also rename it to ingest_data.py and will use argparse to handle command line arguments.
+The engine we created for connecting to Postgres will be tweaked so that we pass the parameters and build the URL from them, like this:
+
+    engine = create_engine(f'postgresql://{user}:{password}@{host}:{port}/{db}')
+
+You can check the completed code in ingest_data.py    
+
+In order to test the script we will have to drop the table we previously created. In pgAdmin, in the sidebar navigate to Servers > Docker localhost > Databases > ny_taxi > Schemas > public > Tables > yellow_taxi_data, right click on yellow_taxi_data and select Query tool. Introduce the following command:
+
+    DROP TABLE yellow_taxi_data;
+
+We are now ready to test the script with the following command:
+
+
+    python ingest_data.py \
+        --user=root2 \
+        --password=root2 \
+        --host=localhost \
+        --port=5433 \
+        --db=ny_taxi \
+        --table_name=yellow_taxi_trips \
+        --url="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz"
+
+
+## Dockerizing the script
+
+Let's modify the Dockerfile we created before to include our ingest_data.py script and create a new image:
+
+``` dockerfile
+FROM python:3.9.1
+
+
+RUN pip install pandas sqlalchemy psycopg2 requests
+
+WORKDIR /app
+COPY ingest_data.py ingest_data.py 
+
+ENTRYPOINT [ "python", "ingest_data.py" ]
+```
+
+Build the image:
+
+    docker build -t taxi_ingest:v001 .
+
+And run it:
+
+    docker run -it \
+        --network=pg-network \
+        taxi_ingest:v001 \
+        --user=root2 \
+        --password=root2 \
+        --host=pg-database \
+        --port=5432 \
+        --db=ny_taxi \
+        --table_name=yellow_taxi_trips \
+        --url="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz"
