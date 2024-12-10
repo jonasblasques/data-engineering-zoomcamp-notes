@@ -256,3 +256,48 @@ It should print:
     ---------
     1369765
     (1 row)
+
+
+## Connecting pgAdmin and Postgres with Docker networking
+
+pgAdmin is a web-based tool that makes it more convenient to access and manage our databases. It's possible to run pgAdmin as as container along with the Postgres container, but both containers will have to be in the same virtual network so that they can find each other.
+
+Let's create a virtual Docker network called pg-network:
+
+    docker network create pg-network
+
+We will now re-run our Postgres container with the added network name and the container network name, so that the pgAdmin container can find it (we'll use pg-database for the container name):
+
+
+```
+ winpty docker run -it \
+  -e POSTGRES_USER="root2" \
+  -e POSTGRES_PASSWORD="root2" \
+  -e POSTGRES_DB="ny_taxi" \
+  -v "C:\Users\nacho\Desktop\data-engineering-zoomcamp\1_Containerization-and Infrastructure-as-Code\ny_taxi_postgres_data:/var/lib/postgresql/data" \
+  -p 5433:5432 \
+  --network=pg-network \
+  --name pg-database \
+  postgres:13
+```
+
+We will now run the pgAdmin container on another terminal:
+
+```
+docker run -it \
+    -e PGADMIN_DEFAULT_EMAIL="admin@admin.com" \
+    -e PGADMIN_DEFAULT_PASSWORD="root" \
+    -p 8080:80 \
+    --network=pg-network \
+    --name pgadmin \
+    dpage/pgadmin4
+```    
+
+You should now be able to load pgAdmin on a web browser by browsing to localhost:8080. Use the same email and password you used for running the container to log in.
+
+Right-click on Servers on the left sidebar --> Register--> Server
+
+Under General give the Server a name: Docker localhost
+
+Under Connection add the same host name: pg-database, port:5432 user:root2 and password:root2 you used when running the container.
+
