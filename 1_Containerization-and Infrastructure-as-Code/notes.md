@@ -364,3 +364,64 @@ And run it:
         --db=ny_taxi \
         --table_name=yellow_taxi_trips \
         --url="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz"
+
+
+## Running Postgres and pgAdmin with Docker-compose
+
+Docker-compose allows us to launch multiple containers using a single configuration file, so that we don't have to run multiple complex docker run commands separately.
+
+Docker compose makes use of YAML files. Here's the docker-compose.yaml file for running the Postgres and pgAdmin containers:
+
+```dockerfile
+services:
+  pgdatabase:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=root2
+      - POSTGRES_PASSWORD=root2
+      - POSTGRES_DB=ny_taxi
+    volumes:
+      - "./ny_taxi_postgres_data:/var/lib/postgresql/data:rw"
+    ports:
+      - "5433:5432"
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=root
+    volumes:
+      - "./data_pgadmin:/var/lib/pgadmin"
+    ports:
+      - "8080:80"
+    depends_on:
+      - pgdatabase  
+```       
+
+We don't have to specify a network because docker-compose takes care of it: every single container (or "service", as the file states) will run withing the same network and will be able to find each other according to their names (pgdatabase and pgadmin in this example).
+
+We've added a volume for pgAdmin to save its settings, so that you don't have to keep re-creating the connection to Postgres every time ypu rerun the container. 
+
+We can now run Docker compose by running the following command from the same directory where docker-compose.yaml is found. Make sure that all previous containers aren't running anymore:
+
+    docker-compose up
+
+Since the settings for pgAdmin were stored within the container and we have killed the previous onem you will have to re-create the connection by following the steps    
+
+Under General give the Server a name: Docker localhost
+
+Under Connection add the same host name: pgdatabase, port:5432 user:root2 and password:root2 
+
+The proper way of shutting down the containers is with this command:
+
+    docker-compose down
+
+If you just want to stop the containers without deleting resources like volumes or images, you can use the command:
+
+    docker-compose stop
+
+This command will stop all containers defined in your docker-compose.yml file, but will not remove containers, volumes, networks, or images. You can restart containers later with the command:
+
+    docker-compose start
+
+
+If you want to re-run the dockerized ingest script when you run Postgres and pgAdmin with docker-compose, you will have to find the name of the virtual network that Docker compose created for the containers. You can use the command docker network ls to find it and then change the docker run command for the dockerized script to include the network name.    
