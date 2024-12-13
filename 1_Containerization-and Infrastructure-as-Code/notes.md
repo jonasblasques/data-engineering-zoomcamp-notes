@@ -2,7 +2,8 @@
 
 ## Creating a simple "data pipeline" in Docker
 
-Let's create an example pipeline. We will create a dummy pipeline.py Python script that receives an argument and prints it.
+Let's create an example pipeline. We will create a dummy pipeline.py Python script that receives an 
+argument and prints it.
 
 ```python
 import sys
@@ -50,9 +51,11 @@ You should get the same output you did when you ran the pipeline script by itsel
 
 ## Running Postgres in a container
 
-You can run a containerized version of Postgres that doesn't require any installation steps. You only need to provide a few environment variables to it as well as a volume for storing data.
+You can run a containerized version of Postgres that doesn't require any installation steps. You only
+ need to provide a few environment variables to it as well as a volume for storing data.
 
-Create a folder anywhere you'd like for Postgres to store data in. We will use the example folder ny_taxi_postgres_data. Here's how to run the container:
+Create a folder anywhere you'd like for Postgres to store data in. We will use the example folder
+ ny_taxi_postgres_data. Here's how to run the container:
 
 ```
  winpty docker run -it \
@@ -73,17 +76,13 @@ POSTGRES_DB is the name that we will give the database.
 -v points to the volume directory. The colon : separates the first part (path to the folder in the host computer)
  from the second part (path to the folder inside the container).
 
-Path names must be absolute. If you're in a UNIX-like system, you can use pwd to print you local folder as a shortcut;
-this example should work with bash shell.
+The -p is for port mapping. Maps port 5432 on the container (default PostgreSQL port) to port 5433 on the host machine.
 
-This command will only work if you run it from a directory which contains the ny_taxi_postgres_data subdirectory you created above.
-
-The -p is for port mapping. We map the default Postgres port to the same port in the host.
 The last argument is the image name and tag. We run the official postgres image on its version 13.
 
 Once the container is running, we can log into our database with the following command:
 
-    docker exec -it <container_name_or_id> psql -U root2 -d ny_taxi 
+    pgcli -h localhost -p 5433 -u root2 -d ny_taxi
 
 Lets test the db for example with "SELECT 1;", and it should print:
 
@@ -94,6 +93,23 @@ Lets test the db for example with "SELECT 1;", and it should print:
     (1 row)
 
 Of course we haven't loaded data into the DB yet.
+
+## Note on Docker Networking and Port Mapping
+
+Since I already have postgresql installed on the host machine, I already have port 5432 occupied. 
+That's why we use port 5433.
+
+If you want to connect to PostgreSQL inside the container from the host machine, you will need to 
+use port 5433. You must use the port you have exposed on the host using the -p option: 5433:5432, 
+which means:
+
+Port on the host machine: 5433
+Port inside the container: 5432
+
+If you want to connect to PostgreSQL inside the container from another container, you will need to 
+use port 5432, which is the internal port of the PostgreSQL container. In this case, you don't need 
+to worry about port 5433, as this is only relevant for external connections to the container (from 
+the host or outside the Docker network).
 
 ## Ingesting data to Postgres with Python
 
@@ -264,13 +280,16 @@ It should print:
 
 ## Connecting pgAdmin and Postgres with Docker networking
 
-pgAdmin is a web-based tool that makes it more convenient to access and manage our databases. It's possible to run pgAdmin as as container along with the Postgres container, but both containers will have to be in the same virtual network so that they can find each other.
+pgAdmin is a web-based tool that makes it more convenient to access and manage our databases. It's possible
+ to run pgAdmin as as container along with the Postgres container, but both containers will have to be
+in the same virtual network so that they can find each other.
 
 Let's create a virtual Docker network called pg-network:
 
     docker network create pg-network
 
-We will now re-run our Postgres container with the added network name and the container network name, so that the pgAdmin container can find it (we'll use pg-database for the container name):
+We will now re-run our Postgres container with the added network name and the container network name, 
+so that the pgAdmin container can find it (we'll use pg-database for the container name):
 
 
 ```
@@ -297,13 +316,17 @@ docker run -it \
     dpage/pgadmin4
 ```    
 
-You should now be able to load pgAdmin on a web browser by browsing to localhost:8080. Use the same email and password you used for running the container to log in.
+You should now be able to load pgAdmin on a web browser by browsing to localhost:8080. Use the same 
+email and password you used for running the container to log in.
 
 Right-click on Servers on the left sidebar --> Register--> Server
 
 Under General give the Server a name: Docker localhost
 
-Under Connection add the same host name: pg-database, port:5432 user:root2 and password:root2 you used when running the container.
+Under Connection add the same host name: pg-database, port:5432 user:root2 and password:root2
+
+We use port 5432 because we are accessing from a docker container. If it were the case of accessing 
+from the host machine, it would be port 5433.
 
 
 ## Using the ingestion script with Docker
@@ -331,6 +354,8 @@ We are now ready to test the script with the following command:
         --table_name=yellow_taxi_trips \
         --url="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz"
 
+
+We use port 5433 because we are accessing from the host machine.
 
 ## Dockerizing the script
 
@@ -365,6 +390,8 @@ And run it:
         --table_name=yellow_taxi_trips \
         --url="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz"
 
+
+Now we use port 5432 because we are accessing from a docker container
 
 ## Running Postgres and pgAdmin with Docker-compose
 
