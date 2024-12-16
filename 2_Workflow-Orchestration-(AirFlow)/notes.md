@@ -20,3 +20,32 @@ A typical Airflow installation consists of the following components:
 - DAG: Directed acyclic graph, specifies the dependencies between a set of tasks with explicit execution order
 - Task: a defined unit of work. The Tasks themselves describe what to do, be it fetching data, running analysis, triggering other systems, or more
 - DAG Run: individual execution/run of a DAG. A run may be scheduled or triggered
+
+## Setting up Airflow with Docker (lite version)
+
+If you want a less overwhelming YAML that only runs the webserver and the scheduler and runs the DAGs in the scheduler rather than running them in external workers, please use the docker-compose.yaml from this repo
+
+Create a new sub-directory called airflow in your project dir. Inside airflow create dags, google, logs,
+plugins and scripts folders
+
+Copy from this repo: Dockerfile, a requirements.txt, a dockercompose.yaml, a .env file, a entrypoint.sh inside scripts folder, and your google-credentials.json inside google folder
+
+Build the image. It may take several minutes You only need to do this the first time you run Airflow or if you modified the Dockerfile or the requirements.txt file:
+
+    docker-compose build
+
+Run Airflow:    
+
+    docker-compose up -d
+
+You may now access the Airflow GUI by browsing to localhost:8080. Username and password are both airflow .
+
+# Database error. Make database migrations:
+
+Airflow database migrations may not have run successfully. You need to make sure that your Airflow tables are properly created and updated. Run the following command to initialize or update the database:
+
+    docker-compose run --rm webserver airflow db upgrade
+
+When you set up Airflow for the first time or when you upgrade to a new version, the database may require migrations to update its schema and ensure that all tables, indexes, and configurations are in line with the latest version of Airflow. If you do not run this command, Airflow may not function properly as it will not be able to access data correctly.
+
+The airflow db upgrade command ensures that the database is configured and ready for use, allowing Airflow to operate stably.    
