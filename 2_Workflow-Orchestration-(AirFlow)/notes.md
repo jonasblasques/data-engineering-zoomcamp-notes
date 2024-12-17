@@ -40,7 +40,7 @@ Run Airflow:
 
 You may now access the Airflow GUI by browsing to localhost:8080. Username and password are both airflow .
 
-# Database error. Make database migrations:
+## Database error. Make database migrations:
 
 Airflow database migrations may not have run successfully. You need to make sure that your Airflow tables are properly created and updated. Run the following command to initialize or update the database:
 
@@ -49,3 +49,40 @@ Airflow database migrations may not have run successfully. You need to make sure
 When you set up Airflow for the first time or when you upgrade to a new version, the database may require migrations to update its schema and ensure that all tables, indexes, and configurations are in line with the latest version of Airflow. If you do not run this command, Airflow may not function properly as it will not be able to access data correctly.
 
 The airflow db upgrade command ensures that the database is configured and ready for use, allowing Airflow to operate stably.    
+
+## Simple airflow example
+
+To test that airflow works correctly, we are going to create a simple dag that prints text to the terminal. Inside the dags folder, create a file data_ingestion_local.py and test it with the following code:
+
+```python
+
+from airflow import DAG
+
+from airflow.operators.bash import BashOperator
+from airflow.operators.python import PythonOperator
+
+from datetime import datetime
+
+local_workflow = DAG(
+
+    "LocalIngestionDagv2",
+    schedule_interval = "0 6 2 * *",
+    start_date=datetime(2021, 1, 1)
+)
+
+with local_workflow:
+
+    wget_task = BashOperator(
+        task_id = 'wget',
+        bash_command = 'echo "Hello world"'
+    )
+
+    ingest_task = BashOperator(
+        task_id = 'ingest',
+        bash_command = 'echo "Hello world"'
+    )    
+
+    wget_task >> ingest_task
+```
+
+If everything works correctly, the dag should appear in the airflow webserver. Click on the dag and run the "trigger dag" option. Green squares with the status "success" should appear.
