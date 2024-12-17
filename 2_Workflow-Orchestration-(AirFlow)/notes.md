@@ -86,3 +86,19 @@ with local_workflow:
 ```
 
 If everything works correctly, the dag should appear in the airflow webserver. Click on the dag and run the "trigger dag" option. Green squares with the status "success" should appear.
+
+
+## Ingesting data to local Postgres with Airflow
+
+We want to run our Postgres setup from last section locally as well as Airflow, and we will use the ingest_data.py script from a DAG to ingest the NYC taxi trip data to our local Postgres.
+
+1. Prepare an ingest_script.py
+2. Prepare a DAG: data_ingestion_local.py. The DAG will have the following tasks:
+A download PythonOperator task that will download the NYC taxi data.
+A PythonOperator task that will call our ingest script in order to fill our database
+3. Modify the custom Airflow Dockerfile so that we can run our script (this is only for the purposes of this exercise) by installing the additional Python libraries that the ingest_script.py file needs. We will use this Dockerfile. Add this right after installing the requirements.txt file: RUN pip install --no-cache-dir pandas sqlalchemy psycopg2-binary requests
+4. Rebuild the Airflow image with docker-compose build
+5. Start Airflow by using docker-compose up and on a separate terminal, find out which virtual network it's running on with docker network ls
+6. Modify the docker-compose.yaml file from lesson 1 by adding the network info and removing away the pgAdmin service in order to reduce the amount of resources we will consume (we can use pgcli to check the database). We will use this docker-compose-lesson1.yaml file.
+7. Run docker-compose -f docker-compose-lesson2.yaml up
+8. Open the Airflow dashboard and trigger the LocalIngestionDag DAG by clicking on the Play icon. Inside the detailed DAG view you will find the status of the tasks as they download the files and ingest them to the database
