@@ -4,20 +4,21 @@ from airflow.operators.python import PythonOperator
 
 from ingest_script import download_and_unzip, process_and_insert_to_db
 
-
+# This info is from docker-compose-lesson1.yaml
 user = "root2"
 password = "root2"
 host = "pgdatabase"
 port = "5432"
 db = "ny_taxi"
+
 table_name = "yellow_taxi_trips"
 csv_name_gz = 'output.csv.gz'
 csv_name = 'output.csv'
 
-# Definir el DAG
+# Defining the DAG
 dag = DAG(
     "yellow_taxi_ingestion",
-    schedule_interval=None,  # Se ejecutará solo una vez, manualmente
+    schedule_interval=None,  # It will be executed only once, manually
     start_date=datetime(2021, 1, 1),
     catchup=False
 )
@@ -49,7 +50,7 @@ process_task = PythonOperator(
     dag=dag
 )
 
-# Establecer la secuencia de tareas
+# Establish the sequence of tasks
 download_task >> process_task
 
 
