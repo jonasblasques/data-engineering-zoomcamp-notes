@@ -222,16 +222,19 @@ RUN pip install --no-cache-dir pandas sqlalchemy psycopg2-binary requests
 ```
 
 4. Rebuild the Airflow image with: 
-
+```
     docker-compose build
+```
 
 5. Start Airflow by using docker-compose up and on a separate terminal, find out which virtual network it's running on with docker network ls:
 
+```
     NETWORK ID     NAME             DRIVER    SCOPE
     e843f42a6fe1   bridge           bridge    local
     690b4b59769b   dtc-de_default   bridge    local
     1b4769ea7218   host             host      local
     348b319579e3   none             null      local
+```    
 
 6. Modify the docker-compose.yaml file from lesson 1 by adding the network (dtc-de_default) info and removing away the pgAdmin service in order to reduce the amount of resources we will consume (we can use pgcli to check the database). We will use this docker-compose-lesson1.yaml file:
 
@@ -260,17 +263,22 @@ networks:
 
 7. Run: 
 
+```
     docker-compose -f docker-compose-lesson1.yaml up
+```
 
 8. Once the container is running, we can log into our database with the following command:
-
+```
     pgcli -h localhost -p 5433 -u root2 -d ny_taxi
+```
 
 9. Open the Airflow dashboard and trigger the LocalIngestionDag DAG by clicking on the Play icon. Inside the detailed DAG view you will find the status of the tasks as they download the files and ingest them to the database
 
 10. As both the download and ingest tasks finish and the squares for both turn dark green, you may use on a separate terminal to check the tables on your local Postgres database:
 
+```
     SELECT count(1) FROM yellow_taxi_trips;
+```
 
 It should print:
 
