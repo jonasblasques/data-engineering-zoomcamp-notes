@@ -1,8 +1,8 @@
 # Workflow Orchestration
 
-- [Orchestration with Airflow] (## Orchestration with Airflow)
-- [Setting up Airflow with Docker (lite version)] (## Setting up Airflow with Docker (lite version))
-- [Ingesting data to local Postgres with Airflow] (## Ingesting data to local Postgres with Airflow)
+- [Orchestration with Airflow](##orchestration-with-airflow)
+- [Setting up Airflow with Docker (lite version)](##setting-up-airflow-with-docker-lite-version)
+- [Ingesting data to local Postgres with Airflow](##ingesting-data-to-local-postgres-with-airflow)
 
 
 ## Orchestration with Airflow
