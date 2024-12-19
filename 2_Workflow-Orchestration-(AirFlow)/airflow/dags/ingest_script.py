@@ -5,17 +5,15 @@ import gzip
 import shutil
 
 
-def download_and_unzip(csv_name_gz, csv_name):
+def download_and_unzip(csv_name_gz, csv_name, url):
 
-    url = "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz"
-    
     # Download the CSV.GZ file
     response = requests.get(url)
     if response.status_code == 200:
         with open(csv_name_gz, 'wb') as f_out:
             f_out.write(response.content)
     else:
-        print(f"Error al descargar el archivo: {response.status_code}")
+        print(f"Error downloading file: {response.status_code}")
         return False
 
     # Unzip the CSV file
@@ -53,6 +51,4 @@ def process_and_insert_to_db(csv_name, user, password, host, port, db, table_nam
             print('completed')
             break
 
-
-
- 
+   
