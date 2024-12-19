@@ -399,7 +399,7 @@ Docker-compose allows us to launch multiple containers using a single configurat
 
 Docker compose makes use of YAML files. Here's the docker-compose.yaml file for running the Postgres and pgAdmin containers:
 
-```dockerfile
+```yaml
 services:
   pgdatabase:
     image: postgres:13
@@ -451,4 +451,64 @@ This command will stop all containers defined in your docker-compose.yml file, b
     docker-compose start
 
 
-If you want to re-run the dockerized ingest script when you run Postgres and pgAdmin with docker-compose, you will have to find the name of the virtual network that Docker compose created for the containers. You can use the command docker network ls to find it and then change the docker run command for the dockerized script to include the network name.    
+If you want to re-run the dockerized ingest script when you run Postgres and pgAdmin with docker-compose, you will have to find the name of the virtual network that Docker compose created for the containers. You can use the command docker network ls to find it and then change the docker run command for the dockerized script to include the network name.  
+
+
+# Google Cloud Platform
+
+During this course we will use Google Cloud Platform (GCP) as our cloud services provider. GCP is organized around projects. You may create a project and access all available GCP resources and services from the project dashboard.
+
+We will now create a project and a service account, and we will download the authentication keys to our computer. A service account is like a user account but for apps and workloads; you may authorize or limit what resources are available to your apps with service accounts.
+
+1. Create an account on GCP. You should receive $300 in credit when signing up on GCP for the first time with an account.
+
+2. Setup a new project and write down the Project ID (we'll use this later when deploying infra with TF)
+
+From the GCP Dashboard, click on the drop down menu next to the Google Cloud Platform title to show the project list and click on New project.
+
+Give the project a name. We will use "zoomcamp-airflow" in this example.
+
+3. Setup a service account for this project and download the JSON authentication key files.
+
+IAM & Admin > Service accounts > Create service account
+
+Provide a service account name. We will use "zoomcamp-airflow-service". Leave all other fields with the default values. Click on Create and continue.
+
+Grant the Viewer role (Basic > Viewer) to the service account and click on Continue. There is no need to grant users access to this service account at the moment. Click on Done.
+
+With the service account created, click on the 3 dots below Actions and select Manage keys.
+
+Add key -> Create new key. Select JSON and click Create. The files will be downloaded to your computer. Save them to a folder and write down the path.
+
+4. Download the GCP SDK for local setup.
+
+The Google Cloud SDK (GCP SDK) is a set of tools that allows devs to interact with GCP services programmatically. It provides command-line tools, libraries, and APIs for managing and automating GCP resources. Create, configure, and manage GCP services like Cloud Storage and BigQuery.
+
+On windows using WSL2, run the following command on ubuntu terminal:
+
+```
+sudo snap install google-cloud-cli --classic
+```
+
+Check:
+
+```
+gcloud --version
+```
+
+5. Set the environment variable to point to the auth keys
+
+In your terminal run(adjust with your path):
+
+```
+export GOOGLE_APPLICATION_CREDENTIALS=/mnt/c/Users/nacho/Desktop/data-engineering-zoomcamp/google_keys/zoomcamp-airflow-444903-33738e1bcf7e.json
+```
+
+Refresh the token and verify the authentication with the GCP SDK:
+
+```
+gcloud auth application-default login
+```
+
+Follow the generated link, choose your google account, then click on allow.
+You should now be ready to work with GCP.
