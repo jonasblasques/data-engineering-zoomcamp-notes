@@ -5,3 +5,7 @@ yellow_tripdata_2021-01.parquet
 output.csv
 output.csv.gz
 data_pgadmin
+.terraform
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup

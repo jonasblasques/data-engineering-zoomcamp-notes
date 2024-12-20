@@ -1,6 +1,51 @@
-# Introduction to Docker
 
-## Creating a simple "data pipeline" in Docker
+# Containerization and Infrastructure as Code
+
+- [Introduction](#introduction)
+- [Creating a simple data pipeline in Docker](#creating-a-simple-data-pipeline-in-docker)
+- [Running Postgres in a container)](#running-postgres-in-a-container)
+- [Docker Networking and Port Mapping](#docker-networking-and-port-mapping)
+- [Ingesting data to Postgres with Python](#ingesting-data-to-postgres-with-python)
+- [Connecting pgAdmin and Postgres with Docker networking](#connecting-pgAdmin-and-postgres-with-docker-networking)
+- [Using the ingestion script with Docker](#using-the-ingestion-script-with-docker)
+- [Dockerizing the ingestion script](#dockerizing-the-ingestion-script)
+- [Running Postgres and pgAdmin with Docker-compose](#running-postgres-and-pgAdmin-with-docker-compose)
+- [Google Cloud Platform](#google-cloud-platform)
+- [Terraform](#terraform)
+- [Creating GCP infrastructure with Terraform](#creating-GCP-infrastructure-with-terraform)
+
+
+## Introduction
+
+**Data Engineering** is the design and development of systems for collecting, storing and analyzing data at scale.
+
+A **data pipeline** is a service that receives data as input and outputs more data. For example, reading a CSV file, transforming the data somehow and storing it as a table in a PostgreSQL database.
+
+**Docker** is an open-source platform that allows developers to build, package, and deploy applications in isolated environments called containers. It simplifies application deployment by ensuring consistency across different environments (e.g., development, testing, production). With Docker, you can run applications and all their dependencies in a lightweight and portable environment.
+
+A **Docker image** is a lightweight, standalone, and executable software package that includes everything needed to run an application: Code, Runtime, Libraries, Environment variables, Configuration files.
+
+Docker images are immutable and serve as blueprints for creating Docker containers. For example, you can use an image to run a web server or database.
+
+A **Dockerfile** is a text file that contains a set of instructions to build a Docker image. Each line in a Dockerfile represents a step in the process of creating the image, such as:
+
+- Specifying a base image (e.g., FROM ubuntu:latest)
+- Copying files into the image
+- Installing dependencies
+- Configuring environment variables
+
+A **Docker container** is a running instance of a Docker image. It is an isolated and portable unit that runs the application defined in the image. Containers share the host system's kernel but have their own filesystem, network, and process space.
+
+Containers are lightweight compared to virtual machines, as they do not require an entire operating system to run.
+
+Summary:
+
+Docker: The platform for containerizing applications.
+Docker Image: The blueprint for a container (read-only).
+Dockerfile: The recipe to build a Docker image.
+Docker Container: A running instance of a Docker image (isolated environment for the app).
+
+## Creating a simple data pipeline in Docker
 
 Let's create an example pipeline. We will create a dummy pipeline.py Python script that receives an 
 argument and prints it.
@@ -15,8 +60,9 @@ print(f'job finished successfully for day {day}')
 ```
 
 We can run this script with 'python pipeline.py <some_number>' and it should print:
-
-    job finished successfully for day = <some_number>
+```
+job finished successfully for day = <some_number>
+```
 
 Let's containerize it by creating a Docker image. Create the folllowing Dockerfile file:
 
@@ -39,15 +85,21 @@ ENTRYPOINT ["python", "pipeline.py"]
 
 Let's build the image:
 
-    docker build -t zoomcampw1 .
+```
+docker build -t zoomcampw1 .
+```
 
 We can now run the container and pass an argument to it, so that our pipeline will receive it:
 
-    docker run -it zoomcampw1 some_number
+```
+docker run -it zoomcampw1 some_number
+```
 
 You should get the same output you did when you ran the pipeline script by itself:
 
-    job finished successfully for day = <some_number>
+```
+job finished successfully for day = <some_number>
+```
 
 ## Running Postgres in a container
 
@@ -55,7 +107,7 @@ You can run a containerized version of Postgres that doesn't require any install
  need to provide a few environment variables to it as well as a volume for storing data.
 
 Create a folder anywhere you'd like for Postgres to store data in. We will use the example folder
- ny_taxi_postgres_data. Here's how to run the container:
+ ny_taxi_postgres_data. Here's how to run the container in yout terminal:
 
 ```
  winpty docker run -it \
@@ -80,21 +132,24 @@ The -p is for port mapping. Maps port 5432 on the container (default PostgreSQL 
 
 The last argument is the image name and tag. We run the official postgres image on its version 13.
 
-Once the container is running, we can log into our database with the following command:
+Once the container is running, open up another terminal and log into our database with the following command:
 
-    pgcli -h localhost -p 5433 -u root2 -d ny_taxi
+```
+pgcli -h localhost -p 5433 -u root2 -d ny_taxi
+```
 
 Lets test the db for example with "SELECT 1;", and it should print:
-
+```
     ny_taxi=# select 1;
     ?column?
     ----------
             1
     (1 row)
+```
 
 Of course we haven't loaded data into the DB yet.
 
-## Note on Docker Networking and Port Mapping
+## Docker Networking and Port Mapping
 
 Since I already have postgresql installed on the host machine, I already have port 5432 occupied. 
 That's why we use port 5433.
@@ -115,48 +170,11 @@ the host or outside the Docker network).
 
 We will use data from the NYC TLC Trip Record Data website. Specifically, we will use https://github.com/DataTalksClub/nyc-tlc-data/releases/tag/yellow
 
-Let's create an importdata.py file that reads the csv file and generates the schema for the database
 
-``` python
+**1.**  Let's create an importdata.py file that reads the csv file and generates the schema for the Postgres database:
 
-import pandas as pd
 
-df = pd.read_csv("yellow_tripdata_2019-01.csv", nrows=10)
-
-df.tpep_pickup_datetime = pd.to_datetime(df.tpep_pickup_datetime)
-df.tpep_dropoff_datetime = pd.to_datetime(df.tpep_dropoff_datetime)
-
-print(pd.io.sql.get_schema(df, name="yellow_taxi_data"))
-```
-
-It should print:
-
-    CREATE TABLE "yellow_taxi_data" (
-    "VendorID" INTEGER,
-    "tpep_pickup_datetime" TIMESTAMP,
-    "tpep_dropoff_datetime" TIMESTAMP,
-    "passenger_count" INTEGER,
-    "trip_distance" REAL,
-    "RatecodeID" INTEGER,
-    "store_and_fwd_flag" TEXT,
-    "PULocationID" INTEGER,
-    "DOLocationID" INTEGER,
-    "payment_type" INTEGER,
-    "fare_amount" REAL,
-    "extra" REAL,
-    "mta_tax" REAL,
-    "tip_amount" REAL,
-    "tolls_amount" REAL,
-    "improvement_surcharge" REAL,
-    "total_amount" REAL,
-    "congestion_surcharge" REAL
-    )
-
-Even though we have the DDL instructions, we still need specific instructions for Postgres to connect to it and create the table. We will use sqlalchemy for this. 
-
-Lets create a new python file importdata.py:
-
-``` python
+```python
 
 import pandas as pd
 from sqlalchemy import create_engine
@@ -170,10 +188,17 @@ engine = create_engine('postgresql://root2:root2@localhost:5433/ny_taxi')
 print(pd.io.sql.get_schema(df, name='yellow_taxi_data', con=engine))
 ```
 
-In a new terminal, run python importdata.py
+pandas is used for data manipulation and sqlalchemy provides tools for database interaction, including creating connections to databases.
 
-It should print:
+The code reads the first 10,000 rows of a CSV file (yellow_tripdata_2021-01.csv) into a Pandas DataFrame called df. The columns tpep_pickup_datetime and tpep_dropoff_datetime in the DataFrame are converted from string format to Pandas datetime objects for easier time-based operations.
 
+*engine = create_engine('postgresql://root2:root2@localhost:5433/ny_taxi')* creates a connection to a PostgreSQL database using sqlalchemy.The database is hosted locally on port 5433 with the name ny_taxi. The username and password for access are both root2.
+
+The code prints the SQL schema that would represent the df DataFrame if it were stored in the database table yellow_taxi_data. This includes the structure of the table, column names, and data types.
+
+In a new terminal, run python importdata.py. It should print:
+
+```
     CREATE TABLE yellow_taxi_data (
             "VendorID" BIGINT, 
             tpep_pickup_datetime TIMESTAMP WITHOUT TIME ZONE,  
@@ -215,17 +240,30 @@ It should print:
             total_amount FLOAT(53),
             congestion_surcharge FLOAT(53)
     )
+```
 
-Lets create the table:
+**2.** Let's create the table:
 
-``` python
+```python
 # we need to provide the table name, the connection and what to do if the table already exists
 df.head(n=0).to_sql(name='yellow_taxi_data', con=engine, if_exists='replace')
 ```
 
-Insert first chunk:
+This operation is used to create an empty table with the same column names and data types as the DataFrame df. No actual data from the DataFrame is inserted into the table.
 
-``` python
+The method df.head(n=0) creates a DataFrame that contains only the column headers from the df DataFrame without any row data.
+
+- The to_sql method writes the DataFrame to a table in the database.
+- name='yellow_taxi_data': Specifies the name of the table to be created in the database.
+- con=engine: Specifies the database connection (created using sqlalchemy earlier).
+- if_exists='replace': If a table named yellow_taxi_data already exists, it will be replaced with this new table structure.
+
+
+**3.** Insert first chunk of data:
+
+Reading and processing the file in chunks prevents memory overload when working with large datasets.
+
+```python
 df_iter = pd.read_csv('yellow_tripdata_2021-01.csv', iterator=True, chunksize=100000)
 
 df = next(df_iter)
@@ -234,20 +272,27 @@ df.tpep_dropoff_datetime = pd.to_datetime(df.tpep_dropoff_datetime)
 df.to_sql(name='yellow_taxi_data', con=engine, if_exists='append')
 ```
 
+- The pd.read_csv method is used to create an iterator for the file yellow_tripdata_2021-01.csv.
+- The iterator=True parameter allows the file to be read in chunks rather than loading the entire file into memory.
+- The chunksize=100000 parameter specifies that each chunk contains 100,000 rows.
+- The next(df_iter) function retrieves the first chunk from the iterator and stores it in the variable df.
+- The to_sql method appends the chunk df to a table named yellow_taxi_data in the connected database. if_exists='append': Appends the data to the table if it already exists; if not, the table is created.
+
+
 Back on the database terminal, we can check:
 
 SELECT count(1) FROM yellow_taxi_data;
 
 It should print:
-
+```
     ny_taxi=# select count(1) FROM yellow_taxi_data;
     count  
     --------
     100000 
     (1 row) 
+```
 
-
-Let's write a loop to write all chunks to the database
+**4.** Let's write a loop to write all the remaining data to the database:
 
 ``` python
 
@@ -286,8 +331,9 @@ in the same virtual network so that they can find each other.
 
 Let's create a virtual Docker network called pg-network:
 
-    docker network create pg-network
-
+```
+docker network create pg-network
+```
 We will now re-run our Postgres container with the added network name and the container network name, 
 so that the pgAdmin container can find it (we'll use pg-database for the container name):
 
@@ -357,7 +403,7 @@ We are now ready to test the script with the following command:
 
 We use port 5433 because we are accessing from the host machine.
 
-## Dockerizing the script
+## Dockerizing the ingestion script
 
 Let's modify the Dockerfile we created before to include our ingest_data.py script and create a new image:
 
@@ -375,10 +421,12 @@ ENTRYPOINT [ "python", "ingest_data.py" ]
 
 Build the image:
 
-    docker build -t taxi_ingest:v001 .
+```
+docker build -t taxi_ingest:v001 .
+```
 
 And run it:
-
+```
     docker run -it \
         --network=pg-network \
         taxi_ingest:v001 \
@@ -389,7 +437,7 @@ And run it:
         --db=ny_taxi \
         --table_name=yellow_taxi_trips \
         --url="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz"
-
+```
 
 Now we use port 5432 because we are accessing from a docker container
 
@@ -430,26 +478,30 @@ We've added a volume for pgAdmin to save its settings, so that you don't have to
 
 We can now run Docker compose by running the following command from the same directory where docker-compose.yaml is found. Make sure that all previous containers aren't running anymore:
 
+```
     docker-compose up
+```
 
 Since the settings for pgAdmin were stored within the container and we have killed the previous onem you will have to re-create the connection by following the steps    
 
-Under General give the Server a name: Docker localhost
+- Under General give the Server a name: Docker localhost
 
-Under Connection add the same host name: pgdatabase, port:5432 user:root2 and password:root2 
+- Under Connection add the same host name: pgdatabase, port:5432 user:root2 and password:root2 
 
 The proper way of shutting down the containers is with this command:
-
-    docker-compose down
+```
+docker-compose down
+```
 
 If you just want to stop the containers without deleting resources like volumes or images, you can use the command:
-
-    docker-compose stop
+```
+docker-compose stop
+```
 
 This command will stop all containers defined in your docker-compose.yml file, but will not remove containers, volumes, networks, or images. You can restart containers later with the command:
-
-    docker-compose start
-
+```
+docker-compose start
+```
 
 If you want to re-run the dockerized ingest script when you run Postgres and pgAdmin with docker-compose, you will have to find the name of the virtual network that Docker compose created for the containers. You can use the command docker network ls to find it and then change the docker run command for the dockerized script to include the network name.  
 
@@ -460,7 +512,7 @@ During this course we will use Google Cloud Platform (GCP) as our cloud services
 
 We will now create a project and a service account, and we will download the authentication keys to our computer. A service account is like a user account but for apps and workloads; you may authorize or limit what resources are available to your apps with service accounts.
 
-1. Create an account on GCP. You should receive $300 in credit when signing up on GCP for the first time with an account.
+1. Create an account on GCP with your Google email. You should receive $300 in credit when signing up on GCP for the first time with an account.
 
 2. Setup a new project and write down the Project ID (we'll use this later when deploying infra with TF)
 
@@ -512,3 +564,181 @@ gcloud auth application-default login
 
 Follow the generated link, choose your google account, then click on allow.
 You should now be ready to work with GCP.
+
+# GCP setup for access
+
+In the following chapters we will setup a Data Lake (Google Cloud Storage) and a Data Warehouse in BigQuery. We will explore these concepts in future lessons but a Data Lake is where we would usually store data and a Data Warehouse provides a more structured way to access this data.
+
+We need to setup access first by assigning the Storage Admin, Storage Object Admin, BigQuery Admin and Viewer IAM roles to the Service Account, and then enable the iam and iamcredentials APIs for our project
+
+1. Assign the following IAM Roles to the Service Account: Storage Admin, Storage Object Admin, BigQuery Admin and Viewer. On the GCP Project dashboard, go to IAM & Admin -> IAM. Select the previously created Service Account and edit the permissions by clicking on the pencil shaped icon 
+    
+
+* `Storage Admin`: for creating and managing _buckets_.
+* `Storage Object Admin`: for creating and managing _objects_ within the buckets.
+* `BigQuery Admin`: for managing BigQuery resources and data.
+* `Viewer` should already be present as a role.
+
+2. Enable APIs for the project (these are needed so that Terraform can interact with GCP):
+   
+Go to https://console.cloud.google.com/apis/library/iam.googleapis.com
+
+Click on ENABLE
+
+Go to https://console.cloud.google.com/apis/library/iamcredentials.googleapis.com
+
+Click on ENABLE
+
+
+# Terraform
+
+Terraform is an open-source Infrastructure as Code (IaC) tool developed by HashiCorp. It allows you to define, provision, and manage infrastructure resources in a declarative manner. These resources can include virtual machines, databases, networks, and much more across various cloud providers, on-premises data centers, or hybrid environments.
+
+You describe the desired state of your infrastructure in .tf configuration files, and Terraform handles the provisioning and management. Terraform supports a wide range of cloud providers (e.g., AWS, Google Cloud Platform, Azure) and on-premises solutions.
+
+When used with Google Cloud Platform (GCP), Terraform simplifies and automates the provisioning and management of GCP resources, such as:
+
+Compute Resources: Virtual machines (VMs) with Compute Engine.
+Networking: VPCs, subnets, firewalls, and load balancers.
+Storage: Buckets and Cloud SQL databases.
+Kubernetes: GKE (Google Kubernetes Engine) clusters.
+IAM: Managing users, roles, and permissions.
+
+Why Use Terraform with GCP?
+
+Automation: Automatically provision and configure GCP resources using .tf files.
+Scalability: Easily manage large-scale infrastructure with consistent configurations.
+Reproducibility: Share the same configuration files across environments (e.g., dev, staging, prod).
+Version Control: Store .tf files in a version control system (e.g., Git) to track changes over time.
+
+# Creating GCP infrastructure with Terraform
+
+Let's create a terraform folder and create a new main.tf file with all the blocks we will need for our project.
+
+The infrastructure we will need consists of a Cloud Storage Bucket (google_storage-bucket) for our Data Lake and a BigQuery Dataset (google_bigquery_dataset).
+
+In Terraform, the difference between using main.tf alone versus using main.tf and variables.tf lies in how you organize your configuration. Both approaches work, but separating configurations into multiple files is a best practice for clarity and maintainability.
+
+- Using only main.tf: In this approach, all the Terraform configuration is written in a single file, including resources, providers, variables, and outputs.
+
+- Using main.tf and variables.tf: In this approach, the configuration is divided into multiple files to improve organization. main.tf contains the main Terraform configuration, such as resources and providers and variables.tf defines variables that can be referenced in main.tf (or other configuration files).
+
+We will use only main.tf approach
+
+In main.tf we will configure the terraform file as follows:
+
+This Terraform script configures the GCP provider and provisions the following resources:
+
+- A Google Cloud Storage bucket with versioning and lifecycle management to delete objects older than 30 days.
+- A BigQuery dataset for analytics or data storage in GCP.
+
+```terraform
+
+# Terraform Block: Specifies the required providers for the project
+
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "4.51.0"
+    }
+  }
+}
+
+# Google Provider Configuration
+
+provider "google" {
+# Credentials only needs to be set if you do not have the GOOGLE_APPLICATION_CREDENTIALS set
+#  credentials = 
+  project = "<Your Project ID>"
+  region  = "us-central1"
+}
+
+
+# Google Cloud Storage Bucket
+
+resource "google_storage_bucket" "data-lake-bucket" {
+  name          = "<Your Unique Bucket Name>"
+  location      = "US"
+
+  # Optional, but recommended settings:
+  storage_class = "STANDARD"
+  uniform_bucket_level_access = true
+
+  versioning {
+    enabled     = true
+  }
+
+  lifecycle_rule {
+    action {
+      type = "Delete"
+    }
+    condition {
+      age = 30  // days
+    }
+  }
+
+  force_destroy = true
+}
+
+# Google BigQuery Dataset
+
+resource "google_bigquery_dataset" "dataset" {
+  dataset_id = "<The Dataset Name You Want to Use>"
+  project    = "<Your Project ID>"
+  location   = "US"
+}
+```
+
+Terraform Block: Specifies the required providers for the project. The google provider (maintained by HashiCorp) is used to interact with GCP. The version ensures compatibility with version 4.51.0 of the provider.
+
+Google Provider Configuration: 
+- project: The GCP project ID to which the resources will belong.
+- region: Sets the region for the resources. Here, it is us-central1.
+- credentials can be specified directly in the code, but it is recommended to set the GOOGLE_APPLICATION_CREDENTIALS environment variable instead.
+
+Google Cloud Storage Bucket:
+- name: The unique name for the bucket.
+- location: Sets the geographical location of the bucket (US).
+- storage_class: Specifies the storage class (STANDARD for frequently accessed data).
+- uniform_bucket_level_access: Enforces uniform access control across the bucket.
+- Versioning: Enables versioning to retain multiple versions of objects.
+- Lifecycle Rule: Deletes objects that are older than 30 days. 
+- force_destroy: Deletes the bucket and all its objects when the resource is destroyed.
+
+Google BigQuery Dataset:
+- dataset_id: The name of the dataset to be created.
+- project: The GCP project ID where the dataset will reside.
+- location: Specifies the geographical location (US).
+
+The provider will not make use of the credentials field because when we set up GCP access we already created a GOOGLE_APPLICATION_CREDENTIALS env-var which Terraform can read in order to get our authentication keys.
+
+Now run the following commands:
+
+```
+terraform init
+```
+
+This will download the necessary plugins to connect to GCP and download them to ./.terraform. Now let's plan the infrastructure:
+
+```
+terraform plan
+```
+
+The infrastructure plan will be printed on screen with all the planned changes marked with a + sign next to them.
+
+Let's apply the changes:
+
+```
+terraform apply
+```
+
+You will need to confirm this step by typing yes when prompted. This will create all the necessary components in the infrastructure an return a terraform.tfstate with the current state of the infrastructure.
+
+Terminal should print: Apply complete! Resources: 2 added, 0 changed.
+
+After you've successfully created the infrastructure, you may destroy it so that it doesn't consume credit unnecessarily:
+
+```
+terraform destroy
+```
