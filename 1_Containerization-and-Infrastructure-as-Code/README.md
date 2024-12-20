@@ -3,7 +3,7 @@
 
 - [Introduction](#introduction)
 - [Creating a simple data pipeline in Docker](#creating-a-simple-data-pipeline-in-docker)
-- [Running Postgres in a container)](#running-postgres-in-a-container)
+- [Running Postgres in a container](#running-postgres-in-a-container)
 - [Docker Networking and Port Mapping](#docker-networking-and-port-mapping)
 - [Ingesting data to Postgres with Python](#ingesting-data-to-postgres-with-python)
 - [Connecting pgAdmin and Postgres with Docker networking](#connecting-pgAdmin-and-postgres-with-docker-networking)
