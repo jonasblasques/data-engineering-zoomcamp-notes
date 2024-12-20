@@ -20,7 +20,7 @@ For the course you'll need:
 
 ## Syllabus
 
-### [Module 1: Containerization and Infrastructure as Code](1_containerization-and-infrastructure-as-code/)
+### [Module 1: Containerization and Infrastructure as Code](1_Containerization-and-Infrastructure-as-Code/)
 
 * Docker and docker-compose
 * Running Postgres locally with Docker
@@ -28,7 +28,7 @@ For the course you'll need:
 * Preparing the environment for the course
 * Setting up infrastructure on GCP with Terraform
 
-### [Module 2: Workflow Orchestration (Airflow)](2_workflow-orchestration-(AirFlow)/)
+### [Module 2: Workflow Orchestration (Airflow)](2_Workflow-Orchestration-(AirFlow)/)
 
 * Orchestration with Airflow
 * Setting up Airflow with Docker
