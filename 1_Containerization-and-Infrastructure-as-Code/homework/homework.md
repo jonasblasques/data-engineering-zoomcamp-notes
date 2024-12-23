@@ -107,6 +107,13 @@ WHERE
   lpep_pickup_datetime<'2019-09-19 00:00:00');
 ```
 
+Another way:
+
+```
+SELECT count(1) FROM green_tripdata
+WHERE CAST(lpep_pickup_datetime AS DATE) = '2019-09-18';
+```
+
 Output:
 
 ```
