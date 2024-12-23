@@ -5,9 +5,9 @@
 - [Creating a simple data pipeline in Docker](#creating-a-simple-data-pipeline-in-docker)
 - [Running Postgres in a container](#running-postgres-in-a-container)
 - [Docker Networking and Port Mapping](#docker-networking-and-port-mapping)
+- [Generating postgres schema](#generating-postgres-schema)
 - [Ingesting data to Postgres with Python](#ingesting-data-to-postgres-with-python)
 - [Connecting pgAdmin and Postgres with Docker networking](#connecting-pgAdmin-and-postgres-with-docker-networking)
-- [Using the ingestion script with Docker](#using-the-ingestion-script-with-docker)
 - [Dockerizing the ingestion script](#dockerizing-the-ingestion-script)
 - [Running Postgres and pgAdmin with Docker-compose](#running-postgres-and-pgAdmin-with-docker-compose)
 - [Google Cloud Platform](#google-cloud-platform)
@@ -40,10 +40,10 @@ Containers are lightweight compared to virtual machines, as they do not require 
 
 Summary:
 
-Docker: The platform for containerizing applications.
-Docker Image: The blueprint for a container (read-only).
-Dockerfile: The recipe to build a Docker image.
-Docker Container: A running instance of a Docker image (isolated environment for the app).
+- Docker: The platform for containerizing applications.
+- Docker Image: The blueprint for a container (read-only).
+- Dockerfile: The recipe to build a Docker image.
+- Docker Container: A running instance of a Docker image (isolated environment for the app).
 
 Docker provides the following advantages:
 
@@ -53,6 +53,41 @@ Docker provides the following advantages:
 - Running pipelines on the cloud (AWS Batch, Kubernetes jobs)
 - Spark (analytics engine for large-scale data processing)
 - Serverless (AWS Lambda, Google functions)
+
+
+## Creating first container
+
+Lets create an interactive container using the Python 3.9 image, providing a terminal where you can run 
+Python commands
+
+In a new terminal run the following command:
+
+```
+docker run -it python:3.9
+```
+
+**docker run:** This creates and starts a new Docker container from the specified image.
+
+**-i (interactive):** Keeps the standard input (stdin) of the container open, allowing you to interact with it.
+
+**-t:** Allocates a pseudo-TTY (a terminal), making the interaction more user-friendly
+
+**python:3.9:** Specifies the Docker image to use, in this case, the official Python image with version 3.9
+
+You should get the python prompt:
+
+```
+>>>
+```
+
+and write any python code inside the container
+
+When you run this command, Docker will:
+
+Pull the python:3.9 image from Docker Hub if it's not already available locally. Start a container using this image.
+Launch an interactive Python 3.9 shell (REPL) inside the container, allowing you to execute Python commands directly.
+This is commonly used for testing or experimenting with Python in an isolated environment.
+
 
 ## Creating a simple data pipeline in Docker
 
@@ -68,12 +103,12 @@ day = sys.argv[1]
 print(f'job finished successfully for day {day}')
 ```
 
-We can run this script with 'python pipeline.py <some_number>' and it should print:
+We can run this script for example with 'python pipeline.py 5' and it should print:
 ```
-job finished successfully for day = <some_number>
+job finished successfully for day 5
 ```
 
-Let's containerize it by creating a Docker image. Create the folllowing Dockerfile file:
+Let's containerize it by creating a Docker image. Create the following Dockerfile file:
 
 ```dockerfile
 # base Docker image that we will build on
@@ -91,6 +126,13 @@ COPY pipeline.py pipeline.py
 # define what to do first when the container runs in this example, we will just run the script
 ENTRYPOINT ["python", "pipeline.py"]
 ```
+
+**WORKDIR /app :** This sets the default directory where all subsequent commands will be executed. 
+Inside the container, this directory will be /app
+
+**ENTRYPOINT ["python", "pipeline.py"]:** This defines the default action the container will perform when it starts. 
+In this case, it runs the pipeline.py script using Python.
+
 
 Let's build the image:
 
@@ -128,23 +170,29 @@ Create a folder anywhere you'd like for Postgres to store data in. We will use t
   postgres:13
 ```
 
+#### Winpty
 winpty is often used to wrap a command so that it works correctly in Windows, particularly when running interactive commands (e.g., docker run -it). This is because Windows doesn't natively handle interactive input and output the same way Unix-based systems do.
 
+#### Environment variables
 The container needs 3 environment variables:
 
 POSTGRES_USER is the username for logging into the database
 POSTGRES_PASSWORD is the password for the database
 POSTGRES_DB is the name that we will give the database.
 
+#### Volume
 -v points to the volume directory. The colon : separates the first part (path to the folder in the host computer) from the second part (path to the folder inside the container).
 
 The -v is used to mount a volume, which allows a folder on the host file system to be shared with the container. By mounting the volume this way, the data PostgreSQL stores in the container will be persistent and saved in the folder on your local machine. This is useful so that the data isn't lost when the container stops or is removed, as containers, by default, do not retain data once they are deleted.
 
 On linux and MacOs would be: -v $(pwd)/ny_taxi_postgres_data:/var/lib/postgresql/data \
 
+#### Port mapping
+
 The -p is for port mapping. Maps port 5432 on the container (default PostgreSQL port) to port 5433 on the host machine. So, when you try to connect to PostgreSQL running in the container, you'll need to use port 5433 on your host. For example, you would connect to localhost:5433 instead of localhost:5432 on your local machine. This allows you to avoid port conflicts if you have other services using port 5432
 
 The last argument is the image name and tag. We run the official postgres image on its version 13.
+
 
 ## CLI for Postgres
 
@@ -190,20 +238,32 @@ use port 5432, which is the internal port of the PostgreSQL container. In this c
 to worry about port 5433, as this is only relevant for external connections to the container (from 
 the host or outside the Docker network).
 
-## Ingesting data to Postgres with Python
 
-We will use data from the NYC TLC Trip Record Data website. Specifically, we will use https://github.com/DataTalksClub/nyc-tlc-data/releases/tag/yellow
+## Generating postgres schema
+
+We will use data from the NYC TLC Trip Record Data website. Specifically, we will use yellow_tripdata_2021-01.csv from: https://github.com/DataTalksClub/nyc-tlc-data/releases/tag/yellow
 
 
-**1.**  Let's create an importdata.py file that reads the csv file and generates the schema for the Postgres database:
+**1.** Download it and move the csv file to the working directory, for this repo would be: 1_Containerization-and-Infrastructure-as-Code
 
+
+**2.**  Create an ingest_data.py file that reads the csv file and generates the schema for the Postgres database:
+
+Install Pandas and SQLalchemy with:
+
+```
+pip install pandas
+pip install sqlalchemy
+```
+
+Open Vs code and write the following code in ingest_data.py:
 
 ```python
 
 import pandas as pd
 from sqlalchemy import create_engine
 
-df = pd.read_csv('yellow_tripdata_2021-01.csv', nrows=10000)
+df = pd.read_csv('yellow_tripdata_2021-01.csv', nrows=100)
 df.tpep_pickup_datetime = pd.to_datetime(df.tpep_pickup_datetime)
 df.tpep_dropoff_datetime = pd.to_datetime(df.tpep_dropoff_datetime)
 
@@ -212,15 +272,15 @@ engine = create_engine('postgresql://root2:root2@localhost:5433/ny_taxi')
 print(pd.io.sql.get_schema(df, name='yellow_taxi_data', con=engine))
 ```
 
-pandas is used for data manipulation and sqlalchemy provides tools for database interaction, including creating connections to databases.
+**pandas** is used for data manipulation and **sqlalchemy** provides tools for database interaction, including creating connections to databases.
 
-The code reads the first 10,000 rows of a CSV file (yellow_tripdata_2021-01.csv) into a Pandas DataFrame called df. The columns tpep_pickup_datetime and tpep_dropoff_datetime in the DataFrame are converted from string format to Pandas datetime objects for easier time-based operations.
+The code reads the first 100 rows of yellow_tripdata_2021-01.csv into a Pandas DataFrame called df. The columns tpep_pickup_datetime and tpep_dropoff_datetime in the DataFrame are converted from string format to Pandas datetime objects for easier time-based operations.
 
-*engine = create_engine('postgresql://root2:root2@localhost:5433/ny_taxi')* creates a connection to a PostgreSQL database using sqlalchemy.The database is hosted locally on port 5433 with the name ny_taxi. The username and password for access are both root2.
+*engine = create_engine('postgresql://root2:root2@localhost:5433/ny_taxi')* creates a connection to the database we created in the previous section and since we are accessing from the host machine, we use port 5433.
 
 The code prints the SQL schema that would represent the df DataFrame if it were stored in the database table yellow_taxi_data. This includes the structure of the table, column names, and data types.
 
-In a new terminal, run python importdata.py. It should print:
+In a new terminal, run python ingest_data.py. It should print:
 
 ```
     CREATE TABLE yellow_taxi_data (
@@ -266,10 +326,47 @@ In a new terminal, run python importdata.py. It should print:
     )
 ```
 
-**2.** Let's create the table:
+## Ingesting data to Postgres with Python
+
+Lets modify ingest_data with the following code and we will explain each section of the code step by step.
 
 ```python
-# we need to provide the table name, the connection and what to do if the table already exists
+import pandas as pd
+from sqlalchemy import create_engine
+
+df_iter = pd.read_csv('yellow_tripdata_2021-01.csv', iterator=True, chunksize=100000)
+
+df = next(df_iter)
+df.tpep_pickup_datetime = pd.to_datetime(df.tpep_pickup_datetime)
+df.tpep_dropoff_datetime = pd.to_datetime(df.tpep_dropoff_datetime)
+
+engine = create_engine('postgresql://root2:root2@localhost:5433/ny_taxi')
+
+# Create table
+df.head(n=0).to_sql(name='yellow_taxi_data', con=engine, if_exists='replace')
+
+# Insert first chunk
+df.to_sql(name='yellow_taxi_data', con=engine, if_exists='append')
+
+# Insert remaining data
+while True: 
+    try:
+       
+        df = next(df_iter)
+        df.tpep_pickup_datetime = pd.to_datetime(df.tpep_pickup_datetime)
+        df.tpep_dropoff_datetime = pd.to_datetime(df.tpep_dropoff_datetime)    
+        df.to_sql(name='yellow_taxi_data', con=engine, if_exists='append')
+
+        print('inserted another chunk')
+    except StopIteration:
+        print('completed')
+        break
+```
+
+**1.** create the table:
+
+
+```python
 df.head(n=0).to_sql(name='yellow_taxi_data', con=engine, if_exists='replace')
 ```
 
@@ -283,7 +380,7 @@ The method df.head(n=0) creates a DataFrame that contains only the column header
 - if_exists='replace': If a table named yellow_taxi_data already exists, it will be replaced with this new table structure.
 
 
-**3.** Insert first chunk of data:
+**2.** Insert first chunk of data:
 
 Reading and processing the file in chunks prevents memory overload when working with large datasets.
 
@@ -303,20 +400,8 @@ df.to_sql(name='yellow_taxi_data', con=engine, if_exists='append')
 - The to_sql method appends the chunk df to a table named yellow_taxi_data in the connected database. if_exists='append': Appends the data to the table if it already exists; if not, the table is created.
 
 
-Back on the database terminal, we can check:
 
-SELECT count(1) FROM yellow_taxi_data;
-
-It should print:
-```
-    ny_taxi=# select count(1) FROM yellow_taxi_data;
-    count  
-    --------
-    100000 
-    (1 row) 
-```
-
-**4.** Let's write a loop to write all the remaining data to the database:
+**3.** Loop to write all the remaining data to the database:
 
 ``` python
 
@@ -333,6 +418,14 @@ while True:
         print('completed')
         break
 ```    
+
+In a new terminal we run the script:
+
+```
+python ingest_data.py
+```
+
+and after a few minutes the database should be there with all the rows inserted.
 
 Back on the database terminal, we can check:
 
@@ -399,9 +492,9 @@ We use port 5432 because we are accessing from a docker container. If it were th
 from the host machine, it would be port 5433.
 
 
-## Using the ingestion script with Docker
+## Parameterizing the script
 
-We will also rename it to ingest_data.py and will use argparse to handle command line arguments.
+We will use argparse to handle command line arguments.
 The engine we created for connecting to Postgres will be tweaked so that we pass the parameters and build the URL from them, like this:
 
     engine = create_engine(f'postgresql://{user}:{password}@{host}:{port}/{db}')
