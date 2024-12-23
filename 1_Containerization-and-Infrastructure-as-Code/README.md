@@ -45,6 +45,15 @@ Docker Image: The blueprint for a container (read-only).
 Dockerfile: The recipe to build a Docker image.
 Docker Container: A running instance of a Docker image (isolated environment for the app).
 
+Docker provides the following advantages:
+
+- Reproducibility
+- Local experimentation
+- Integration tests (CI/CD)
+- Running pipelines on the cloud (AWS Batch, Kubernetes jobs)
+- Spark (analytics engine for large-scale data processing)
+- Serverless (AWS Lambda, Google functions)
+
 ## Creating a simple data pipeline in Docker
 
 Let's create an example pipeline. We will create a dummy pipeline.py Python script that receives an 
@@ -119,18 +128,33 @@ Create a folder anywhere you'd like for Postgres to store data in. We will use t
   postgres:13
 ```
 
+winpty is often used to wrap a command so that it works correctly in Windows, particularly when running interactive commands (e.g., docker run -it). This is because Windows doesn't natively handle interactive input and output the same way Unix-based systems do.
+
 The container needs 3 environment variables:
 
 POSTGRES_USER is the username for logging into the database
 POSTGRES_PASSWORD is the password for the database
 POSTGRES_DB is the name that we will give the database.
 
--v points to the volume directory. The colon : separates the first part (path to the folder in the host computer)
- from the second part (path to the folder inside the container).
+-v points to the volume directory. The colon : separates the first part (path to the folder in the host computer) from the second part (path to the folder inside the container).
 
-The -p is for port mapping. Maps port 5432 on the container (default PostgreSQL port) to port 5433 on the host machine.
+The -v is used to mount a volume, which allows a folder on the host file system to be shared with the container. By mounting the volume this way, the data PostgreSQL stores in the container will be persistent and saved in the folder on your local machine. This is useful so that the data isn't lost when the container stops or is removed, as containers, by default, do not retain data once they are deleted.
+
+On linux and MacOs would be: -v $(pwd)/ny_taxi_postgres_data:/var/lib/postgresql/data \
+
+The -p is for port mapping. Maps port 5432 on the container (default PostgreSQL port) to port 5433 on the host machine. So, when you try to connect to PostgreSQL running in the container, you'll need to use port 5433 on your host. For example, you would connect to localhost:5433 instead of localhost:5432 on your local machine. This allows you to avoid port conflicts if you have other services using port 5432
 
 The last argument is the image name and tag. We run the official postgres image on its version 13.
+
+## CLI for Postgres
+
+pgcli is used to interact with a PostgreSQL database from the command line, with a focus on improving usability with features like autocompletion, syntax highlighting, and an enhanced user experience.
+
+Installing pgcli
+
+```
+pip install pgcli
+```
 
 Once the container is running, open up another terminal and log into our database with the following command:
 
