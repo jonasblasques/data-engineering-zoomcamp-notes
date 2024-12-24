@@ -21,6 +21,8 @@
 
 A **data pipeline** is a service that receives data as input and outputs more data. For example, reading a CSV file, transforming the data somehow and storing it as a table in a PostgreSQL database.
 
+![pipeline](images/pipeline.jpg)
+
 **Docker** is an open-source platform that allows developers to build, package, and deploy applications in isolated environments called containers. It simplifies application deployment by ensuring consistency across different environments (e.g., development, testing, production). With Docker, you can run applications and all their dependencies in a lightweight and portable environment.
 
 A **Docker image** is a lightweight, standalone, and executable software package that includes everything needed to run an application: Code, Runtime, Libraries, Environment variables, Configuration files.
@@ -442,9 +444,11 @@ It should print:
 
 ## Connecting pgAdmin and Postgres with Docker networking
 
-pgAdmin is a web-based tool that makes it more convenient to access and manage our databases. It's possible
- to run pgAdmin as as container along with the Postgres container, but both containers will have to be
-in the same virtual network so that they can find each other.
+pgAdmin is a graphical user interface (GUI) tool for managing PostgreSQL databases. It provides a visual way to interact with databases, visual exploration of database schemas, perform queries, and administer database objects like tables, schemas, users, and permissions.
+
+Use pgAdmin if you prefer a visual interface or need to perform advanced database management tasks with a GUI. Use pgcli if you prefer working in the terminal and executing SQL commands.
+
+It's possible to run pgAdmin as as container along with the Postgres container, but both containers will have to be in the same virtual network so that they can find each other.
 
 Let's create a virtual Docker network called pg-network:
 
@@ -490,6 +494,18 @@ Under Connection add the same host name: pg-database, port:5432 user:root2 and p
 
 We use port 5432 because we are accessing from a docker container. If it were the case of accessing 
 from the host machine, it would be port 5433.
+
+In the pgadmin webpp now we can explore the table:
+
+Docker localhost --> Databases --> ny_taxi --> Schemas --> Tables --> View first 100 rows
+
+![pgamin](images/pgadmin.jpg)
+
+Now lets try a query:
+
+Tools --> Query tool
+
+![pgamin](images/pgadmin2.jpg)
 
 
 ## Parameterizing the script
