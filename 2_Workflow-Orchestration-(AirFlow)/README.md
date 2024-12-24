@@ -26,6 +26,16 @@ A typical Airflow installation consists of the following components:
 - Task: a defined unit of work. The Tasks themselves describe what to do, be it fetching data, running analysis, triggering other systems, or more
 - DAG Run: individual execution/run of a DAG. A run may be scheduled or triggered
 
+
+#### Running DAGs
+
+There are 2 main ways to run DAGs:
+
+- **Triggering them manually via the web UI or programatically via API:** The Airflow web interface allows users to manually trigger the execution of a DAG. This is often used when you want to run a specific DAG outside of its scheduled time, for example, to run an ad-hoc task or for testing purposes. In the web UI, you can simply click the "Trigger Dag" button next to the DAG you want to execute, which will start its execution immediately.
+
+- **Scheduling them:** Airflow allows you to schedule DAGs to run automatically at specific intervals. This is the most common way of running DAGs, as it enables them to execute regularly without manual intervention. You define the schedule using a cron expression or a predefined schedule like @daily, @hourly, etc., in the DAG definition. Once scheduled, Airflow's scheduler will monitor the DAG and trigger the tasks based on the defined schedule, ensuring that they run at the right times.
+
+
 ## Setting up Airflow with Docker (lite version)
 
 If you want a less overwhelming YAML that only runs the webserver and the scheduler and runs the DAGs in the scheduler rather than running them in external workers, please use the docker-compose.yaml from this repo
@@ -265,11 +275,12 @@ db = "ny_taxi"
 
 # Defining the DAG
 dag = DAG(
-    "yellow_taxi_ingestion",
-    schedule_interval="0 6 2 * *", # The task will be executed at 6:00 a.m. on the 2nd of each month.
+    "yellow_taxi_ingestion_v3",
+    schedule_interval="0 6 2 * *",
     start_date=datetime(2021, 1, 1),
     end_date=datetime(2021, 3, 28),
-    catchup=True, # Only run scheduled executions
+    catchup=True, # True means run past missed jobs
+    max_active_runs=1,
 )
 
 table_name_template = 'yellow_taxi_{{ execution_date.strftime(\'%Y_%m\') }}'
@@ -310,6 +321,11 @@ process_task = PythonOperator(
 # Establish the sequence of tasks
 download_task >> process_task
 ```
+
+- **catchup=True:** This parameter ensures that if the DAG was paused or missed runs during the period between the start_date and end_date, Airflow will try to "catch up" and run all the missed executions, one for each scheduled date.
+
+- **max_active_runs=1:** This limits the DAG to only have one active run at any time, preventing overlapping executions of the DAG.
+
 
 **3:** Modify the Airflow Dockerfile so that we can run our script (this is only for the purposes of this exercise) by installing the additional Python libraries that the ingest_script.py file needs. Add this right after installing the requirements.txt file: 
 

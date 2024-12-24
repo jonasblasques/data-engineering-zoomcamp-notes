@@ -19,7 +19,7 @@ dag = DAG(
     schedule_interval="0 6 2 * *",
     start_date=datetime(2021, 1, 1),
     end_date=datetime(2021, 3, 28),
-    catchup=True, # Only run scheduled executions
+    catchup=True, # True means run past missed jobs
     max_active_runs=1,
 )
 
