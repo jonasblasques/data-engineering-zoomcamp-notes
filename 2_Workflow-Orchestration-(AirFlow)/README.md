@@ -409,23 +409,80 @@ volumes:
   postgres-db-volume:
 ```  
 
-**4:** Create a requirements.txt, a .env file, a entrypoint.sh inside scripts folder, and your google-credentials.json inside google folder
+**4:** Create a  .env file, should look like:
 
-For this files, you can take the files in this repository as a reference.
+```dockerfile
+# Custom
+COMPOSE_PROJECT_NAME=dtc-de
+GOOGLE_APPLICATION_CREDENTIALS=.google/zoomcamp-airflow-444903-33738e1bcf7e.json
+AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=google-cloud-platform://?extra__google_cloud_platform__key_path=/.google/credentials/google_credentials.json
+AIRFLOW_UID=50000
+GCP_PROJECT_ID=zoomcamp-airflow-444903
+GCP_GCS_BUCKET=airflow-bucket-444903
 
-**5:** Build the image. It may take several minutes You only need to do this the first time you run Airflow or if you modified the Dockerfile or the requirements.txt file:
+# Postgres
+POSTGRES_USER=airflow
+POSTGRES_PASSWORD=airflow
+POSTGRES_DB=airflow
+
+# Airflow
+AIRFLOW__CORE__EXECUTOR=LocalExecutor
+AIRFLOW__SCHEDULER__SCHEDULER_HEARTBEAT_SEC=10
+
+AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+AIRFLOW_CONN_METADATA_DB=postgres+psycopg2://airflow:airflow@postgres:5432/airflow
+AIRFLOW_VAR__METADATA_DB_SCHEMA=airflow
+
+_AIRFLOW_WWW_USER_CREATE=True
+_AIRFLOW_WWW_USER_USERNAME=airflow
+_AIRFLOW_WWW_USER_PASSWORD=airflow
+
+AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+AIRFLOW__CORE__LOAD_EXAMPLES=False
+```
+
+
+**5:** Create a entrypoint.sh inside scripts folder, should look like:
+
+```dockerfile
+#!/usr/bin/env bash
+export GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
+export AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=${AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT}
+
+airflow db upgrade
+
+airflow users create -r Admin -u admin -p admin -e admin@example.com -f admin -l airflow
+# "$_AIRFLOW_WWW_USER_USERNAME" -p "$_AIRFLOW_WWW_USER_PASSWORD"
+
+airflow webserver
+```
+
+The script serves as the entry point for initializing and running an Airflow application inside a container. It ensures the proper setup of environment variables, upgrades the Airflow database, creates a default admin user, and starts the Airflow webserver.
+
+
+**6:** Copy your google-credentials.json inside google folder. Remember to add this json to the .gitignore file !
+
+**7:** Create a requirements.txt, should look like:
+
+```
+apache-airflow-providers-google
+pyarrow
+```
+
+
+**8:** Build the image. It may take several minutes You only need to do this the first time you run Airflow or if you modified the Dockerfile or the requirements.txt file:
 
 ```
     docker-compose build
 ```
 
-**6:** Run Airflow:    
+**9:** Run Airflow:    
 
 ```
     docker-compose up -d
 ```
 
-**7:** You may now access the Airflow GUI by browsing to localhost:8080. 
+**10:** You may now access the Airflow GUI by browsing to localhost:8080. 
 
 ```
 Username: airflow
