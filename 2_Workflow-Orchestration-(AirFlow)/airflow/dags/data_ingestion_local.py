@@ -2,7 +2,7 @@ from datetime import datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 
-from ingest_script2 import download_and_unzip, process_and_insert_to_db
+from ingest_script import download_and_unzip, process_and_insert_to_db
 
 # This info is from docker-compose-lesson1.yaml
 user = "root2"
@@ -15,11 +15,12 @@ db = "ny_taxi"
 
 # Defining the DAG
 dag = DAG(
-    "yellow_taxi_ingestion_v2",
+    "yellow_taxi_ingestion_v3",
     schedule_interval="0 6 2 * *",
     start_date=datetime(2021, 1, 1),
     end_date=datetime(2021, 3, 28),
     catchup=True, # Only run scheduled executions
+    max_active_runs=1,
 )
 
 table_name_template = 'yellow_taxi_{{ execution_date.strftime(\'%Y_%m\') }}'

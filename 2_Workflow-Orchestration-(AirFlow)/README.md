@@ -30,11 +30,11 @@ A typical Airflow installation consists of the following components:
 
 If you want a less overwhelming YAML that only runs the webserver and the scheduler and runs the DAGs in the scheduler rather than running them in external workers, please use the docker-compose.yaml from this repo
 
-1. Create a new sub-directory called airflow in your project dir. Inside airflow create dags, google, logs,
+**1:** Create a new sub-directory called airflow in your project dir. Inside airflow create dags, google, logs,
 plugins and scripts folders.
 
 
-2. Create a Dockerfile. Should look like:
+**2:** Create a Dockerfile. Should look like:
 
 ```dockerfile
 
@@ -77,7 +77,7 @@ RUN chmod +x scripts
 USER $AIRFLOW_UID
 ```
 
-3. Create a Docker-compose.yaml. Should look like:
+**3:** Create a Docker-compose.yaml. Should look like:
 
 ```yaml
 
@@ -140,23 +140,23 @@ volumes:
   postgres-db-volume:
 ```  
 
-4. Create a requirements.txt, a .env file, a entrypoint.sh inside scripts folder, and your google-credentials.json inside google folder
+**4:** Create a requirements.txt, a .env file, a entrypoint.sh inside scripts folder, and your google-credentials.json inside google folder
 
 For this files, you can take the files in this repository as a reference.
 
-5. Build the image. It may take several minutes You only need to do this the first time you run Airflow or if you modified the Dockerfile or the requirements.txt file:
+**5:** Build the image. It may take several minutes You only need to do this the first time you run Airflow or if you modified the Dockerfile or the requirements.txt file:
 
 ```
     docker-compose build
 ```
 
-6. Run Airflow:    
+**6:** Run Airflow:    
 
 ```
     docker-compose up -d
 ```
 
-7. You may now access the Airflow GUI by browsing to localhost:8080. 
+**7:** You may now access the Airflow GUI by browsing to localhost:8080. 
 
 ```
 Username: airflow
@@ -182,7 +182,7 @@ In this example, we will download and insert data from yellow_tripdata_2021-01, 
 
 You can find all datasets in https://github.com/DataTalksClub/nyc-tlc-data/releases/tag/yellow
 
-1. Prepare an ingest_script.py:
+**1:** Prepare an ingest_script.py:
 
 ```python
 import pandas as pd
@@ -240,7 +240,7 @@ def process_and_insert_to_db(csv_name, user, password, host, port, db, table_nam
 
 ```        
 
-2. Create data_ingestion_local.py. The DAG will have the following tasks:
+**2:** Create data_ingestion_local.py. The DAG will have the following tasks:
 
 - A PythonOperator task that will download the NYC taxi data.
 - A PythonOperator task that will call our ingest script in order to fill our database
@@ -311,18 +311,18 @@ process_task = PythonOperator(
 download_task >> process_task
 ```
 
-3. Modify the Airflow Dockerfile so that we can run our script (this is only for the purposes of this exercise) by installing the additional Python libraries that the ingest_script.py file needs. Add this right after installing the requirements.txt file: 
+**3:** Modify the Airflow Dockerfile so that we can run our script (this is only for the purposes of this exercise) by installing the additional Python libraries that the ingest_script.py file needs. Add this right after installing the requirements.txt file: 
 
 ```dockerfile
 RUN pip install --no-cache-dir pandas sqlalchemy psycopg2-binary requests
 ```
 
-4. Rebuild the Airflow image with: 
+**4:** Rebuild the Airflow image with: 
 ```
     docker-compose build
 ```
 
-5. Start Airflow by using:
+**5:** Start Airflow by using:
 ```
  docker-compose up 
  ```
@@ -342,7 +342,7 @@ It should print something like this:
     348b319579e3   none             null      local
 ```    
 
-6. Modify the docker-compose.yaml file from lesson 1 by adding the network (dtc-de_default) info and removing away the pgAdmin service in order to reduce the amount of resources we will consume (we can use pgcli to check the database). We will use this docker-compose-lesson1.yaml file:
+**6:** Modify the docker-compose.yaml file from lesson 1 by adding the network (dtc-de_default) info and removing away the pgAdmin service in order to reduce the amount of resources we will consume (we can use pgcli to check the database). We will use this docker-compose-lesson1.yaml file:
 
 ```dockerfile
 
@@ -367,22 +367,32 @@ networks:
     name: dtc-de_default
 ```    
 
-7. Run: 
+**7:** Run: 
 
 ```
     docker-compose -f docker-compose-lesson1.yaml up
 ```
 
-8. Once the container is running, we can log into our database with the following command:
+**8:** Once the container is running, we can log into our database with the following command:
 ```
     pgcli -h localhost -p 5433 -u root2 -d ny_taxi
 ```
 
-9. Open the Airflow dashboard and trigger the LocalIngestionDag DAG by clicking on the Play icon. Inside the detailed DAG view you will find the status of the tasks as they download the files and ingest them to the database
+**9:** Open the Airflow dashboard and unpause the yellow_taxi_ingestion_v3 DAG:
+
+![airflow4](images/airflow4.jpg)
+
+Processing the first table should look like this:
+
+![airflow2](images/airflow2.jpg)
+
+Once the 3 tables are created, it should look like this:
+
+![airflow3](images/airflow3.jpg)
 
 Green squares with the status "success" should appear. One for each table.
 
-10. Check tables on your local Postgres database:
+**10:** Check tables on your local Postgres database:
 
 ```
     \dt
