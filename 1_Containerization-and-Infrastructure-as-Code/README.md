@@ -571,14 +571,15 @@ And run it:
         --table_name=yellow_taxi_trips \
         --url="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz"
 ```
-
-Now we use port 5432 because we are accessing from a docker container
+- We need to provide the network for Docker to find the Postgres container
+- Now we use port 5432 because we are accessing from a docker container
+- You can drop the table in pgAdmin beforehand if you want, but the script will automatically replace the pre-existing table
 
 ## Running Postgres and pgAdmin with Docker-compose
 
-Docker-compose allows us to launch multiple containers using a single configuration file, so that we don't have to run multiple complex docker run commands separately.
+Docker Compose is a tool for defining and managing multi-container Docker applications. It simplifies the process of running and coordinating multiple containers that work together as part of an application. Automatically creates networks to allow containers to communicate with each other. Instead of running individual docker run commands for each container, you define all the services, networks, and volumes in a single YAML file, typically named docker-compose.yaml
 
-Docker compose makes use of YAML files. Here's the docker-compose.yaml file for running the Postgres and pgAdmin containers:
+Here's the docker-compose.yaml file for running the Postgres and pgAdmin containers:
 
 ```yaml
 services:
@@ -645,15 +646,15 @@ During this course we will use Google Cloud Platform (GCP) as our cloud services
 
 We will now create a project and a service account, and we will download the authentication keys to our computer. A service account is like a user account but for apps and workloads; you may authorize or limit what resources are available to your apps with service accounts.
 
-1. Create an account on GCP with your Google email. You should receive $300 in credit when signing up on GCP for the first time with an account.
+**1:** Create an account on GCP with your Google email. You should receive $300 in credit when signing up on GCP for the first time with an account.
 
-2. Setup a new project and write down the Project ID (we'll use this later when deploying infra with TF)
+**2:** Setup a new project and write down the Project ID (we'll use this later when deploying infra with TF)
 
 From the GCP Dashboard, click on the drop down menu next to the Google Cloud Platform title to show the project list and click on New project.
 
 Give the project a name. We will use "zoomcamp-airflow" in this example.
 
-3. Setup a service account for this project and download the JSON authentication key files.
+**3:** Setup a service account for this project and download the JSON authentication key files.
 
 IAM & Admin > Service accounts > Create service account
 
@@ -665,7 +666,7 @@ With the service account created, click on the 3 dots below Actions and select M
 
 Add key -> Create new key. Select JSON and click Create. The files will be downloaded to your computer. Save them to a folder and write down the path.
 
-4. Download the GCP SDK for local setup.
+**4:** Download the GCP SDK for local setup.
 
 The Google Cloud SDK (GCP SDK) is a set of tools that allows devs to interact with GCP services programmatically. It provides command-line tools, libraries, and APIs for managing and automating GCP resources. Create, configure, and manage GCP services like Cloud Storage and BigQuery.
 
@@ -681,7 +682,7 @@ Check:
 gcloud --version
 ```
 
-5. Set the environment variable to point to the auth keys
+**5:** Set the environment variable to point to the auth keys
 
 In your terminal run(adjust with your path):
 
@@ -704,7 +705,7 @@ In the following chapters we will setup a Data Lake (Google Cloud Storage) and a
 
 We need to setup access first by assigning the Storage Admin, Storage Object Admin, BigQuery Admin and Viewer IAM roles to the Service Account, and then enable the iam and iamcredentials APIs for our project
 
-1. Assign the following IAM Roles to the Service Account: Storage Admin, Storage Object Admin, BigQuery Admin and Viewer. On the GCP Project dashboard, go to IAM & Admin -> IAM. Select the previously created Service Account and edit the permissions by clicking on the pencil shaped icon 
+**1:** Assign the following IAM Roles to the Service Account: Storage Admin, Storage Object Admin, BigQuery Admin and Viewer. On the GCP Project dashboard, go to IAM & Admin -> IAM. Select the previously created Service Account and edit the permissions by clicking on the pencil shaped icon 
     
 
 * `Storage Admin`: for creating and managing _buckets_.
@@ -712,7 +713,7 @@ We need to setup access first by assigning the Storage Admin, Storage Object Adm
 * `BigQuery Admin`: for managing BigQuery resources and data.
 * `Viewer` should already be present as a role.
 
-2. Enable APIs for the project (these are needed so that Terraform can interact with GCP):
+**2:** Enable APIs for the project (these are needed so that Terraform can interact with GCP):
    
 Go to https://console.cloud.google.com/apis/library/iam.googleapis.com
 
@@ -731,18 +732,18 @@ You describe the desired state of your infrastructure in .tf configuration files
 
 When used with Google Cloud Platform (GCP), Terraform simplifies and automates the provisioning and management of GCP resources, such as:
 
-Compute Resources: Virtual machines (VMs) with Compute Engine.
-Networking: VPCs, subnets, firewalls, and load balancers.
-Storage: Buckets and Cloud SQL databases.
-Kubernetes: GKE (Google Kubernetes Engine) clusters.
-IAM: Managing users, roles, and permissions.
+- Compute Resources: Virtual machines (VMs) with Compute Engine.
+- Networking: VPCs, subnets, firewalls, and load balancers.
+- Storage: Buckets and Cloud SQL databases.
+- Kubernetes: GKE (Google Kubernetes Engine) clusters.
+- IAM: Managing users, roles, and permissions.
 
 Why Use Terraform with GCP?
 
-Automation: Automatically provision and configure GCP resources using .tf files.
-Scalability: Easily manage large-scale infrastructure with consistent configurations.
-Reproducibility: Share the same configuration files across environments (e.g., dev, staging, prod).
-Version Control: Store .tf files in a version control system (e.g., Git) to track changes over time.
+- Automation: Automatically provision and configure GCP resources using .tf files.
+- Scalability: Easily manage large-scale infrastructure with consistent configurations.
+- Reproducibility: Share the same configuration files across environments (e.g., dev, staging, prod).
+- Version Control: Store .tf files in a version control system (e.g., Git) to track changes over time.
 
 # Terraform install
 
@@ -864,14 +865,14 @@ resource "google_bigquery_dataset" "dataset" {
 }
 ```
 
-Terraform Block: Specifies the required providers for the project. The google provider (maintained by HashiCorp) is used to interact with GCP. The version ensures compatibility with version 4.51.0 of the provider.
+**Terraform Block:** Specifies the required providers for the project. The google provider (maintained by HashiCorp) is used to interact with GCP. The version ensures compatibility with version 4.51.0 of the provider.
 
-Google Provider Configuration: 
+**Google Provider Configuration:**
 - project: The GCP project ID to which the resources will belong.
 - region: Sets the region for the resources. Here, it is us-central1.
 - credentials can be specified directly in the code, but it is recommended to set the GOOGLE_APPLICATION_CREDENTIALS environment variable instead.
 
-Google Cloud Storage Bucket:
+**Google Cloud Storage Bucket:**
 - name: The unique name for the bucket.
 - location: Sets the geographical location of the bucket (US).
 - storage_class: Specifies the storage class (STANDARD for frequently accessed data).
@@ -880,7 +881,7 @@ Google Cloud Storage Bucket:
 - Lifecycle Rule: Deletes objects that are older than 30 days. 
 - force_destroy: Deletes the bucket and all its objects when the resource is destroyed.
 
-Google BigQuery Dataset:
+**Google BigQuery Dataset:**
 - dataset_id: The name of the dataset to be created.
 - project: The GCP project ID where the dataset will reside.
 - location: Specifies the geographical location (US).
