@@ -831,7 +831,7 @@ We will now run a slightly more complex DAG that will download the NYC taxi trip
 ![airflowgcp2](images/airflowgcp2.jpg)
 
 
-#### 1: Prepare a DAG 
+### 1: Prepare a DAG 
 
 We will use this DAG file. Copy it to the /dags subdirectory in your work folder:
 
@@ -1064,7 +1064,7 @@ The operator connects to BigQuery and creates an external table in the specified
 
 
 
-#### 2: Start Airflow
+### 2: Start Airflow
 
 ```
  docker-compose up 
@@ -1078,7 +1078,7 @@ The operator connects to BigQuery and creates an external table in the specified
 
 
 
-#### 3: Google Cloud Platform
+### 3: Google Cloud Platform
 
 
 Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see a new zoomcamp_bigquery database with an external_table table.

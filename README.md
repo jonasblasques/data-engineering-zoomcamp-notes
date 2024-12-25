@@ -23,13 +23,19 @@ For the course you'll need:
 ### [Module 1: Containerization and Infrastructure as Code](1_Containerization-and-Infrastructure-as-Code/)
 
 * Docker and docker-compose
-* Running Postgres locally with Docker
-* Introduction to GCP
-* Preparing the environment for the course
+* Running Postgres in a container
+* Ingesting data to Postgres with Python
+* Running Postgres and pgAdmin with Docker-compose
+* Google Cloud Platform (GCP)
+* Terraform
 * Setting up infrastructure on GCP with Terraform
 
 ### [Module 2: Workflow Orchestration (Airflow)](2_Workflow-Orchestration-(AirFlow)/)
 
-* Orchestration with Airflow
+* Data Lake vs Data Warehouse
+* ETL vs ELT
+* Introduction to Workflow Orchestration
+* Airflow architecture
 * Setting up Airflow with Docker
 * Ingesting data to local Postgres with Airflow
+* Ingesting data to GCP with Airflow
