@@ -831,7 +831,7 @@ We will now run a slightly more complex DAG that will download the NYC taxi trip
 ![airflowgcp2](images/airflowgcp2.jpg)
 
 
-**1: Prepare a DAG** 
+#### 1: Prepare a DAG 
 
 We will use this DAG file. Copy it to the /dags subdirectory in your work folder:
 
@@ -1064,7 +1064,8 @@ The operator connects to BigQuery and creates an external table in the specified
 
 
 
-**2:** Start Airflow by using:
+#### 2: Start Airflow
+
 ```
  docker-compose up 
  ```
@@ -1077,7 +1078,8 @@ The operator connects to BigQuery and creates an external table in the specified
 
 
 
-**3:** GCP
+#### 3: Google Cloud Platform
+
 
 Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see a new zoomcamp_bigquery database with an external_table table.
 
@@ -1089,3 +1091,18 @@ Click on the 3 dots next to external_table and click on Open to display the tabl
 
 
 ![airflowgcp4](images/airflowgcp4.jpg)
+
+
+Click on the 3 dots next to external_table and click on Query. Run the following SQL query to show the top 5 rows in the database:
+
+
+![airflowgcp5](images/airflowgcp5.jpg)
+
+
+You can also see the uploaded parquet file by searching the Cloud Storage service, selecting your bucket and then clickin on the raw/ folder. You may click on the filename to access an info panel:
+
+
+![airflowgcp6](images/airflowgcp6.jpg)
+
+
+You may now shutdown Airflow by running docker-compose down on the terminal where you run it.
