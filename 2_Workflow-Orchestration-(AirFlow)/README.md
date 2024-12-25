@@ -1010,10 +1010,10 @@ Let's explain step by step what this code does:
 
 **Task 2: process_task**
 
-process_task
-Operator: PythonOperator.
-Purpose: Converts the downloaded CSV file to Parquet format.
-Parameter: src_file: Full path to the downloaded CSV file.
+- process_task
+- Operator: PythonOperator.
+- Purpose: Converts the downloaded CSV file to Parquet format.
+- Parameter: src_file: Full path to the downloaded CSV file.
 
 **Task 3: local_to_gcs_task**
 
