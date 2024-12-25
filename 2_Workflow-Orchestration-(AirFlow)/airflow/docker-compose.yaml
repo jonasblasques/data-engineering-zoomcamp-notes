@@ -20,12 +20,15 @@ services:
             - postgres
         env_file:
             - .env
+        environment:
+        - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/google/zoomcamp-airflow-444903-33738e1bcf7e.json  
+        - AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=google-cloud://zoomcamp-airflow-444903//opt/airflow/google/zoomcamp-airflow-444903-33738e1bcf7e.json           
         volumes:
             - ./dags:/opt/airflow/dags
             - ./logs:/opt/airflow/logs
             - ./plugins:/opt/airflow/plugins
             - ./scripts:/opt/airflow/scripts
-            - ~/.google/credentials/:/.google/credentials
+            - ./google:/opt/airflow/google:ro
 
 
     webserver:
@@ -37,11 +40,14 @@ services:
             - scheduler
         env_file:
             - .env
+        environment:
+        - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/google/zoomcamp-airflow-444903-33738e1bcf7e.json   
+        - AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=google-cloud://zoomcamp-airflow-444903//opt/airflow/google/zoomcamp-airflow-444903-33738e1bcf7e.json          
         volumes:
             - ./dags:/opt/airflow/dags
             - ./logs:/opt/airflow/logs
             - ./plugins:/opt/airflow/plugins
-            - ~/.google/credentials/:/.google/credentials:ro
+            - ./google:/opt/airflow/google:ro
             - ./scripts:/opt/airflow/scripts
 
         user: "${AIRFLOW_UID:-50000}:0"

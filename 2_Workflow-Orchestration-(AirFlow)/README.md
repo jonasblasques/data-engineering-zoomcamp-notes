@@ -6,6 +6,7 @@
 - [Airflow architecture](#airflow-architecture)
 - [Setting up Airflow with Docker (lite version)](#setting-up-airflow-with-docker-lite-version)
 - [Ingesting data to local Postgres with Airflow](#ingesting-data-to-local-postgres-with-airflow)
+- [Ingesting data to GCP with Airflow](#ingesting-data-to-gcp-with-airflow)
 
 
 ## Data Lake vs Data Warehouse
@@ -299,8 +300,27 @@ This is a quick, simple & less memory-intensive setup of Airflow that works on a
 
 Only runs the webserver and the scheduler and runs the DAGs in the scheduler rather than running them in external workers:
 
-**1:** Create a new sub-directory called airflow in your project dir. Inside airflow create dags, google, logs,
-plugins and scripts folders.
+**1:** Create a new sub-directory called airflow in your project dir. Inside airflow create dags, google, logs and scripts folders.
+
+The directory structure should look like this:
+
+```
+
+├── airflow
+│   ├── dags
+│       ├── data_ingestion_local.py
+│       ├── data_ingestion_gcp.py
+│       └── ingest_script.py
+│   ├── google
+│       └── credentials.json
+│   ├── logs
+│   └── scripts
+│       └── entrypoint.sh
+├── .env
+├── docker-compose.yaml
+├── Dockerfile
+├── requirements.txt
+```
 
 
 **2:** Create a Dockerfile. Should look like:
@@ -308,15 +328,20 @@ plugins and scripts folders.
 ```dockerfile
 
 # First-time build can take upto 10 mins.
+
 FROM apache/airflow:2.2.3
 
 ENV AIRFLOW_HOME=/opt/airflow
 
 USER root
 RUN apt-get update -qq && apt-get install vim -qqq
+# git gcc g++ -qqq
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir pandas sqlalchemy psycopg2-binary requests
+
+# Ref: https://airflow.apache.org/docs/docker-stack/recipes.html
 
 SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
 
@@ -341,6 +366,7 @@ RUN DOWNLOAD_URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/goo
 WORKDIR $AIRFLOW_HOME
 
 COPY scripts scripts
+COPY ./google /opt/airflow/google
 RUN chmod +x scripts
 
 USER $AIRFLOW_UID
@@ -372,12 +398,15 @@ services:
             - postgres
         env_file:
             - .env
+        environment:
+        - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/google/zoomcamp-airflow-444903-33738e1bcf7e.json  
+        - AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=google-cloud://zoomcamp-airflow-444903//opt/airflow/google/zoomcamp-airflow-444903-33738e1bcf7e.json           
         volumes:
             - ./dags:/opt/airflow/dags
             - ./logs:/opt/airflow/logs
             - ./plugins:/opt/airflow/plugins
             - ./scripts:/opt/airflow/scripts
-            - ~/.google/credentials/:/.google/credentials
+            - ./google:/opt/airflow/google:ro
 
 
     webserver:
@@ -389,11 +418,14 @@ services:
             - scheduler
         env_file:
             - .env
+        environment:
+        - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/google/zoomcamp-airflow-444903-33738e1bcf7e.json   
+        - AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=google-cloud://zoomcamp-airflow-444903//opt/airflow/google/zoomcamp-airflow-444903-33738e1bcf7e.json          
         volumes:
             - ./dags:/opt/airflow/dags
             - ./logs:/opt/airflow/logs
             - ./plugins:/opt/airflow/plugins
-            - ~/.google/credentials/:/.google/credentials:ro
+            - ./google:/opt/airflow/google:ro
             - ./scripts:/opt/airflow/scripts
 
         user: "${AIRFLOW_UID:-50000}:0"
@@ -409,16 +441,25 @@ volumes:
   postgres-db-volume:
 ```  
 
+In this part, make sure to modify with your project id and your json file:
+
+```yaml
+        environment:
+        - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/google/your_credentials.json  
+        - AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=google-cloud://YOUR_PROJECT_ID//opt/airflow/google/your_credentials.json 
+```        
+
+
 **4:** Create a  .env file, should look like:
 
 ```dockerfile
 # Custom
 COMPOSE_PROJECT_NAME=dtc-de
 GOOGLE_APPLICATION_CREDENTIALS=.google/zoomcamp-airflow-444903-33738e1bcf7e.json
-AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=google-cloud-platform://?extra__google_cloud_platform__key_path=/.google/credentials/google_credentials.json
 AIRFLOW_UID=50000
 GCP_PROJECT_ID=zoomcamp-airflow-444903
-GCP_GCS_BUCKET=airflow-bucket-444903
+GCP_GCS_BUCKET=zoomcamp_datalake
+BIGQUERY_DATASET=zoomcamp_bigquery
 
 # Postgres
 POSTGRES_USER=airflow
@@ -442,6 +483,25 @@ AIRFLOW__CORE__LOAD_EXAMPLES=False
 ```
 
 
+**IMPORTANT:**
+Make sure to modify GCP_PROJECT_ID, GCP_GCS_BUCKET and BIGQUERY_DATASET with your project id, bucket name and big query dataset_id defined in the terraform file
+
+For example my terraform file looks like:
+
+```
+resource "google_storage_bucket" "data-lake-bucket" {
+  name          = "zoomcamp_datalake"
+  location      = "US"
+
+...}  
+
+resource "google_bigquery_dataset" "dataset" {
+  dataset_id = "zoomcamp_bigquery"
+  project    = "zoomcamp-airflow-444903"
+  location   = "US"
+}
+```  
+
 **5:** Create a entrypoint.sh inside scripts folder, should look like:
 
 ```dockerfile
@@ -460,7 +520,8 @@ airflow webserver
 The script serves as the entry point for initializing and running an Airflow application inside a container. It ensures the proper setup of environment variables, upgrades the Airflow database, creates a default admin user, and starts the Airflow webserver.
 
 
-**6:** Copy your google-credentials.json inside google folder. Remember to add this json to the .gitignore file !
+**6:** Copy your google-credentials.json inside the google folder. Remember to add this json to the .gitignore file !
+
 
 **7:** Create a requirements.txt, should look like:
 
@@ -484,10 +545,13 @@ pyarrow
 
 **10:** You may now access the Airflow GUI by browsing to localhost:8080. 
 
+It may take a few minutes to load the webApp
+
 ```
 Username: airflow
 Password: airflow 
 ```
+
 
 ## Database error. Make database migrations:
 
@@ -758,3 +822,270 @@ It should print:
 | 1925152 |
 +---------+
 ```
+
+
+## Ingesting data to GCP with Airflow
+
+We will now run a slightly more complex DAG that will download the NYC taxi trip data, convert it to parquet, upload it to a GCP bucket and ingest it to GCP's BigQuery.
+
+![airflowgcp2](images/airflowgcp2.jpg)
+
+
+**1: Prepare a DAG** 
+
+We will use this DAG file. Copy it to the /dags subdirectory in your work folder:
+
+```python
+
+import os
+import logging
+from datetime import datetime
+
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+
+from google.cloud import storage
+from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator
+import pyarrow.csv
+import pyarrow.parquet 
+import requests
+import gzip
+import shutil
+
+# Make sure the values ​​match your terraform main.tf file
+PROJECT_ID="zoomcamp-airflow-444903"
+BUCKET="zoomcamp_datalake"
+BIGQUERY_DATASET = "zoomcamp_bigquery"
+
+path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
+
+
+# Utility functions
+def download_and_unzip(csv_name_gz, csv_name, url):
+
+    # Download the CSV.GZ file
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(csv_name_gz, 'wb') as f_out:
+            f_out.write(response.content)
+    else:
+        print(f"Error downloading file: {response.status_code}")
+        return False
+
+    # Unzip the CSV file
+    with gzip.open(csv_name_gz, 'rb') as f_in:
+        with open(csv_name, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    
+    return True
+
+
+def format_to_parquet(src_file):
+    if not src_file.endswith('.csv'):
+        logging.error("Can only accept source files in CSV format, for the moment")
+        return
+    table = pyarrow.csv.read_csv(src_file)
+    pyarrow.parquet.write_table(table, src_file.replace('.csv', '.parquet'))
+
+
+def upload_to_gcs(bucket, object_name, local_file):
+
+    storage.blob._MAX_MULTIPART_SIZE = 5 * 1024 * 1024  # 5 MB
+    storage.blob._DEFAULT_CHUNKSIZE = 5 * 1024 * 1024  # 5 MB
+
+    client = storage.Client()
+    bucket = client.bucket(bucket)
+
+    blob = bucket.blob(object_name)
+    blob.upload_from_filename(local_file)
+
+
+# Defining the DAG
+dag = DAG(
+    "GCP_ingestion",
+    schedule_interval="0 6 2 * *",
+    start_date=datetime(2021, 3, 1),
+    end_date=datetime(2021, 3, 5),
+    catchup=True, 
+    max_active_runs=1,
+)
+
+table_name_template = 'yellow_taxi_{{ execution_date.strftime(\'%Y_%m\') }}'
+csv_name_gz_template = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv.gz'
+csv_name_template = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv'
+
+parquet_file = csv_name_template.replace('.csv', '.parquet')
+
+url_template = "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.csv.gz"
+
+# Task 1
+download_task = PythonOperator(
+    task_id="download_and_unzip",
+    python_callable=download_and_unzip,
+    op_kwargs={
+        'csv_name_gz': csv_name_gz_template,
+        'csv_name': csv_name_template,
+        'url': url_template
+    },
+    dag=dag
+)
+
+# Task 2
+process_task = PythonOperator(
+    task_id="format_to_parquet_task",
+    python_callable=format_to_parquet,
+    op_kwargs={
+        "src_file": f"{path_to_local_home}/{csv_name_template}"
+    },
+    dag=dag
+)
+
+# Task 3
+local_to_gcs_task = PythonOperator(
+    task_id="local_to_gcs_task",
+    python_callable=upload_to_gcs,
+    op_kwargs={
+            "bucket": BUCKET,
+            "object_name": f"raw/{parquet_file}",
+            "local_file": f"{path_to_local_home}/{parquet_file}",
+        },
+    dag=dag
+)
+
+# Task 4
+bigquery_external_table_task = BigQueryCreateExternalTableOperator(
+        task_id="bigquery_external_table_task",
+        table_resource={
+            "tableReference": {
+                "projectId": PROJECT_ID,
+                "datasetId": BIGQUERY_DATASET,
+                "tableId": "external_table",
+            },
+            "externalDataConfiguration": {
+                "sourceFormat": "PARQUET",
+                "sourceUris": [f"gs://{BUCKET}/raw/{parquet_file}"],
+            },
+        },
+        dag=dag
+    )
+
+
+download_task >> process_task >> local_to_gcs_task >> bigquery_external_table_task
+```
+
+The script defines a DAG (Directed Acyclic Graph), a workflow that orchestrates tasks such as downloading data, processing it, uploading it to Google Cloud Storage (GCS), and creating an external table in BigQuery
+
+
+Let's explain step by step what this code does:
+
+**Importing Libraries**
+
+- os, logging, datetime: For environment handling, logging, and managing dates
+- Airflow components: To define workflows and tasks.
+- Google Cloud libraries: For interacting with GCS and BigQuery.
+- pyarrow: For converting CSV files to Parquet.
+- requests, gzip, shutil: To handle file downloads, decompression, and file manipulation.
+
+**Constants**
+
+- PROJECT_ID, BUCKET, BIGQUERY_DATASET: Define the GCP project, storage bucket, and BigQuery dataset. Make sure the values ​​match your terraform main.tf file!
+- path_to_local_home: Determines the local directory for temporary file storage.
+
+**Utility Functions**
+
+- download_and_unzip: Downloads a compressed .csv.gz making an HTTP GET request file from a URL, decompresses it using gzip, and saves it as a .csv file locally
+
+- format_to_parquet: Converts a CSV file into a Parquet format file for optimized storage and querying using pyarrow
+
+- upload_to_gcs: Uses the Google Cloud storage.Client to upload the file to the specified bucket
+
+**Task 1: download_task**
+
+- Operator: PythonOperator.
+- Purpose: Downloads and decompresses the .csv.gz file.
+- Parameters:
+    1. csv_name_gz: Template for the compressed file name.
+    2. csv_name: Template for the decompressed file name.
+    3. url: Template for the file's URL.
+
+**Task 2: process_task**
+
+process_task
+Operator: PythonOperator.
+Purpose: Converts the downloaded CSV file to Parquet format.
+Parameter: src_file: Full path to the downloaded CSV file.
+
+**Task 3: local_to_gcs_task**
+
+- Purpose: This task uploads the Parquet file created in the previous step from the local file system to a Google Cloud Storage (GCS) bucket using a Python function (upload_to_gcs). A connection is established to GCS using the Google Cloud Storage library. The local Parquet file is uploaded to the specified bucket and folder (raw/).
+
+- Operator: PythonOperator.
+
+
+Arguments:
+
+- bucket: Name of the target GCS bucket. Defined earlier as BUCKET = "zoomcamp_datalake".
+
+- object_name: The path inside the GCS bucket where the file will be stored. The format is raw/{parquet_file}, indicating the file is stored in the raw/ folder of the bucket with the same name as the Parquet file.
+
+- local_file: The full path to the Parquet file in the local file system. Constructed as f"{path_to_local_home}/{parquet_file}", where:
+
+    1. path_to_local_home is the local working directory (e.g., /opt/airflow/).
+    2. parquet_file is the Parquet version of the downloaded and processed CSV file.
+
+Execution Flow
+
+When the task runs, it calls the upload_to_gcs function with the specified arguments.
+Inside the upload_to_gcs function:
+A connection is established to GCS using the Google Cloud Storage library.
+The local Parquet file is uploaded to the specified bucket and folder (raw/).
+
+
+**Task 4: bigquery_external_table_task**
+
+- Purpose: This task creates an external table in Google BigQuery, pointing to the Parquet file stored in GCS. External tables allow querying data directly in GCS without importing it into BigQuery's managed storage.
+
+- Operator: BigQueryCreateExternalTableOperator. A predefined operator from Airflow's Google Cloud BigQuery provider. It simplifies the process of creating external tables.
+
+Arguments:
+
+- task_id: Unique identifier for the task in the DAG, "bigquery_external_table_task".
+
+- table_resource: Defines the structure and configuration of the external table in BigQuery:
+
+    1. projectId: The GCP project ID (zoomcamp-airflow-444903).
+    2. datasetId: The dataset in BigQuery where the table will be created (zoomcamp_bigquery).
+    3. tableId: Name of the external table (external_table).
+    4. sourceFormat: Specifies the data format of the external source, here PARQUET.
+    5. sourceUris: A list of GCS URIs pointing to the Parquet files to be queried: The URI is gs://{BUCKET}/raw/{parquet_file}, where BUCKET is the name of the GCS bucket and parquet_file is the file name generated in previous steps
+
+
+The operator connects to BigQuery and creates an external table in the specified project and dataset. The table references the Parquet file stored in GCS. Once created, the table allows querying the Parquet file data directly using SQL in BigQuery    
+
+
+
+**2:** Start Airflow by using:
+```
+ docker-compose up 
+ ```
+
+ Open the Airflow dashboard and unpause the GCP_ingestion DAG
+
+ If everything its ok, Green squares with the status "success" should appear:
+
+![airflowgcp1](images/airflowgcp1.jpg)
+
+
+
+**3:** GCP
+
+Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see a new zoomcamp_bigquery database with an external_table table.
+
+
+![airflowgcp3](images/airflowgcp3.jpg)
+
+
+Click on the 3 dots next to external_table and click on Open to display the table's schema.
+
+
+![airflowgcp4](images/airflowgcp4.jpg)
