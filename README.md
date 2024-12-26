@@ -30,7 +30,13 @@ For the course you'll need:
 * Terraform
 * Setting up infrastructure on GCP with Terraform
 
-### [Module 2: Workflow Orchestration (Airflow)](2_Workflow-Orchestration-(AirFlow)/)
+### [Module 2: Workflow Orchestration (Kestra)](2_Workflow-Orchestration-(Kestra)/)
+
+* Introduction to Workflow Orchestration
+* Introduction to Kestra
+
+
+### [Legacy Module 2: Workflow Orchestration (Airflow)](2_Workflow-Orchestration-(AirFlow)/)
 
 * Data Lake vs Data Warehouse
 * ETL vs ELT
