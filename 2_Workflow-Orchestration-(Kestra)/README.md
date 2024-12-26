@@ -35,7 +35,7 @@ If your infrastructure is cloud-based, you can use your orchestrator to help pro
 
 Kestra is an orchestration platform that’s highly flexible and well-equipped to manage all types of pipelines As an example, lets set up a simple workflow to run a Python script every hour and send the result as a Discord notification.
 
-Run the following command to start up your instance:
+Run the following command to start up your instance (bash/ubuntu wsl terminal):
 
 ```
 docker run --pull=always --rm -it -p 8080:8080 --user=root \
@@ -96,7 +96,6 @@ tasks:
       - python scripts/api_example.py
 ```    
 
-Then click on save.
 
 We will explain each part step by step:
 
@@ -122,12 +121,23 @@ We will explain each part step by step:
 For Python, you can either use a Commands or Script plugin. Commands is best for executing a separate .py file whereas Script is useful if you want to write your Python directly within the task.
 
 
+Click on save button:
+
+![kestra8](images/kestra8.jpg)
+
+Then click on files in orden to create scripts folder and files:
+
+
+![kestra8](images/kestra8.jpg)
+
+
 **2: Python file**
 
 Now you’re probably wondering, how do I get my Python file into Kestra? We can use the Editor to create this file on the platform and save it in a new folder called scripts as api_example.py
 
 
 ![kestra4](images/kestra4.jpg)
+
 
 Click on create folder --> create scripts folder
 
