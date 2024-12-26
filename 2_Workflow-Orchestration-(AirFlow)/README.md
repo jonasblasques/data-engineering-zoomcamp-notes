@@ -400,12 +400,10 @@ services:
             test: ["CMD", "pg_isready", "-U", "airflow"]
             interval: 5s
             retries: 5
-        restart: always
 
     scheduler:
         build: .
         command: scheduler
-        restart: on-failure
         depends_on:
             - postgres
         env_file:
@@ -424,7 +422,6 @@ services:
     webserver:
         build: .
         entrypoint: ./scripts/entrypoint.sh
-        restart: on-failure
         depends_on:
             - postgres
             - scheduler
