@@ -154,6 +154,8 @@ gh_stars = r.json()['stargazers_count']
 print(gh_stars)
 ```
 
+Your Kestra interface should look like this:
+
 
 ![kestra5](images/kestra5.jpg)
 
@@ -177,10 +179,83 @@ Now let’s test this by saving our flow and executing it!
 **5: Logs**
 
 
-On the Logs page, we can see the output from the Python execution, including with the desired output at the end. It set ups the virtual environment, installs the dependencies inside of requirements.txt and then executes the Python script.
+On the Logs page, we can see the output from the Python execution, including with the desired output 
+at the end. It set ups the virtual environment, installs the dependencies inside of requirements.txt 
+and then executes the Python script.
 
 
 ![kestralog](images/kestralog.jpg)
 
 
+**6: Using Outputs**
 
+Great, we can see that our Python script is correctly fetching the number of stars on the GitHub 
+repository and outputting them to the console. However, we want to send the gh_stars variable back to our Kestra Flow so we can send a 
+notification with this variable. We can adjust our Python task to generate an output which we can pass 
+downstream to the next task.
+
+Firstly, we need to add kestra to the requirements.txt
+
+Then we’ll need to tweak our Python script to use the Kestra library to send the gh_stars 
+variable to our Flow:
+
+```python
+import requests
+from kestra import Kestra
+
+r = requests.get('https://api.github.com/repos/kestra-io/kestra')
+gh_stars = r.json()['stargazers_count']
+Kestra.outputs({'gh_stars': gh_stars})
+```
+
+We use kestra library to assign the gh_stars variable 
+to an gh_stars key in a dictionary which we’ll be able to access inside of Kestra.
+
+With this change made, we can add an additional task that uses this variable to print it 
+to the logs rather than mixed in with the full Python output. We can use the Log type and 
+use the following syntax to get our output: {{ outputs.task_id.vars.output_name }}. 
+As our Python task was called python_script, we can easily get our Python variable 
+using {{ outputs.python_script.vars.gh_stars }} to retrieve it.
+
+New task should look like this:
+
+```yaml
+
+- id: python_output
+  type: io.kestra.plugin.core.log.Log
+  message: "Number of stars: {{ outputs.python_script.vars.gh_stars }}"
+```
+
+And the full flow should look like this:
+
+```yaml
+id: api_example
+namespace: company.team
+tasks:
+  - id: python_script
+    type: io.kestra.plugin.scripts.python.Commands
+    namespaceFiles:
+      enabled: true
+    runner: PROCESS
+    beforeCommands:
+      - python3 -m venv .venv
+      - . .venv/bin/activate
+      - pip install -r scripts/requirements.txt
+    commands:
+      - python scripts/api_example.py
+
+  - id: python_output
+    type: io.kestra.plugin.core.log.Log
+    message: "Number of stars: {{ outputs.python_script.vars.gh_stars }}"   
+
+```
+
+
+![kestra10](images/kestra10.jpg.jpg)
+
+
+Then click on save --> Click on execute
+
+When we execute it, we should see it separated from all the Python logs for easier reading
+
+![kestra11](images/kestra11.jpg)
