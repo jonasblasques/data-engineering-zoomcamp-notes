@@ -251,7 +251,7 @@ tasks:
 ```
 
 
-![kestra10](images/kestra10.jpg.jpg)
+![kestra10](images/kestra10.jpg)
 
 
 Then click on save --> Click on execute
