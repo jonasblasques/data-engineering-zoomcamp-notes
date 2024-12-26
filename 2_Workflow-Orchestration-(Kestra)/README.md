@@ -128,7 +128,7 @@ Click on save button:
 Then click on files in orden to create scripts folder and files:
 
 
-![kestra8](images/kestra8.jpg)
+![kestra9](images/kestra9.jpg)
 
 
 **2: Python file**
