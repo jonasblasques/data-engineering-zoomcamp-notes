@@ -14,6 +14,20 @@ Think of an orchestrator a bit like an orchestra where an orchestra has multiple
 
 You probably also wondering: what's the difference between orchestration and automation? They are very similar, but orchestration is all about the bigger picture. For example, maybe you have multiple tasks running, and maybe they depend on one another. So you can make sure that certain tasks only run when other tasks are finished. If there are any errors, it can cancel other tasks, especially let you know about those as well. While automation is fantastic for scheduling singular tasks, orchestration is where you tie all of that together to make one great system.
 
+Workflow Orchestration refers to the process of organizing, managing, and automating complex workflows, where multiple tasks or processes are coordinated to achieve a specific outcome. It involves ensuring that tasks are executed in the correct order, handling dependencies between them, and managing resources or systems involved in the workflow.
+
+
+- Task Coordination: Ensuring tasks are executed in the right sequence or simultaneously, based on predefined rules or dependencies.
+
+- Automation: Automating repetitive or complex processes to reduce manual intervention.
+
+- Error Handling: Managing errors or failures in tasks, often with retry mechanisms or alternative execution paths.
+
+- Resource Management: Allocating resources (e.g., computing power, APIs, or data) to tasks as needed.
+
+- Monitoring and Reporting: Tracking the progress of workflows, identifying bottlenecks, and providing logs or reports for analysis.
+
+
 Now let's discuss a few common use cases for orchestrators so you can understand when you might want to use one in your scenario.
 
 **Data-driven environments**
