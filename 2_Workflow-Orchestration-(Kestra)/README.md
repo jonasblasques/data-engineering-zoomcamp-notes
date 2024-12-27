@@ -302,11 +302,12 @@ inputs:
 
 While we're creating inputs, we can also make our Webhook URL an input in case we want to reuse it too. 
 
-On discord:
+**Create server and webhook on discord:**
 
 create server--> Inside of server, right click and edit channel --> Integrations --> Create webhook --> copy webhook url
 
 Now we can easily make another input underneath the kestra_logo input using the same format:
+
 
 ```yaml
 inputs:
@@ -319,7 +320,7 @@ inputs:
     defaults: https://discordapp.com/api/webhooks/1234/abcd1234
 ```
 
-Change this url https://discordapp.com/api/webhooks/1234/abcd1234 with your webhook url !
+Change this url "https://discordapp.com/api/webhooks/1234/abcd1234" with your webhook url !
 
 All we need to do now is reference these inputs inside of our tasks and we should be ready to run our flow:
 
@@ -384,5 +385,82 @@ On discord:
 
 
 
+**8: Setting up a Trigger**
+
+Now that we have everything running, there's one last step we need to complete this workflow: set up a trigger 
+to execute our flow automatically! For our example, we're going to use a schedule to run it once every hour.
+
+To start with, we can use the triggers keyword underneath our tasks to specify our schedule. Similar to tasks,
+ each trigger has an id and a type. For the Schedule type, we will also need to fill in a cron property so it knows what 
+ schedule to use.
+
+ We can use crontab.guru to help us figure out what the correct cron schedule expression would be to run once
+  every hour.
+
+This cron schedule expression will execute it at minute 0 of every hour:
+
+```yaml
+
+triggers:
+  - id: hour_trigger
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: 0 * * * *
+```
+
+When we look at our topology view, we can now see our trigger has been correctly recognised. There's no further
+ actions needed to set up the trigger, it will work as soon as you've saved your flow! But it is worth noting 
+ that if you want to disable it, you can add a disabled property set to true so you don't have to delete it.
 
 
+![kestra16](images/kestra16.jpg) 
+
+
+With that configured, we now have our fully functioning flow that can make an API request to GitHub through 
+our Python script, output a value from that request to the Kestra logs as well as send it as a Discord 
+notification. And on top of that, it will automatically execute once every hour! To recap, our flow should 
+look like this:
+
+
+```yaml
+
+id: api_example
+namespace: company.team
+
+inputs:
+  - id: kestra_logo
+    type: STRING
+    defaults: https://avatars.githubusercontent.com/u/59033362?v=4
+
+  - id: discord_webhook_url
+    type: STRING
+    defaults: https://discordapp.com/api/webhooks/1234/abcd1234
+
+tasks:
+  - id: python_script
+    type: io.kestra.plugin.scripts.python.Commands
+    namespaceFiles:
+      enabled: true
+    runner: PROCESS
+    beforeCommands:
+      - python3 -m venv .venv
+      - . .venv/bin/activate
+      - pip install -r scripts/requirements.txt
+    commands:
+      - python scripts/api_example.py
+
+  - id: python_output
+    type: io.kestra.plugin.core.log.Log
+    message: "Number of stars: {{ outputs.python_script.vars.gh_stars }}"
+
+  - id: send_notification
+    type: io.kestra.plugin.notifications.discord.DiscordExecution
+    url: "{{ inputs.discord_webhook_url }}"
+    avatarUrl: "{{ inputs.kestra_logo }}"
+    username: Kestra
+    content: "Total of GitHub Stars: {{ outputs.python_script.vars.gh_stars }}"
+
+triggers:
+  - id: hour_trigger
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: 0 * * * *
+```    
