@@ -3,11 +3,12 @@
 - [1. Conceptual Material: Introduction to Orchestration and Kestra](#introduction-to-orchestration-and-kestra)
   - [Introduction to Workflow Orchestration](#introduction-to-workflow-orchestration)
   - [Introduction to Kestra](#introduction-to-kestra)
-  - [Getting_started_data_pipeline example](#getting_started_data_pipeline-example)
   - [Launch Kestra using Docker Compose](#launch-kestra-using-docker-compose)
 - [2. Hands-On Coding Project: Build Data Pipelines with Kestra](#build-data-pipelines-with-kestra)
+  - [Getting started pipeline](#getting-started-pipeline)
 
-## 1. Conceptual Material: Introduction to Orchestration and Kestra
+
+# 1. Conceptual Material: Introduction to Orchestration and Kestra
 
 ## Introduction to Workflow Orchestration
 
@@ -485,9 +486,117 @@ triggers:
 ```   
 
 
-## Getting_started_data_pipeline example
 
-Lets implement a simple pipeline that is going to run an extract task, a transform task, and a query task.
+## Launch Kestra using Docker Compose
+
+When you first jump into the documentation you'll find this quick example where you can just copy and paste
+ this and put it into your terminal, and this will spin up an instance of kestra:
+
+ ```
+docker run --pull=always --rm -it -p 8080:8080 --user=root \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /tmp:/tmp kestra/kestra:latest server local
+```
+
+Now this is great for being able to spin up Kestra really quickly and get jumped in, but it makes it a little
+bit tricky for being able to configure settings for kestra as well as have a persistent database. If you just
+create a flow and you save that, when you restart the docker container, the flow will not be there anymore.
+
+Not ideal long term, but great for being able to just play around with Kestra and get started.
+
+Now we can resolve this by adding Docker Compose to spin up both a postgres database as well as a kestra server.
+
+Lets create a docker-compose.yml file inside your 02-workflow-orchestration:
+
+```yaml
+
+volumes:
+  postgres-data:
+    driver: local
+  kestra-data:
+    driver: local
+
+services:
+  postgres:
+    image: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: kestra
+      POSTGRES_USER: kestra
+      POSTGRES_PASSWORD: kestra
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    ports:
+      - "5433:5432"
+
+  kestra:
+    image: kestra/kestra:develop
+    pull_policy: always
+    user: "root"
+    command: server standalone
+    volumes:
+      - kestra-data:/app/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/kestra-wd:/tmp/kestra-wd
+    environment:
+      KESTRA_CONFIGURATION: |
+        datasources:
+          postgres:
+            url: jdbc:postgresql://postgres:5432/kestra
+            driverClassName: org.postgresql.Driver
+            username: kestra
+            password: kestra
+        kestra:
+          server:
+            basicAuth:
+              enabled: false
+              username: "admin@kestra.io" # it must be a valid email address
+              password: kestra
+          repository:
+            type: postgres
+          storage:
+            type: local
+            local:
+              basePath: "/app/storage"
+          queue:
+            type: postgres
+          tasks:
+            tmpDir:
+              path: /tmp/kestra-wd/tmp
+          url: http://localhost:8080/
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_started
+```
+
+
+In a new terminal, go to the path where the docker-compose file is and run the following command:
+
+```
+docker-compose up -d
+```
+
+Once the container starts, you can access the Kestra UI at http://localhost:8080.
+
+
+
+# 2. Hands-On Coding Project: Build Data Pipelines with Kestra
+
+## Getting started pipeline
+
+This introductory flow is added just to demonstrate a simple data pipeline which extracts data via
+ HTTP REST API, transforms that data in Python and then queries it using DuckDB.
+
+Is going to run an extract task, a transform task, and a query task:
+
+![pipeline0](images/pipeline0.jpg) 
 
 ### 1: Create flow
 Click on Create Flow and paste the following yaml and save it:
@@ -725,6 +834,5 @@ Tasks Query --> Outputs uri --> Preview :
 
 ![pipeline7](images/pipeline7.jpg) 
 
-## Launch Kestra using Docker Compose
 
-## 2. Hands-On Coding Project: Build Data Pipelines with Kestra
+
