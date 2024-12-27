@@ -3,7 +3,7 @@
 - [1. Conceptual Material: Introduction to Orchestration and Kestra](#introduction-to-orchestration-and-kestra)
   - [Introduction to Workflow Orchestration](#introduction-to-workflow-orchestration)
   - [Introduction to Kestra](#introduction-to-kestra)
-  - [Getting_started_data_pipeline example](#pipeline-example)
+  - [Getting_started_data_pipeline example](#getting_started_data_pipeline-example)
   - [Launch Kestra using Docker Compose](#launch-kestra-using-docker-compose)
 - [2. Hands-On Coding Project: Build Data Pipelines with Kestra](#build-data-pipelines-with-kestra)
 
