@@ -160,10 +160,12 @@ You can run a containerized version of Postgres that doesn't require any install
  need to provide a few environment variables to it as well as a volume for storing data.
 
 Create a folder anywhere you'd like for Postgres to store data in. We will use the example folder
- ny_taxi_postgres_data. Here's how to run the container in yout terminal:
+ ny_taxi_postgres_data. 
+
+Run the following command to start up your instance (bash/ubuntu wsl terminal): 
 
 ```
- winpty docker run -it \
+ docker run -it \
   -e POSTGRES_USER="root2" \
   -e POSTGRES_PASSWORD="root2" \
   -e POSTGRES_DB="ny_taxi" \
@@ -172,8 +174,6 @@ Create a folder anywhere you'd like for Postgres to store data in. We will use t
   postgres:13
 ```
 
-#### Winpty
-winpty is often used to wrap a command so that it works correctly in Windows, particularly when running interactive commands (e.g., docker run -it). This is because Windows doesn't natively handle interactive input and output the same way Unix-based systems do.
 
 #### Environment variables
 The container needs 3 environment variables:
@@ -456,11 +456,13 @@ Let's create a virtual Docker network called pg-network:
 docker network create pg-network
 ```
 We will now re-run our Postgres container with the added network name and the container network name, 
-so that the pgAdmin container can find it (we'll use pg-database for the container name):
+so that the pgAdmin container can find it (we'll use pg-database for the container name).
+
+Run the following command on a bash/ubuntu wsl terminal:
 
 
 ```
- winpty docker run -it \
+ docker run -it \
   -e POSTGRES_USER="root2" \
   -e POSTGRES_PASSWORD="root2" \
   -e POSTGRES_DB="ny_taxi" \
