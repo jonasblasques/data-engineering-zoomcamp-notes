@@ -259,3 +259,130 @@ Then click on save --> Click on execute
 When we execute it, we should see it separated from all the Python logs for easier reading
 
 ![kestra11](images/kestra11.jpg)
+
+
+**7: Adding a notification**
+
+Add a task to send the output to Discord. We can do this using the topology view or YAML editor.
+
+Lets use the topology view:
+
+![kestra12](images/kestra12.jpg)
+
+
+We can press the + to add a new task
+
+We’re going to use the DiscordExecution task as this lets us push a message to a webhook which will 
+send a message to a channel.
+
+Search for DiscordExecution in type input field:
+
+![kestra13](images/kestra13.jpg)
+
+Then complete:
+- id: "send_notification"
+- url: "example.com" (we will edit this value later)
+- content: "Number of stars: {{ outputs.python_script.vars.gh_stars }}"
+
+Then save!
+
+
+For our Discord message, we will need to give this task a Webhook URL which we can get 
+from Discord. While nothing else is required, we'll change the username to be Kestra. We can also add an Avatar 
+by using the URL of the GitHub Organisation profile picture.
+
+Instead of hard coding this straight into the avatarUrl box, we can create an input:
+
+```yaml
+inputs:
+  - id: kestra_logo
+    type: STRING
+    defaults: https://avatars.githubusercontent.com/u/59033362?v=4
+```    
+
+While we're creating inputs, we can also make our Webhook URL an input in case we want to reuse it too. 
+
+On discord:
+
+create server--> Inside of server, right click and edit channel --> Integrations --> Create webhook --> copy webhook url
+
+Now we can easily make another input underneath the kestra_logo input using the same format:
+
+```yaml
+inputs:
+  - id: kestra_logo
+    type: STRING
+    defaults: https://avatars.githubusercontent.com/u/59033362?v=4
+
+  - id: discord_webhook_url
+    type: STRING
+    defaults: https://discordapp.com/api/webhooks/1234/abcd1234
+```
+
+Change this url https://discordapp.com/api/webhooks/1234/abcd1234 with your webhook url !
+
+All we need to do now is reference these inputs inside of our tasks and we should be ready to run our flow:
+
+```yaml
+- id: send_notification
+  type: io.kestra.plugin.notifications.discord.DiscordExecution
+  url: "{{ inputs.discord_webhook_url }}"
+  avatarUrl: "{{ inputs.kestra_logo }}"
+  username: Kestra
+  content: "Total of GitHub Stars: {{ outputs.python_script.vars.gh_stars }}"
+```
+
+Before we execute our flow, let's recap and check out the full flow:
+
+```yaml
+id: api_example
+namespace: company.team
+
+inputs:
+  - id: kestra_logo
+    type: STRING
+    defaults: https://avatars.githubusercontent.com/u/59033362?v=4
+
+  - id: discord_webhook_url
+    type: STRING
+    defaults: https://discordapp.com/api/webhooks/1234/abcd1234
+
+tasks:
+  - id: python_script
+    type: io.kestra.plugin.scripts.python.Commands
+    namespaceFiles:
+      enabled: true
+    runner: PROCESS
+    beforeCommands:
+      - python3 -m venv .venv
+      - . .venv/bin/activate
+      - pip install -r scripts/requirements.txt
+    commands:
+      - python scripts/api_example.py
+
+  - id: python_output
+    type: io.kestra.plugin.core.log.Log
+    message: "Number of stars: {{ outputs.python_script.vars.gh_stars }}"
+
+  - id: send_notification
+    type: io.kestra.plugin.notifications.discord.DiscordExecution
+    url: "{{ inputs.discord_webhook_url }}"
+    avatarUrl: "{{ inputs.kestra_logo }}"
+    username: Kestra
+    content: "Total of GitHub Stars: {{ outputs.python_script.vars.gh_stars }}"
+```    
+
+
+Let’s execute this and see the log:
+
+![kestra14](images/kestra14.jpg)
+
+On discord:
+
+
+![kestra15](images/kestra15.jpg)
+
+
+
+
+
