@@ -3,6 +3,7 @@
 - [1. Conceptual Material: Introduction to Orchestration and Kestra](#introduction-to-orchestration-and-kestra)
   - [Introduction to Workflow Orchestration](#introduction-to-workflow-orchestration)
   - [Introduction to Kestra](#introduction-to-kestra)
+  - [Getting_started_data_pipeline example](#pipeline-example)
   - [Launch Kestra using Docker Compose](#launch-kestra-using-docker-compose)
 - [2. Hands-On Coding Project: Build Data Pipelines with Kestra](#build-data-pipelines-with-kestra)
 
@@ -483,6 +484,243 @@ triggers:
     cron: 0 * * * *
 ```   
 
+
+## Getting_started_data_pipeline example
+
+Lets implement a simple pipeline that is going to run an extract task, a transform task, and a query task.
+
+### 1: Create flow
+Click on Create Flow and paste the following yaml and save it:
+
+```yaml
+
+id: 01_getting_started_data_pipeline
+namespace: zoomcamp
+
+inputs:
+  - id: columns_to_keep
+    type: ARRAY
+    itemType: STRING
+    defaults:
+      - brand
+      - price
+
+tasks:
+  - id: extract
+    type: io.kestra.plugin.core.http.Download
+    uri: https://dummyjson.com/products
+
+  - id: transform
+    type: io.kestra.plugin.scripts.python.Commands
+    inputFiles:
+      data.json: "{{outputs.extract.uri}}"
+    outputFiles:
+      - "*.json"
+    env:
+      COLUMNS_TO_KEEP: "{{inputs.columns_to_keep}}"
+    namespaceFiles:
+      enabled: true
+    runner: PROCESS
+    beforeCommands:
+      - python3 -m venv .venv
+      - . .venv/bin/activate
+    commands:
+      - python scripts/script.py
+
+  - id: query
+    type: io.kestra.plugin.jdbc.duckdb.Query
+    inputFiles:
+      products.json: "{{outputs.transform.outputFiles['products.json']}}"
+    sql: |
+      INSTALL json;
+      LOAD json;
+      SELECT brand, round(avg(price), 2) as avg_price
+      FROM read_json_auto('{{workingDir}}/products.json')
+      GROUP BY brand
+      ORDER BY avg_price DESC;
+    fetchType: STORE
+```    
+
+
+Note: the original flow uses a container inside the kestra container for the python script task ( containerImage: python:3.11-alpine). But due to some bugs I decided to run the python script inside kestra as in the previous example
+
+![pipeline1](images/pipeline1.jpg) 
+
+
+**Id and namespace**
+
+To begin with, here we have the ID, which is the name of our workflow. Followed by that, we have the namespace, which is sort of like a folder where we're going to store this. 
+
+```yaml
+
+id: 01_getting_started_data_pipeline
+namespace: zoomcamp
+```
+
+**Inputs**
+
+Following that, we have inputs, which are values we can pass in at the start of our workflow execution to then be able to define what happens. Now this one's looking for an array with two values inside of it, in this case, brand and price, which are default. But if you press execution, you can actually change what these values will be so that we can get different results for different executions.
+
+The flow accepts a single input, an array of strings that specifies which columns to retain when processing the data:
+
+```yaml
+inputs:
+  - id: columns_to_keep
+    type: ARRAY
+    itemType: STRING
+    defaults:
+      - brand
+      - price
+```      
+
+**Task 1: Extract**
+
+Afterwards, we've got our tasks, and as you can see here, the first task is going to extract data.
+
+Downloads a JSON dataset from the URL https://dummyjson.com/products
+
+The downloaded file's URI is accessible in subsequent tasks using {{outputs.extract.uri}}.
+
+```yaml
+tasks:
+  - id: extract
+    type: io.kestra.plugin.core.http.Download
+    uri: https://dummyjson.com/products
+
+```  
+
+**Task 2: Transform**
+
+Following that, we've got a Python script. We're getting that value from the first task and passing it to the next task as an input file so we can then start to process the data inside of it.
+
+in the Python code we're starting to transform the data to produce a new file, which is called products.json. Afterwards, we can then pass products.json to our query task
+
+
+- Takes the JSON file downloaded in the previous task (data.json).
+- Sets COLUMNS_TO_KEEP from the input columns_to_keep
+- Reads the data.json file
+- Extracts only the specified columns (brand and price by default) for each product.
+- Saves the transformed data to products.json.
+
+
+task 2:
+
+```yaml
+tasks:
+
+  - id: transform
+    type: io.kestra.plugin.scripts.python.Commands
+    inputFiles:
+      data.json: "{{outputs.extract.uri}}"
+    outputFiles:
+      - "*.json"
+    env:
+      COLUMNS_TO_KEEP: "{{inputs.columns_to_keep}}"
+    namespaceFiles:
+      enabled: true
+    runner: PROCESS
+    beforeCommands:
+      - python3 -m venv .venv
+      - . .venv/bin/activate
+    commands:
+      - python scripts/script.py
+```     
+
+
+Click on create folder --> create scripts folder
+
+Inside scripts folder create a script.py file
+
+Python code should look like this:
+
+```python
+import json
+import os
+
+# Load the columns to keep from the environment variable
+columns_to_keep_str = os.getenv("COLUMNS_TO_KEEP")
+columns_to_keep = json.loads(columns_to_keep_str)
+
+# Read the input JSON data
+with open("data.json", "r") as file:
+    data = json.load(file)
+
+# Filter data to retain specified columns
+filtered_data = [
+    {column: product.get(column, "N/A") for column in columns_to_keep}
+    for product in data["products"]
+]
+
+# Write the filtered data to a new JSON file
+with open("products.json", "w") as file:
+    json.dump(filtered_data, file, indent=4)
+
+```
+
+
+Your interface should look like this:
+
+![pipeline3](images/pipeline3.jpg) 
+     
+
+
+**Task 3: Query**
+
+- Input Data: Reads the products.json file output from the transform task.
+- Installs and loads DuckDB's JSON extension (INSTALL json; LOAD json;).
+- Reads the products.json file and processes the data: Calculates the average price (avg_price) for 
+each brand. Groups the results by brand. Orders the results in descending order of avg_price.
+- fetchType: STORE: It saves the results of the SQL query to a file. This allows the results to be used by subsequent tasks in the flow
+
+
+```yaml
+tasks:
+
+  - id: query
+    type: io.kestra.plugin.jdbc.duckdb.Query
+    inputFiles:
+      products.json: "{{outputs.transform.outputFiles['products.json']}}"
+    sql: |
+      INSTALL json;
+      LOAD json;
+      SELECT brand, round(avg(price), 2) as avg_price
+      FROM read_json_auto('{{workingDir}}/products.json')
+      GROUP BY brand
+      ORDER BY avg_price DESC;
+    fetchType: STORE
+```    
+
+### 2: Execute
+
+We get this wonderful Gantt view that helps us visualize which task has run when and at what point the workflow is at. If I click into these, it gives me some log messages
+
+
+![pipeline2](images/pipeline2.jpg) 
+
+
+If you go to the outputs tab now, I will be able to view some of the data generated for the different tasks.
+
+![pipeline4](images/pipeline4.jpg) 
+
+
+Click on preview:
+
+![pipeline5](images/pipeline5.jpg) 
+
+We can see we’ve got the JSON that was extracted at the beginning. There’s a lot of data here that is not very useful to us in its current form
+
+Then transform task also produced some data. I can see that we’ve got a JSON file here with products.json and another one called data.json. For example this is the preview from products.json:
+
+
+![pipeline6](images/pipeline6.jpg) 
+
+
+Then finally, we have the query, and here is where we get a table with the data in a much more organized, sorted format. It’s much more useful to us than that original JSON value. We can then download this or pass it to another task
+
+Tasks Query --> Outputs uri --> Preview :
+
+
+![pipeline7](images/pipeline7.jpg) 
 
 ## Launch Kestra using Docker Compose
 
