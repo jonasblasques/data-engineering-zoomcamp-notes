@@ -541,8 +541,11 @@ tasks:
     fetchType: STORE
 ```    
 
+> [!NOTE]  
+>Note: the original flow uses a container inside the kestra container for the python script task ( containerImage: python:3.11-alpine). But due to some bugs I decided to run the python script inside kestra as in the previous example
+---
 
-Note: the original flow uses a container inside the kestra container for the python script task ( containerImage: python:3.11-alpine). But due to some bugs I decided to run the python script inside kestra as in the previous example
+
 
 ![pipeline1](images/pipeline1.jpg) 
 
