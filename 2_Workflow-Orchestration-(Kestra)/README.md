@@ -620,21 +620,31 @@ tasks:
     uri: https://dummyjson.com/products
 
   - id: transform
-    type: io.kestra.plugin.scripts.python.Commands
+    type: io.kestra.plugin.scripts.python.Script
+    containerImage: python:3.11-alpine
     inputFiles:
       data.json: "{{outputs.extract.uri}}"
     outputFiles:
       - "*.json"
     env:
       COLUMNS_TO_KEEP: "{{inputs.columns_to_keep}}"
-    namespaceFiles:
-      enabled: true
-    runner: PROCESS
-    beforeCommands:
-      - python3 -m venv .venv
-      - . .venv/bin/activate
-    commands:
-      - python scripts/script.py
+    script: |
+      import json
+      import os
+
+      columns_to_keep_str = os.getenv("COLUMNS_TO_KEEP")
+      columns_to_keep = json.loads(columns_to_keep_str)
+
+      with open("data.json", "r") as file:
+          data = json.load(file)
+
+      filtered_data = [
+          {column: product.get(column, "N/A") for column in columns_to_keep}
+          for product in data["products"]
+      ]
+
+      with open("products.json", "w") as file:
+          json.dump(filtered_data, file, indent=4)
 
   - id: query
     type: io.kestra.plugin.jdbc.duckdb.Query
@@ -650,13 +660,7 @@ tasks:
     fetchType: STORE
 ```    
 
-> [!NOTE]  
->The original flow uses a container inside the kestra container for the python script task ( containerImage: python:3.11-alpine). But due to some bugs I decided to run the python script inside kestra as in the previous example
----
-
-
-
-![pipeline1](images/pipeline1.jpg) 
+### Step-by-step explanation of the flow:
 
 
 **Id and namespace**
@@ -703,16 +707,7 @@ tasks:
 
 **Task 2: Transform**
 
-Following that, we've got a Python script. We're getting that value from the first task and passing it to the next task as an input file so we can then start to process the data inside of it.
-
 in the Python code we're starting to transform the data to produce a new file, which is called products.json. Afterwards, we can then pass products.json to our query task
-
-
-- Takes the JSON file downloaded in the previous task (data.json).
-- Sets COLUMNS_TO_KEEP from the input columns_to_keep
-- Reads the data.json file
-- Extracts only the specified columns (brand and price by default) for each product.
-- Saves the transformed data to products.json.
 
 
 task 2:
@@ -721,29 +716,45 @@ task 2:
 tasks:
 
   - id: transform
-    type: io.kestra.plugin.scripts.python.Commands
+    type: io.kestra.plugin.scripts.python.Script
+    containerImage: python:3.11-alpine
     inputFiles:
       data.json: "{{outputs.extract.uri}}"
     outputFiles:
       - "*.json"
     env:
       COLUMNS_TO_KEEP: "{{inputs.columns_to_keep}}"
-    namespaceFiles:
-      enabled: true
-    runner: PROCESS
-    beforeCommands:
-      - python3 -m venv .venv
-      - . .venv/bin/activate
-    commands:
-      - python scripts/script.py
+    script: |
+      import json
+      import os
+
+      columns_to_keep_str = os.getenv("COLUMNS_TO_KEEP")
+      columns_to_keep = json.loads(columns_to_keep_str)
+
+      with open("data.json", "r") as file:
+          data = json.load(file)
+
+      filtered_data = [
+          {column: product.get(column, "N/A") for column in columns_to_keep}
+          for product in data["products"]
+      ]
+
+      with open("products.json", "w") as file:
+          json.dump(filtered_data, file, indent=4)
 ```     
 
+- Environment: Runs a Python script in a container using the python:3.11-alpine image
+- Takes the JSON file downloaded in the previous task (data.json).
+- Sets COLUMNS_TO_KEEP from the input columns_to_keep
+- Reads the data.json file
+- Extracts only the specified columns (brand and price by default) for each product.
+- Saves the transformed data to products.json.
+- Outputs the filtered JSON file as products.json.
 
-Click on create folder --> create scripts folder
 
-Inside scripts folder create a script.py file
+Python code is directly inside of our workflow, but we can also use Python code in separate files using the command task too as in previous example
 
-Python code should look like this:
+Python script explanation:
 
 ```python
 import json
@@ -769,11 +780,6 @@ with open("products.json", "w") as file:
 
 ```
 
-
-Your interface should look like this:
-
-![pipeline3](images/pipeline3.jpg) 
-     
 
 
 **Task 3: Query**
