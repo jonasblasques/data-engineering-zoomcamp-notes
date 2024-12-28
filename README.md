@@ -34,9 +34,15 @@ For the course you'll need:
 
 * Introduction to Workflow Orchestration
 * Introduction to Kestra
+* Launch Kestra using Docker Compose
+* ETL Pipelines: Load Data to Local Postgres
+* ETL Pipelines: Load Data to Google Cloud Platform (GCP)
 
 
-### [Legacy Module 2: Workflow Orchestration (Airflow)](2_Workflow-Orchestration-(AirFlow)/)
+
+## Legacy:
+
+### [Module 2: Workflow Orchestration (Airflow)](2_Workflow-Orchestration-(AirFlow)/)
 
 * Data Lake vs Data Warehouse
 * ETL vs ELT
