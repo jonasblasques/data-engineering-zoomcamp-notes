@@ -4,7 +4,7 @@
   - [Introduction to Workflow Orchestration](#introduction-to-workflow-orchestration)
   - [Introduction to Kestra](#introduction-to-kestra)
   - [Launch Kestra using Docker Compose](#launch-kestra-using-docker-compose)
-- [2. Hands-On Coding Project: Build Data Pipelines with Kestra](#2.-hands-on-coding-project:-build-data pipelines-with-kestra)
+- [2. Hands-On Coding Project: Build Data Pipelines with Kestra](##2-hands-on-coding-project-build-data-pipelines-with-kestra)
   - [Getting started pipeline](#getting-started-pipeline)
 
 
