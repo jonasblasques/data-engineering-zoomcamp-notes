@@ -24,7 +24,7 @@ inputs:
 
 variables:
   file: "{{inputs.taxi}}_tripdata_{{inputs.year}}-{{inputs.month}}.csv"
-  table: "public.{{inputs.taxi}}_tripdata_{{inputs.year}}_{{inputs.month}}"
+  table: "public.{{inputs.taxi}}_tripdata_temp"
   final_table: "public.{{inputs.taxi}}_tripdata"
   data: "{{outputs.extract.outputFiles[inputs.taxi ~ '_tripdata_' ~ inputs.year ~ '-' ~ inputs.month ~ '.csv']}}"
 
