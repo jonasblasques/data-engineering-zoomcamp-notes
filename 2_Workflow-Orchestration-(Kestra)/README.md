@@ -6,6 +6,8 @@
   - [Launch Kestra using Docker Compose](#launch-kestra-using-docker-compose)
 - [2. Hands-On Coding Project: Build Data Pipelines with Kestra](#2-hands-on-coding-project-build-data-pipelines-with-kestra)
   - [Getting started pipeline](#getting-started-pipeline)
+  - [ETL Pipelines: Load Data to Local Postgres](#etl-pipelines-load-data-to-local-postgres)
+
 
 
 # 1. Conceptual Material: Introduction to Orchestration and Kestra
@@ -574,8 +576,27 @@ services:
     depends_on:
       postgres:
         condition: service_started
+
+
+  
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=root
+    volumes:
+      - "./data_pgadmin:/var/lib/pgadmin"
+    ports:
+      - "8090:80"
+    depends_on:
+      - postgres      
 ```
 
+
+> [!NOTE]  
+I added the pgadmin service myself, it is optional but recommended to interact with the database
+
+---
 
 In a new terminal, go to the path where the docker-compose file is and run the following command:
 
@@ -583,7 +604,19 @@ In a new terminal, go to the path where the docker-compose file is and run the f
 docker-compose up -d
 ```
 
-Once the container starts, you can access the Kestra UI at http://localhost:8080.
+Once the container starts, you can access the Kestra UI at http://localhost:8080 and the pgadmin web 
+in http://localhost:8090
+
+To connect pgadmin with the kestra db: Right-click on Servers on the left sidebar --> Register--> Server
+
+Under General give the Server a name: kestra taxi
+
+Under Connection add:
+
+- host name: postgres
+- port:5432 
+- user:kestra
+- password:kestra
 
 
 
@@ -842,3 +875,6 @@ Tasks Query --> Outputs uri --> Preview :
 
 
 
+## ETL Pipelines: Load Data to Local Postgres
+
+We will use the CSV files accessible here: https://github.com/DataTalksClub/nyc-tlc-data/releases
