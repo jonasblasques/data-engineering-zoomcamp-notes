@@ -6,7 +6,8 @@
   - [Launch Kestra using Docker Compose](#launch-kestra-using-docker-compose)
 - [2. Hands-On Coding Project: Build Data Pipelines with Kestra](#2-hands-on-coding-project-build-data-pipelines-with-kestra)
   - [Getting started pipeline](#getting-started-pipeline)
-  - [ETL Pipelines: Load Data to Local Postgres](#etl-pipelines-load-data-to-local-postgres)
+  - [Load Data to Local Postgres](#load-data-to-local-postgres)
+  - [Load Data to Local Postgres with backfill](#load-data-to-local-postgres-with-backfill)
 
 
 
@@ -875,7 +876,7 @@ Tasks Query --> Outputs uri --> Preview :
 
 
 
-## ETL Pipelines: Load Data to Local Postgres
+## Load Data to Local Postgres
 
 - CSV files accessible here: https://github.com/DataTalksClub/nyc-tlc-data/releases
 - Flow code: flows/02_postgres_taxi.yaml
@@ -1023,3 +1024,48 @@ final table looks like this:
 ![local2](images/local4.jpg) 
 
 
+## Load Data to Local Postgres with backfill
+
+- Flow code: flows/02_postgres_taxi_scheduled.yaml
+
+Backfill is the process of running a workflow or data pipeline for historical data that wasn't processed when it originally occurred. It involves replaying or processing past data to ensure the dataset is complete and up to date.
+
+Now we can start using schedules and backfills to automate our pipeline. All we need here is an input for the type of taxi. Previously, we had the month and the year to go with that too. We don't need that this time because we're going to use the trigger to automatically add that.
+
+**concurrency**
+
+```yaml
+concurrency:
+    limit: 1
+```
+
+It's worth noting that we need to run these one at a time because we only have one staging table here meaning we can only run one execution of this workflow at a time to prevent multiple flows from writing different months to the same staging table. If we want to run multiple months at a time, we should create staging tables for each of the months. 
+
+
+**Triggers: green_schedule**
+
+- Cron Expression: "0 9 1 * *": Runs at 9:00 AM on the first day of every month.
+-  Initiates the workflow to process monthly data for green taxis at the scheduled time.
+
+**Triggers: yellow_schedule**
+
+- Cron Expression: "0 10 1 * *": Runs at 10:00 AM on the first day of every month.
+- Initiates the workflow to process monthly data for yellow taxis at the scheduled time.
+
+
+**Execute!**
+
+Select triggers --> Backfill executions
+
+Lets try with this example:
+
+![local5](images/local5.jpg) 
+
+
+Select executions
+
+![local6](images/local6.jpg) 
+
+Head over to pgadmin, final table looks like this:
+
+![local7](images/local7.jpg) 
