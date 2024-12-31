@@ -626,6 +626,8 @@ Under Connection add:
 
 ## Getting started pipeline
 
+Flow: [`01_getting_started_data_pipeline.yaml`](flows/01_getting_started_data_pipeline.yaml)
+
 This introductory flow is added just to demonstrate a simple data pipeline which extracts data via
  HTTP REST API, transforms that data in Python and then queries it using DuckDB.
 
@@ -880,7 +882,18 @@ Tasks Query --> Outputs uri --> Preview :
 ## Load Data to Local Postgres
 
 - CSV files accessible here: https://github.com/DataTalksClub/nyc-tlc-data/releases
-- Flow code: flows/02_postgres_taxi.yaml
+- Flow: [`02_postgres_taxi.yaml`](flows/02_postgres_taxi.yaml)
+
+> [!NOTE]  
+> slightly modify the flow. Use table: "public.{{inputs.taxi}}_tripdata_temp" instead of table: "public.{{inputs.
+> taxi}}_tripdata_{{inputs.year}}_{{inputs.month}}" to avoid generating multiple temporary tables
+
+> Also add this task at the end: 
+> - id: purge_files
+>   type: io.kestra.plugin.core.storage.PurgeCurrentExecutionFiles
+>   description: To avoid cluttering your storage, we will remove the downloaded files
+
+---
 
 To keep things simple, we'll use the same database as the one we set up for Kestra in Docker Compose.
 
