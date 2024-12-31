@@ -1308,12 +1308,12 @@ We can now schedule the same pipeline shown above to run at 9:00 AM on the first
 
 Access the Kestra UI --> Select triggers --> Backfill executions
 
-Lets load all 2019 data from Green Taxi:
+Lets load all data from Green Taxi:
 
-Start date: 2018-12-31 00:00:00
-End date: 2019-12-31 00:00:00
+- Start date: 2018-12-31 00:00:00
+- End date: 2021-07-31 00:00:00
 
-If everything was executed correctly, you should have all the 2019 data for Green Taxi loaded in BigQuery in the green_tripdata table
+If everything was executed correctly, you should have all the 2019-2020-2021 data for Green Taxi loaded in BigQuery in the green_tripdata table
 
 Head over to GCP, green_tripdata table should looks like this:
 <br><br>
