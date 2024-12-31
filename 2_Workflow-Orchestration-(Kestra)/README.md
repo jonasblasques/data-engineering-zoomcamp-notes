@@ -1099,14 +1099,14 @@ Adjust the following flow [`04_gcp_kv.yaml`](flows/04_gcp_kv.yaml), then execute
 ---
 > [!NOTE]  
 >Make sure the location of your resources in GCP matches the location of the flow
-
-  ```yaml
-    - id: gcp_location
-    type: io.kestra.plugin.core.kv.Set
-    key: GCP_LOCATION
-    kvType: STRING
-    value: US
-  ```  
+>
+>  ```yaml
+>    - id: gcp_location
+>    type: io.kestra.plugin.core.kv.Set
+>    key: GCP_LOCATION
+>    kvType: STRING
+>    value: US
+>  ```  
 
 ---
 
@@ -1120,3 +1120,18 @@ Should look like this:
 
 **2: Execute flow**
 
+Lets try [`06_gcp_taxi.yaml`](flows/06_gcp_taxi.yaml) with inputs green, year 2019 and month 07.
+
+If the flow was executed correctly, the Gantt chart should look like this:
+
+![gpp1](images/gpp1.jpg) 
+
+<br>
+Your bucket should look like this:
+
+![gpp2](images/gpp2.jpg) 
+<br>
+And BigQuery should look like this:
+
+![gpp3](images/gpp3.jpg) 
+<br>
