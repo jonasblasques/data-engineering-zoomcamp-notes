@@ -17,6 +17,8 @@
 
 ## Introduction to Workflow Orchestration
 
+_([Video source](https://www.youtube.com/watch?v=ZV6CPZDiJFA))_
+
 Think of an orchestrator a bit like an orchestra where an orchestra has multiple different instruments and they all need to come together in unison. Now, instead of those instruments, think of those as maybe tasks, different pipelines, microservices, etc. That's where an orchestrator comes in to tie all of those together and make sure they can work in unison. 
 
 You probably also wondering: what's the difference between orchestration and automation? They are very similar, but orchestration is all about the bigger picture. For example, maybe you have multiple tasks running, and maybe they depend on one another. So you can make sure that certain tasks only run when other tasks are finished. If there are any errors, it can cancel other tasks, especially let you know about those as well. While automation is fantastic for scheduling singular tasks, orchestration is where you tie all of that together to make one great system.
@@ -57,6 +59,8 @@ If your infrastructure is cloud-based, you can use your orchestrator to help pro
 
 
 ## Introduction to Kestra
+
+_([Video source](https://www.youtube.com/watch?v=a2BZ7vOihjg))_
 
 Kestra is an orchestration platform that’s highly flexible and well-equipped to manage all types of pipelines As an example, lets set up a simple workflow to run a Python script every hour and send the result as a Discord notification.
 
@@ -494,6 +498,8 @@ triggers:
 
 ## Launch Kestra using Docker Compose
 
+_([Video source](https://www.youtube.com/watch?v=SGL8ywf3OJQ))_
+
 When you first jump into the documentation you'll find this quick example where you can just copy and paste
  this and put it into your terminal, and this will spin up an instance of kestra:
 
@@ -626,6 +632,8 @@ Under Connection add:
 # 2. Hands-On Coding Project: Build Data Pipelines with Kestra
 
 ## Getting started pipeline
+
+_([Video source](https://www.youtube.com/watch?v=Np6QmmcgLCs))_
 
 Flow: [`01_getting_started_data_pipeline.yaml`](flows/01_getting_started_data_pipeline.yaml)
 
@@ -881,6 +889,8 @@ Tasks Query --> Outputs uri --> Preview :
 
 
 ## Load Data to Local Postgres
+
+_([Video source](https://www.youtube.com/watch?v=OkfLX28Ecjg))_
 
 - CSV files accessible here: https://github.com/DataTalksClub/nyc-tlc-data/releases
 - Flow: [`02_postgres_taxi.yaml`](flows/02_postgres_taxi.yaml)
@@ -1153,6 +1163,8 @@ final table looks like this:
 
 
 ## Load Data to Local Postgres with backfill
+
+_([Video source](https://www.youtube.com/watch?v=_-li_z97zog))_
 
 - Flow: [`02_postgres_taxi_scheduled.yaml`](flows/02_postgres_taxi_scheduled.yaml)
 
