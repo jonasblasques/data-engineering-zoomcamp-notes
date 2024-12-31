@@ -1096,10 +1096,27 @@ Adjust the following flow [`04_gcp_kv.yaml`](flows/04_gcp_kv.yaml), then execute
 > [!WARNING]  
 > The `GCP_CREDS` service account contains sensitive information. Ensure you keep it secure and do not commit it to Git. Keep it as secure as your passwords.
 
+---
+> [!NOTE]  
+>Make sure the location of your resources in GCP matches the location of the flow
+
+  ```yaml
+    - id: gcp_location
+    type: io.kestra.plugin.core.kv.Set
+    key: GCP_LOCATION
+    kvType: STRING
+    value: US
+  ```  
+
+---
+
 
 After the execution of 04_gcp_kv, go to Namespaces --> KV Store
 
 Should look like this:
 
 ![kvstore](images/kvstore.jpg) 
+
+
+**2: Execute flow**
 
