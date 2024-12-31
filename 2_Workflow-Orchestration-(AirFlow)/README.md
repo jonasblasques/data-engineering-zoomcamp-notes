@@ -1124,7 +1124,7 @@ Since the 2022 cohort, airflow has been updated from version 2.2.3 to 2.10.4
 
 Apache Airflow has undergone significant enhancements between versions 2.2.3 and 2.10.4. Below is an overview of the key changes introduced in each major release during this period:
 
--Apache Airflow 2.3.0: Introduced the concept of Datasets, enabling data-aware scheduling of DAGs.
+- Apache Airflow 2.3.0: Introduced the concept of Datasets, enabling data-aware scheduling of DAGs.
 - Apache Airflow 2.4.0: Improved scheduler performance and scalability. Introduced a new scheduler UI for better monitoring
 - Apache Airflow 2.5.0: Enhanced the TaskFlow API for better PythonOperator support. Improved logging capabilities for better traceability.
 - Apache Airflow 2.6.0: Enhanced the Kubernetes Executor for better resource management. Introduced new features in the web UI for better user experience.
@@ -1133,7 +1133,7 @@ Apache Airflow has undergone significant enhancements between versions 2.2.3 and
 - Apache Airflow 2.9.0: Enabled MySQL KEDA support for the triggerer. Added support for AWS Executors.
 
 
-**1: ** Create a new Dockerfile. Should look like:
+**1:** Create a new Dockerfile. Should look like:
 
 ```dockerfile
 
@@ -1200,7 +1200,7 @@ Username: airflow
 Password: airflow 
 ```
 
-**5:** Database error. Make database migrations
+**6:** Database error. Make database migrations
 
 Airflow database migrations may not have run successfully. You need to make sure that your Airflow tables are properly created and updated. Run the following command to initialize or update the database:
 
@@ -1211,7 +1211,7 @@ When you set up Airflow for the first time or when you upgrade to a new version,
 The airflow db upgrade command ensures that the database is configured and ready for use, allowing Airflow to operate stably.    
 
 
-**6:** Prepare postgres
+**7:** Prepare postgres
 
  On a separate terminal, find out which virtual network it's running on with:
  
@@ -1219,7 +1219,7 @@ The airflow db upgrade command ensures that the database is configured and ready
 docker network ls:
 ```
 
-**6:**  We will use this docker-compose-lesson1.yaml file:
+**8:**  We will use this docker-compose-lesson1.yaml file:
 
 ```dockerfile
 
@@ -1245,7 +1245,7 @@ networks:
     name: airflow2025_default
 ```    
 
-**7:** Run Postgres: 
+**9:** Run Postgres: 
 
 Make sure to execute the docker-compose command in the database_ny_taxi2025 directory:
 
@@ -1253,18 +1253,18 @@ Make sure to execute the docker-compose command in the database_ny_taxi2025 dire
     docker-compose -f docker-compose-lesson1.yaml up
 ```
 
-**8:** Once the container is running, we can log into our database with the following command:
+**10:** Once the container is running, we can log into our database with the following command:
 ```
     pgcli -h localhost -p 5433 -u root2 -d ny_taxi
 ```
 
-**9:** Open the Airflow dashboard and unpause the yellow_taxi_ingestion_v4 DAG:
+**11:** Open the Airflow dashboard and unpause the yellow_taxi_ingestion_v4 DAG:
 
 After executing, should look like this:
 
 ![airflownew1](images/airflownew1.jpg)
 
-**10:** Check tables on your local Postgres database:
+**12:** Check tables on your local Postgres database:
 
 It should print:
 

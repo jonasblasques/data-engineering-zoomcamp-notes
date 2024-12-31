@@ -51,3 +51,4 @@ For the course you'll need:
 * Setting up Airflow with Docker
 * Ingesting data to local Postgres with Airflow
 * Ingesting data to GCP with Airflow
+* Airflow 2025
