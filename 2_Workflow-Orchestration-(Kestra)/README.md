@@ -8,6 +8,7 @@
   - [Getting started pipeline](#getting-started-pipeline)
   - [Load Data to Local Postgres](#load-data-to-local-postgres)
   - [Load Data to Local Postgres with backfill](#load-data-to-local-postgres-with-backfill)
+  - [Load Data to GCP](#load-data-to-gcp)
 
 
 
@@ -1069,3 +1070,36 @@ Select executions
 Head over to pgadmin, final table looks like this:
 
 ![local7](images/local7.jpg) 
+
+
+## Load Data to GCP
+
+Now that you've learned how to build ETL pipelines locally using Postgres, we are ready to move to the cloud. In this section, we'll load the same Yellow and Green Taxi data to Google Cloud Platform (GCP) using:
+
+- Google Cloud Storage (GCS) as a data lake
+- BigQuery as a data warehouse.
+
+**1: KV Store**
+
+Before we start loading data to GCP, we need to include your service account, GCP project ID, BigQuery dataset and GCS bucket name (along with their location) as KV Store values.
+
+In Kestra, a KV Store (Key-Value Store) is a storage system used to persist data as key-value pairs making it ideal for storing and retrieving data efficiently during workflows. Data is stored in pairs, where:
+
+- Key: Acts as a unique identifier.
+- Value: Contains the data associated with the key.
+
+KV Store its a great way for being able to store data that doesn't change very often but you want to access it between a number of different flows.
+
+Adjust the following flow [`04_gcp_kv.yaml`](flows/04_gcp_kv.yaml), then execute it in kestra in order to include your service account, GCP project ID, BigQuery dataset and GCS bucket name as KV Store values.
+
+
+> [!WARNING]  
+> The `GCP_CREDS` service account contains sensitive information. Ensure you keep it secure and do not commit it to Git. Keep it as secure as your passwords.
+
+
+After the execution of 04_gcp_kv, go to Namespaces --> KV Store
+
+Should look like this:
+
+![kvstore](images/kvstore.jpg) 
+
