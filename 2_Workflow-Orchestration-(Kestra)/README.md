@@ -1182,30 +1182,74 @@ And BigQuery should look like this:
 
 #### Variables
 
-- **file: "{{inputs.taxi}}_tripdata_{{inputs.year}}-{{inputs.month}}.csv":** This variable creates a file name. The result will be a string like "yellow_tripdata_2024-12.csv"
+```yaml
+variables:
+  file: "{{inputs.taxi}}_tripdata_{{inputs.year}}-{{inputs.month}}.csv"
+  gcs_file: "gs://{{kv('GCP_BUCKET_NAME')}}/{{vars.file}}"
+  table: "{{kv('GCP_DATASET')}}.{{inputs.taxi}}_tripdata_{{inputs.year}}_{{inputs.month}}"
+  data: "{{outputs.extract.outputFiles[inputs.taxi ~ '_tripdata_' ~ inputs.year ~ '-' ~ inputs.month ~ '.csv']}}"
+```  
 
-- **gcs_file: "gs://{{kv('GCP_BUCKET_NAME')}}/{{vars.file}}":** This variable specifies the destination path in Google Cloud Storage (GCS) for the file. kv('GCP_BUCKET_NAME'): This fetches the name of the GCS bucket from a key-value store. vars.file: This refers to the previously defined file variable, which contains the dynamically generated file name. The result will be a GCS path like "gs://my-bucket/yellow_tripdata_2024-12.csv"
+- **file:** This variable creates a file name. The result will be a string like "yellow_tripdata_2024-12.csv"
 
-- **table: "{{kv('GCP_DATASET')}}.{{inputs.taxi}}_tripdata_{{inputs.year}}_{{inputs.month}}":** This variable creates a reference to a dataset and table in Google BigQuery. kv('GCP_DATASET'): This fetches the dataset name from the key-value store. The result might look like "zoomcamp.yellow_tripdata_2024_12", which points to a specific table in BigQuery.
+- **gcs_file:** This variable specifies the destination path in Google Cloud Storage (GCS) for the file. 
+  - kv('GCP_BUCKET_NAME'): This fetches the name of the GCS bucket from a key-value store. 
+  - vars.file: This refers to the previously defined file variable, which contains the dynamically generated file name. 
+  - The result will be a GCS path like "gs://my-bucket/yellow_tripdata_2024-12.csv"
 
-- **data: "{{outputs.extract.outputFiles[inputs.taxi ~ '_tripdata_' ~ inputs.year ~ '-' ~ inputs.month ~ '.csv']}}":**
-outputs.extract.outputFiles: This accesses the output of a task named extract and looks for the file that matches the name generated dynamically. The result is a reference to the actual file that was extracted, like "yellow_tripdata_2024-12.csv".
+- **table:** This variable creates a reference to a dataset and table in Google BigQuery. 
+  - kv('GCP_DATASET'): This fetches the dataset name from the key-value store. 
+  - The result might look like "zoomcamp.yellow_tripdata_2024_12", which points to a specific table in BigQuery.
+
+- **data:**
+  - outputs.extract.outputFiles: This accesses the output of a task named extract and looks for the file that matches the name generated dynamically. 
+  - The result is a reference to the actual file that was extracted, like "yellow_tripdata_2024-12.csv".
+
 <br><br>
 
 #### Task: upload_to_gcs
 
+```yaml
+  - id: upload_to_gcs
+    type: io.kestra.plugin.gcp.gcs.Upload
+    from: "{{render(vars.data)}}"
+    to: "{{render(vars.gcs_file)}}"
+```    
+
 This part defines a task that uploads a file to Google Cloud Storage (GCS)
 
-- **type: io.kestra.plugin.gcp.gcs.Upload:** This defines the type of task or plugin being used. This plugin facilitates uploading files from a source to a Google Cloud Storage bucket
+- **type:** This defines the type of task or plugin being used. This plugin facilitates uploading files from a source to a Google Cloud Storage bucket
 
-- **from: "{{render(vars.data)}}":** The data variable references the file extracted from the previous step in the workflow.
+- **from:** The data variable references the file extracted from the previous extract task in the workflow.
 
-- **to: "{{render(vars.gcs_file)}}":** This specifies the destination path in Google Cloud Storage (GCS) where the file will be uploaded.
+- **to:** This specifies the destination path in Google Cloud Storage (GCS) where the file will be uploaded.
 
 
 #### Task: bq_green_tripdata/bq_yellow_tripdata
 
+The bq_green_tripdata/bq_yellow_tripdata task ensures that a BigQuery table with the correct schema and configurations is available to store green taxi trip data, forming the foundation for subsequent data processing and analysis. This is the final table
+
+```yaml
+  - id: bq_green_tripdata
+    runIf: "{{inputs.taxi == 'green'}}"
+    type: io.kestra.plugin.gcp.bigquery.Query
+    sql: |
+      CREATE TABLE IF NOT EXISTS `{{kv('GCP_PROJECT_ID')}}.{{kv('GCP_DATASET')}}.green_tripdata`
+      (
+          unique_row_id BYTES OPTIONS, filename STRING OPTIONS, VendorID STRING OPTIONS,
+          lpep_pickup_datetime TIMESTAMP OPTIONS, lpep_dropoff_datetime TIMESTAMP OPTIONS,
+          store_and_fwd_flag STRING OPTIONS, RatecodeID STRING OPTIONS, PULocationID STRING OPTIONS,
+          DOLocationID STRING OPTIONS, passenger_count INT64 OPTIONS, trip_distance NUMERIC OPTIONS,
+          fare_amount NUMERIC OPTIONS, extra NUMERIC OPTIONS, mta_tax NUMERIC OPTIONS, tip_amount NUMERIC OPTIONS,
+          tolls_amount NUMERIC OPTIONS, ehail_fee NUMERIC, improvement_surcharge NUMERIC OPTIONS,
+          total_amount NUMERIC OPTIONS, payment_type INTEGER OPTIONS, trip_type STRING OPTIONS,
+          congestion_surcharge NUMERIC OPTIONS
+      )
+      PARTITION BY DATE(lpep_pickup_datetime);
+```      
+
 - **type: io.kestra.plugin.gcp.bigquery.Query:** type of task being used, which is the Google Cloud BigQuery query plugin. The task is designed to execute a SQL query on a BigQuery dataset. Specifically, it will create a table if it does not already exist.
+
 - **sql:** 
   - CREATE TABLE IF NOT EXISTS `{{kv('GCP_PROJECT_ID')}}.{{kv('GCP_DATASET')}}.green_tripdata`: This command creates a table named green_tripdata within a specified BigQuery project and dataset.
   - PARTITION BY DATE(lpep_pickup_datetime): This line defines how the table is partitioned in BigQuery.The table will be partitioned by the lpep_pickup_datetime field, meaning data will be grouped by the date on which each trip started. Partitioning helps optimize queries by limiting the amount of data scanned, especially when querying large datasets.
@@ -1213,29 +1257,85 @@ This part defines a task that uploads a file to Google Cloud Storage (GCS)
 
 #### Task: bq_green_table_ext/bq_yellow_table_ext
 
-The query defined in the sql field is a CREATE OR REPLACE EXTERNAL TABLE statement for BigQuery. This query is used to create an external table in BigQuery, which means that the data does not reside directly in BigQuery, but rather, it is accessed externally (e.g., from a file in Google Cloud Storage).
+```yaml
+  - id: bq_green_table_ext
+    runIf: "{{inputs.taxi == 'green'}}"
+    type: io.kestra.plugin.gcp.bigquery.Query
+    sql: |
+      CREATE OR REPLACE EXTERNAL TABLE `{{kv('GCP_PROJECT_ID')}}.{{render(vars.table)}}_ext`
+      (
+          VendorID STRING OPTIONS, lpep_pickup_datetime TIMESTAMP OPTIONS, lpep_dropoff_datetime TIMESTAMP OPTIONS,
+          store_and_fwd_flag STRING OPTIONS, RatecodeID STRING OPTIONS, PULocationID STRING OPTIONS,
+          DOLocationID STRING OPTIONS, passenger_count INT64 OPTIONS, trip_distance NUMERIC OPTIONS,
+          fare_amount NUMERIC OPTIONS, extra NUMERIC OPTIONS, mta_tax NUMERIC OPTIONS, tip_amount NUMERIC OPTIONS,
+          tolls_amount NUMERIC OPTIONS, ehail_fee NUMERIC, improvement_surcharge NUMERIC OPTIONS,
+          total_amount NUMERIC OPTIONS, payment_type INTEGER OPTIONS, trip_type STRING OPTIONS,
+          congestion_surcharge NUMERIC OPTIONS
+      )
+      OPTIONS (
+          format = 'CSV',
+          uris = ['{{render(vars.gcs_file)}}'],
+          skip_leading_rows = 1,
+          ignore_unknown_values = TRUE
+      );
+```      
 
-External Table Options:
+The bq_green_table_ext/bq_yellow_table_ext task is designed to load data stored in Google Cloud Storage (GCS) into BigQuery creating an external table in BigQuery, which means that the data does not reside directly in BigQuery, but rather, it is accessed externally. Provide a schema definition for the external table that matches the structure of the data in the CSV file for green taxi trips.
 
-- format = 'CSV': Specifies that the external data source is in CSV format.
-- uris = ['{{render(vars.gcs_file)}}']: The uris option points to the location of the external data. This should point to a file in Google Cloud Storage.
-- skip_leading_rows = 1: Instructs BigQuery to skip the first row of the CSV files, which typically contains column headers.
-- ignore_unknown_values = TRUE: Tells BigQuery to ignore any rows with unknown values
+The external table is defined within the BigQuery dataset specified by the configuration variables (GCP_PROJECT_ID and GCP_DATASET). The table name is dynamically generated based on the taxi type, year, and month, using the vars.table variable (e.g., green_tripdata_2019_01_ext).
+
+- **type: io.kestra.plugin.gcp.bigquery.Query:**  Google Cloud BigQuery query plugin.
+
+- **sql:** 
+  - CREATE OR REPLACE EXTERNAL TABLE `{{kv('GCP_PROJECT_ID')}}.{{render(vars.table)}}_ext`: This query is used to create an external table in BigQuery
+
+  - OPTIONS: 
+
+    - format = 'CSV': Specifies that the external data source is in CSV format.
+    - uris = ['{{render(vars.gcs_file)}}']: The uris option points to the location of the external data. This should point to a file in Google Cloud Storage.
+    - skip_leading_rows = 1: Instructs BigQuery to skip the first row of the CSV files, which typically contains column headers.
+    - ignore_unknown_values = TRUE: Tells BigQuery to ignore any rows with unknown values
 
 
 #### Task: bq_green_table_tmp/bq_yellow_table_tmp
 
-This task creates or replaces a BigQuery table using data from an external table (_ext). The unique_row_id is generated by concatenating multiple fields and applying an MD5 hash to create a unique identifier for each record. A new column (filename) is added, which contains the name of the file that the data was sourced from. The query transforms and re-organizes the data from the external table into the new table, retaining all original columns along with the newly calculated unique_row_id and filename
+```yaml
+  - id: bq_green_table_tmp
+    runIf: "{{inputs.taxi == 'green'}}"
+    type: io.kestra.plugin.gcp.bigquery.Query
+    sql: |
+      CREATE OR REPLACE TABLE `{{kv('GCP_PROJECT_ID')}}.{{render(vars.table)}}`
+      AS
+      SELECT
+        MD5(CONCAT(
+          COALESCE(CAST(VendorID AS STRING), ""),
+          COALESCE(CAST(lpep_pickup_datetime AS STRING), ""),
+          COALESCE(CAST(lpep_dropoff_datetime AS STRING), ""),
+          COALESCE(CAST(PULocationID AS STRING), ""),
+          COALESCE(CAST(DOLocationID AS STRING), "")
+        )) AS unique_row_id,
+        "{{render(vars.file)}}" AS filename,
+        *
+      FROM `{{kv('GCP_PROJECT_ID')}}.{{render(vars.table)}}_ext`;
+```      
+
+This task creates or replaces a BigQuery table using data from external table previously created. Copies the entire dataset from the associated external table into this table, while enriching it with the additional columns. 
+
+- The unique_row_id is generated by concatenating multiple fields and applying an MD5 hash to create a unique identifier for each record. 
+
+- A new column (filename) is added, which contains the name of the file that the data was sourced from. The query transforms and re-organizes the data from the external table into the new table, retaining all original columns along with the newly calculated unique_row_id and filename
+
+
 
 SQL Query Breakdown:
 
-- **CREATE OR REPLACE TABLE:** This command creates a new table in BigQuery or replaces an existing table with the same name. The table name is dynamically generated using the project ID ({{kv('GCP_PROJECT_ID')}}) and the vars.table variable.
+- **CREATE OR REPLACE TABLE:** This command creates a new table in BigQuery or replaces an existing table with the same name. The table name is dynamically generated.
 
 - **MD5(CONCAT(...)) AS unique_row_id:** This part creates a unique identifier (unique_row_id) for each row by combining (concatenating) multiple columns (VendorID, lpep_pickup_datetime, lpep_dropoff_datetime, PULocationID, and DOLocationID) and then applying the MD5 hash function to the concatenated string.
 - **COALESCE** function ensures that if any of these fields have NULL values, they are replaced with empty strings ("").
 - **"{{render(vars.file)}}" AS filename:** This adds a new column named filename to the output table.
 - **"*":** This selects all other columns from the external table without any changes. All the original columns (such as VendorID, lpep_pickup_datetime, fare_amount, etc.) are included in the output table.
-- **FROM {{kv('GCP_PROJECT_ID')}}.{{render(vars.table)}}_ext:** The data is selected from the external table, which was created or replaced in a previous task.
+- **FROM {{kv('GCP_PROJECT_ID')}}.{{render(vars.table)}}_ext:** The data is selected from the external table, which was created in a previous task.
 
 
 #### Task: bq_green_merge/bq_yellow_merge
@@ -1276,7 +1376,7 @@ WHEN NOT MATCHED THEN
 
 Example: green_tripdata_2019_07_ext
 
-This table is created as an external table that links to the raw data stored in an external source, like a Google Cloud Storage (GCS) bucket.
+This table is created as an external table that links to the raw data stored in an external source, like a Google Cloud Storage (GCS) bucket. Serves as the initial point of access to the raw data. The data in this table is not physically stored in BigQuery.
 
 ![gcp4](images/gcp4.jpg) 
 
@@ -1297,6 +1397,10 @@ This is a temporary table created in BigQuery using the data from the external t
 Example: green_tripdata
 
 After processing the data and ensuring there are no duplicates or inconsistencies, the final data is merged into this table. It represents the cleaned, transformed, and de-duplicated dataset.
+
+External Table → Temporary Table → Final Table.
+
+![gcp7](images/gcp7.jpg) 
 
 
 ## Load Data to GCP with backfill
