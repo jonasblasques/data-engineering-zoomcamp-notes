@@ -1180,7 +1180,7 @@ And BigQuery should look like this:
 
 ### Detailed explanation of the flow
 
-#### Variables
+#### > Variables
 
 ```yaml
 variables:
@@ -1207,7 +1207,7 @@ variables:
 
 <br><br>
 
-#### Task: upload_to_gcs
+#### > Task: upload_to_gcs
 
 ```yaml
   - id: upload_to_gcs
@@ -1225,7 +1225,7 @@ This part defines a task that uploads a file to Google Cloud Storage (GCS)
 - **to:** This specifies the destination path in Google Cloud Storage (GCS) where the file will be uploaded.
 
 
-#### Task: bq_green_tripdata/bq_yellow_tripdata
+#### > Task: bq_green_tripdata/bq_yellow_tripdata
 
 The bq_green_tripdata/bq_yellow_tripdata task ensures that a BigQuery table with the correct schema and configurations is available to store green taxi trip data, forming the foundation for subsequent data processing and analysis. This is the final table
 
@@ -1255,7 +1255,7 @@ The bq_green_tripdata/bq_yellow_tripdata task ensures that a BigQuery table with
   - PARTITION BY DATE(lpep_pickup_datetime): This line defines how the table is partitioned in BigQuery.The table will be partitioned by the lpep_pickup_datetime field, meaning data will be grouped by the date on which each trip started. Partitioning helps optimize queries by limiting the amount of data scanned, especially when querying large datasets.
 
 
-#### Task: bq_green_table_ext/bq_yellow_table_ext
+#### > Task: bq_green_table_ext/bq_yellow_table_ext
 
 ```yaml
   - id: bq_green_table_ext
@@ -1297,7 +1297,7 @@ The external table is defined within the BigQuery dataset specified by the confi
     - ignore_unknown_values = TRUE: Tells BigQuery to ignore any rows with unknown values
 
 
-#### Task: bq_green_table_tmp/bq_yellow_table_tmp
+#### > Task: bq_green_table_tmp/bq_yellow_table_tmp
 
 ```yaml
   - id: bq_green_table_tmp
@@ -1338,7 +1338,7 @@ SQL Query Breakdown:
 - **FROM {{kv('GCP_PROJECT_ID')}}.{{render(vars.table)}}_ext:** The data is selected from the external table, which was created in a previous task.
 
 
-#### Task: bq_green_merge/bq_yellow_merge
+#### > Task: bq_green_merge/bq_yellow_merge
 
 The goal of this task is to merge data from a source table ({{render(vars.table)}}) (for example green_tripdata_2019_07) into a target table (green_tripdata), ensuring that only new records are inserted, while avoiding duplicate entries based on a unique identifier (unique_row_id).
 
