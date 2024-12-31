@@ -7,6 +7,7 @@
 - [Setting up Airflow with Docker (lite version)](#setting-up-airflow-with-docker-lite-version)
 - [Ingesting data to local Postgres with Airflow](#ingesting-data-to-local-postgres-with-airflow)
 - [Ingesting data to GCP with Airflow](#ingesting-data-to-gcp-with-airflow)
+- [Airflow 2025](#airflow-2025)
 
 
 ## Data Lake vs Data Warehouse
@@ -1115,3 +1116,163 @@ You can also see the uploaded parquet file by searching the Cloud Storage servic
 
 
 You may now shutdown Airflow by running docker-compose down on the terminal where you run it.
+
+
+## Airflow 2025
+
+Since the 2022 cohort, airflow has been updated from version 2.2.3 to 2.10.4
+
+Apache Airflow has undergone significant enhancements between versions 2.2.3 and 2.10.4. Below is an overview of the key changes introduced in each major release during this period:
+
+-Apache Airflow 2.3.0: Introduced the concept of Datasets, enabling data-aware scheduling of DAGs.
+- Apache Airflow 2.4.0: Improved scheduler performance and scalability. Introduced a new scheduler UI for better monitoring
+- Apache Airflow 2.5.0: Enhanced the TaskFlow API for better PythonOperator support. Improved logging capabilities for better traceability.
+- Apache Airflow 2.6.0: Enhanced the Kubernetes Executor for better resource management. Introduced new features in the web UI for better user experience.
+- Apache Airflow 2.7.0: Introduced a new task instance details page in the web UI. Further improvements to scheduler performance.
+- Apache Airflow 2.8.0: Continued improvements to scheduler performance. Additional features in the web UI for better monitoring.
+- Apache Airflow 2.9.0: Enabled MySQL KEDA support for the triggerer. Added support for AWS Executors.
+
+
+**1: ** Create a new Dockerfile. Should look like:
+
+```dockerfile
+
+FROM apache/airflow:2.10.4-python3.8
+
+ENV AIRFLOW_HOME=/opt/airflow
+
+# Install system dependencies
+USER root
+RUN apt-get update -qq && apt-get install -y --no-install-recommends \
+    vim \
+    curl \
+    tar \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Switch to airflow user to install Python packages
+USER airflow
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir pandas sqlalchemy psycopg2-binary requests
+
+# Install Google Cloud SDK
+USER root
+ARG CLOUD_SDK_VERSION=322.0.0
+ENV GCLOUD_HOME=/opt/google-cloud-sdk
+ENV PATH="${GCLOUD_HOME}/bin/:${PATH}"
+
+RUN curl -fL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz" \
+    | tar -xz -C /opt && \
+    /opt/google-cloud-sdk/install.sh --quiet
+
+# Prepare the environment
+WORKDIR $AIRFLOW_HOME
+
+COPY scripts scripts
+COPY ./google /opt/airflow/google
+RUN chmod +x scripts
+
+USER $AIRFLOW_UID
+```
+
+**2:** Use same Docker-compose.yaml, same .env file, same entrypoint.sh and same requirements.txt
+
+**3:** 
+
+Make sure to execute the docker-compose command in the airflow2025 directory:
+
+```
+docker-compose build
+```
+
+**4:** Run Airflow:    
+
+```
+    docker-compose up -d
+```
+
+**5:** You may now access the Airflow GUI by browsing to localhost:8080. 
+
+It may take a few minutes to load the webApp
+
+```
+Username: airflow
+Password: airflow 
+```
+
+**5:** Database error. Make database migrations
+
+Airflow database migrations may not have run successfully. You need to make sure that your Airflow tables are properly created and updated. Run the following command to initialize or update the database:
+
+    docker-compose run --rm webserver airflow db upgrade
+
+When you set up Airflow for the first time or when you upgrade to a new version, the database may require migrations to update its schema and ensure that all tables, indexes, and configurations are in line with the latest version of Airflow. If you do not run this command, Airflow may not function properly as it will not be able to access data correctly.
+
+The airflow db upgrade command ensures that the database is configured and ready for use, allowing Airflow to operate stably.    
+
+
+**6:** Prepare postgres
+
+ On a separate terminal, find out which virtual network it's running on with:
+ 
+ ```
+docker network ls:
+```
+
+**6:**  We will use this docker-compose-lesson1.yaml file:
+
+```dockerfile
+
+
+services:
+  pgdatabase:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=root2
+      - POSTGRES_PASSWORD=root2
+      - POSTGRES_DB=ny_taxi
+    volumes:
+      - "./ny_taxi_postgres_data:/var/lib/postgresql/data:rw"
+    ports:
+      - "5433:5432"
+    networks:
+      - airflow
+
+    
+networks:
+  airflow:
+    external: true
+    name: airflow2025_default
+```    
+
+**7:** Run Postgres: 
+
+Make sure to execute the docker-compose command in the database_ny_taxi2025 directory:
+
+```
+    docker-compose -f docker-compose-lesson1.yaml up
+```
+
+**8:** Once the container is running, we can log into our database with the following command:
+```
+    pgcli -h localhost -p 5433 -u root2 -d ny_taxi
+```
+
+**9:** Open the Airflow dashboard and unpause the yellow_taxi_ingestion_v4 DAG:
+
+After executing, should look like this:
+
+![airflownew1](images/airflownew1.jpg)
+
+**10:** Check tables on your local Postgres database:
+
+It should print:
+
+```
++--------+---------------------+-------+-------+
+| Schema | Name                | Type  | Owner |
+|--------+---------------------+-------+-------|
+| public | yellow_taxi_2021_02 | table | root2 |
+| public | yellow_taxi_2021_03 | table | root2 |
++--------+---------------------+-------+-------+
+```
