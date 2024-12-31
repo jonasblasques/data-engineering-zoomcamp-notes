@@ -1124,14 +1124,14 @@ Lets try [`06_gcp_taxi.yaml`](flows/06_gcp_taxi.yaml) with inputs green, year 20
 
 If the flow was executed correctly, the Gantt chart should look like this:
 
-![gpp1](images/gpp1.jpg) 
+![gcp1](images/gcp1.jpg) 
 
 <br>
 Your bucket should look like this:
 
-![gpp2](images/gpp2.jpg) 
+![gcp2](images/gcp2.jpg) 
 <br>
 And BigQuery should look like this:
 
-![gpp3](images/gpp3.jpg) 
+![gcp3](images/gcp3.jpg) 
 <br>
