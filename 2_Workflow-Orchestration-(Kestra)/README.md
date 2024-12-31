@@ -903,7 +903,15 @@ To keep things simple, we'll use the same database as the one we set up for Kest
 ![local1](images/local1.jpg) 
 
 
-**Variables**
+#### > Variables
+
+```yaml
+variables:
+  file: "{{inputs.taxi}}_tripdata_{{inputs.year}}-{{inputs.month}}.csv"
+  table: "public.{{inputs.taxi}}_tripdata_temp"
+  final_table: "public.{{inputs.taxi}}_tripdata"
+  data: "{{outputs.extract.outputFiles[inputs.taxi ~ '_tripdata_' ~ inputs.year ~ '-' ~ inputs.month ~ '.csv']}}"
+```  
 
 - file: The file name in the format: "{taxi}_tripdata_{year}-{month}.csv".
 - table: Temporary table for the given taxi, year, and month.
@@ -911,7 +919,7 @@ To keep things simple, we'll use the same database as the one we set up for Kest
 - data: It provides the path to the file that was downloaded and decompressed during the extract task. This variable is then used in subsequent tasks, particularly when loading the data into PostgreSQL.
 
 
-**Task: Set Labels**
+#### > Task: Set Labels
 
 Adds labels to the flow execution to track the selected file and taxi type.
 
@@ -919,11 +927,37 @@ Labels are metadata tags that help organize, identify, and track workflow execut
 
 Labels appear in the Kestra UI or logs, making it easier to understand the context of an execution. Useful for filtering or searching workflow executions by specific criteria
 
-**Task: Extract Data**
+#### > Task: Extract Data
+
+```yaml
+  - id: extract
+    type: io.kestra.plugin.scripts.shell.Commands
+    outputFiles:
+      - "*.csv"
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - wget -qO- https://github.com/DataTalksClub/nyc-tlc-data/releases/download/{{inputs.taxi}}/{{render(vars.file)}}.gz | gunzip > {{render(vars.file)}}
+
+```
 
 Downloads the compressed CSV file using wget from the GitHub repository and decompresses it and saves it as a .csv file.
 
-**Task: yellow_final_table/green_final_table**
+#### > Task: yellow_final_table/green_final_table
+
+```yaml
+  - id: yellow_final_table
+    runIf: "{{inputs.taxi == 'yellow'}}"
+    type: io.kestra.plugin.jdbc.postgresql.Queries
+    sql: |
+      CREATE TABLE IF NOT EXISTS {{render(vars.final_table)}} (
+          unique_row_id          text,
+          filename                text,
+          VendorID               text,
+
+        ...
+      );
+```      
 
 Creates a yellow/green taxi final table in PostgreSQL if it doesn't already exist, with specific schema columns.
 
@@ -935,22 +969,54 @@ CREATE TABLE IF NOT EXISTS {{render(vars.final_table)}}
 
 is because we need to be able to render the variable which has an expression in it so we get a string which will contain green or yellow and then we can use it otherwise we will just receive a string and it will not have the dynamic value.
 
-When you're doing a recursive expression where you've got an expression that's calling a string that has an expression in it you just need to make sure that you explicitly tell it to render.
-
 Schema has two extra columns: unique grow ID and file name so we can see which file the data came and a unique ID
 generated based on the data in order to prevent adding duplicates later 
 
 
-**Task: yellow_monthly_table/green_monthly_table**
+#### > Task: yellow_monthly_table/green_monthly_table
 
-Creates a temporary table for monthly yellow/green taxi data with schema aligned to the final_table.
+```yaml
+  - id: yellow_monthly_table
+    runIf: "{{inputs.taxi == 'yellow'}}"
+    type: io.kestra.plugin.jdbc.postgresql.Queries
+    sql: |
+      CREATE TABLE IF NOT EXISTS {{render(vars.table)}} (
+          VendorID               text,
+          tpep_pickup_datetime   timestamp,
+          tpep_dropoff_datetime  timestamp,
+          passenger_count        integer,
+
+          ...
+      );
+```      
+
+Creates a temporary table for monthly yellow/green taxi data with schema aligned to the CSV file.
 
 
-**Task: truncate_table**
+#### > Task: truncate_table
+
+```yaml
+  - id: truncate_table
+    type: io.kestra.plugin.jdbc.postgresql.Queries
+    sql: |
+      TRUNCATE TABLE {{render(vars.table)}};
+```      
 
 Ensures the monthly table is empty before loading new data.
 
-**Task: green_copy_in/yellow_copy_in**
+#### > Task: green_copy_in/yellow_copy_in
+
+```yaml
+  - id: green_copy_in
+    runIf: "{{inputs.taxi == 'green'}}"
+    type: io.kestra.plugin.jdbc.postgresql.CopyIn
+    format: CSV
+    from: "{{render(vars.data)}}"
+    table: "{{render(vars.table)}}"
+    header: true
+    columns: [VendorID,lpep_pickup_datetime, ...]
+
+```
 
 Loads the CSV data into the temporary table for green/yellow taxis
 
@@ -961,13 +1027,59 @@ Loads the CSV data into the temporary table for green/yellow taxis
 - header: true: Indicates that the first row of the CSV contains column headers (e.g., VendorID, lpep_pickup_datetime, etc.).
 
 
-**Task: yellow_add_unique_id_and_filename/green_add_unique_id_and_filename**
+#### > Task: yellow_add_unique_id_and_filename/green_add_unique_id_and_filename
+
+```yaml
+  - id: yellow_add_unique_id_and_filename
+    runIf: "{{inputs.taxi == 'yellow'}}"
+    type: io.kestra.plugin.jdbc.postgresql.Queries
+    sql: |
+      ALTER TABLE {{render(vars.table)}}
+      ADD COLUMN IF NOT EXISTS unique_row_id text,
+      ADD COLUMN IF NOT EXISTS filename text;
+  
+      UPDATE {{render(vars.table)}}
+      SET 
+        unique_row_id = md5(
+          COALESCE(CAST(VendorID AS text), '') ||
+          COALESCE(CAST(tpep_pickup_datetime AS text), '') || 
+          COALESCE(CAST(tpep_dropoff_datetime AS text), '') || 
+          COALESCE(PULocationID, '') || 
+          COALESCE(DOLocationID, '') || 
+          COALESCE(CAST(fare_amount AS text), '') || 
+          COALESCE(CAST(trip_distance AS text), '')      
+        ),
+        filename = '{{render(vars.file)}}';
+```        
 
 - Adds columns unique_row_id and filename if they don't exist in the temporary table
 - Updates the table by generating a unique hash ID for each row and stores the file name.
 
 
-**Task: yellow_merge_data/green_merge_data**
+#### > Task: yellow_merge_data/green_merge_data
+
+```yaml
+  - id: yellow_merge_data
+    runIf: "{{inputs.taxi == 'yellow'}}"
+    type: io.kestra.plugin.jdbc.postgresql.Queries
+    sql: |
+      MERGE INTO {{render(vars.final_table)}} AS T
+      USING {{render(vars.table)}} AS S
+      ON T.unique_row_id = S.unique_row_id
+      WHEN NOT MATCHED THEN
+        INSERT (
+          unique_row_id, filename, VendorID, tpep_pickup_datetime, tpep_dropoff_datetime,
+          passenger_count, trip_distance, RatecodeID, store_and_fwd_flag, PULocationID,
+          DOLocationID, payment_type, fare_amount, extra, mta_tax, tip_amount, tolls_amount,
+          improvement_surcharge, total_amount, congestion_surcharge
+        )
+        VALUES (
+          S.unique_row_id, S.filename, S.VendorID, S.tpep_pickup_datetime, S.tpep_dropoff_datetime,
+          S.passenger_count, S.trip_distance, S.RatecodeID, S.store_and_fwd_flag, S.PULocationID,
+          S.DOLocationID, S.payment_type, S.fare_amount, S.extra, S.mta_tax, S.tip_amount, S.tolls_amount,
+          S.improvement_surcharge, S.total_amount, S.congestion_surcharge
+        );
+```        
 
 Merges monthly data from the temporary table into the yellow_final_table/green_final_table using the unique_row_id as the key
 
@@ -1011,12 +1123,12 @@ Merges monthly data from the temporary table into the yellow_final_table/green_f
 
 
 
-**Task: purge_files**
+#### > Task: purge_files
 
 This task ensures that any files downloaded or generated during the flow execution are deleted once they are no longer needed. Its purpose is to keep the storage clean and free of unnecessary clutter.
 
 
-**Plugin Defaults**
+#### > Plugin Defaults
 
 All PostgreSQL tasks use a pre-configured connection:
 
