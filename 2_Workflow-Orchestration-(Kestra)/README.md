@@ -1093,7 +1093,27 @@ Now that you've learned how to build ETL pipelines locally using Postgres, we ar
 - Google Cloud Storage (GCS) as a data lake
 - BigQuery as a data warehouse.
 
-**1: KV Store**
+**Data Lake:**
+
+- Purpose: Stores raw, unprocessed data from various sources, often for exploratory or advanced analytics.
+- Data Format: Stores data in its original format (structured, semi-structured, or unstructured).
+- Schema: Schema-on-read approach, meaning the schema is applied when the data is read, not when it is stored.
+- Scalability: Highly scalable, designed for big data and low-cost storage.
+- Users: Used by data scientists and engineers for machine learning, advanced analytics, and experimentation.
+- Tools: Commonly associated with platforms like Google Cloud Storage, Amazon S3, or Azure Data Lake.
+
+**Data Warehouse:**
+
+- Purpose: Stores structured and cleaned data optimized for querying and reporting.
+- Data Format: Stores structured and pre-processed data.
+- Schema: Schema-on-write approach, meaning the schema is defined when the data is loaded into the warehouse.
+- Performance: Optimized for complex SQL queries and business intelligence (BI) tools.
+- Users: Used by analysts and business users for reporting and decision-making.
+- Tools: Examples include Snowflake, Amazon Redshift, Google BigQuery, or Microsoft Azure Synapse.
+
+
+
+### 1: KV Store
 
 Before we start loading data to GCP, we need to include your service account, GCP project ID, BigQuery dataset and GCS bucket name (along with their location) as KV Store values.
 
@@ -1132,7 +1152,13 @@ Should look like this:
 ![kvstore](images/kvstore.jpg) 
 
 
-**2: Execute flow**
+### 2: Create GCP Resources
+
+If you haven't already created the GCS bucket and BigQuery dataset in the first week with terraform, you can use this flow to create them: [`05_gcp_setup.yaml`](flows/05_gcp_setup.yaml)
+
+
+### 3: Execute flow
+
 
 Lets try [`06_gcp_taxi.yaml`](flows/06_gcp_taxi.yaml) with inputs green, year 2019 and month 07.
 

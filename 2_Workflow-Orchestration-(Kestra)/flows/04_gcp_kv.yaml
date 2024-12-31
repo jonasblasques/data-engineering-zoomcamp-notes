@@ -43,4 +43,4 @@ tasks:
     type: io.kestra.plugin.core.kv.Set
     key: GCP_DATASET
     kvType: STRING
-    value: zoomcamp
+    value: # TODO replace with your bigquery dataset
