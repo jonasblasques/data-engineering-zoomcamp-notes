@@ -728,6 +728,9 @@ Click on ENABLE
 
 # Terraform
 
+You may find yourself using the graphical user interface of your favorite cloud provider clicking thousand
+different buttons to get your infrastructure configured properly but what happens when you need to reproduce the same thing again in the future. Terraform provides a way to represent your infrastructure and all that settings with the hashicorp configuration language. Think of it like a human readable blueprint that can execute and automate everything you do in the cloud. 
+
 Terraform is an open-source Infrastructure as Code (IaC) tool developed by HashiCorp. It allows you to define, provision, and manage infrastructure resources in a declarative manner. These resources can include virtual machines, databases, networks, and much more across various cloud providers, on-premises data centers, or hybrid environments.
 
 You describe the desired state of your infrastructure in .tf configuration files, and Terraform handles the provisioning and management. Terraform supports a wide range of cloud providers (e.g., AWS, Google Cloud Platform, Azure) and on-premises solutions.
