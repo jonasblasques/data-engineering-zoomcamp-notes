@@ -1042,7 +1042,7 @@ final table looks like this:
 
 ## Load Data to Local Postgres with backfill
 
-- Flow code: flows/02_postgres_taxi_scheduled.yaml
+- Flow: [`02_postgres_taxi_scheduled.yaml`](flows/02_postgres_taxi_scheduled.yaml)
 
 Backfill is the process of running a workflow or data pipeline for historical data that wasn't processed when it originally occurred. It involves replaying or processing past data to ensure the dataset is complete and up to date.
 
