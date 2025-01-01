@@ -1,13 +1,19 @@
 # Workflow Orchestration
 
-- [Data Lake vs Data Warehouse](#data-lake-vs-data-warehouse)
-- [ETL vs ELT](#etl-vs-elt)
-- [Introduction to Workflow Orchestration](#introduction-to-workflow-orchestration)
-- [Airflow architecture](#airflow-architecture)
-- [Setting up Airflow with Docker (lite version)](#setting-up-airflow-with-docker-lite-version)
-- [Ingesting data to local Postgres with Airflow](#ingesting-data-to-local-postgres-with-airflow)
-- [Ingesting data to GCP with Airflow](#ingesting-data-to-gcp-with-airflow)
+- [Airflow 2022](#airflow-2022)
+    - [Data Lake vs Data Warehouse](#data-lake-vs-data-warehouse)
+    - [ETL vs ELT](#etl-vs-elt)
+    - [Introduction to Workflow Orchestration](#introduction-to-workflow-orchestration)
+    - [Airflow architecture](#airflow-architecture)
+    - [Setting up Airflow with Docker (lite version)](#setting-up-airflow-with-docker-lite-version)
+    - [Ingesting data to local Postgres with Airflow](#ingesting-data-to-local-postgres-with-airflow)
+    - [Ingesting data to GCP with Airflow](#ingesting-data-to-gcp-with-airflow)
 - [Airflow 2025](#airflow-2025)
+    - [Setting up Airflow 2.10.4 with Docker](#setting-up-airflow-2104-with-docker)
+    - [Ingesting data to local Postgres new version](#ingesting-data-to-local-postgres-new-version)
+    - [Ingesting data to GCP new version](#ingesting-data-to-gcp-new-version)
+
+    
 
 
 ## Data Lake vs Data Warehouse
@@ -1118,7 +1124,7 @@ You can also see the uploaded parquet file by searching the Cloud Storage servic
 You may now shutdown Airflow by running docker-compose down on the terminal where you run it.
 
 
-## Airflow 2025
+# Airflow 2025
 
 Since the 2022 cohort, airflow has been updated from version 2.2.3 to 2.10.4
 
@@ -1133,7 +1139,10 @@ Apache Airflow has undergone significant enhancements between versions 2.2.3 and
 - Apache Airflow 2.9.0: Enabled MySQL KEDA support for the triggerer. Added support for AWS Executors.
 
 
-**1:** Create a new Dockerfile. Should look like:
+## Setting up Airflow 2.10.4 with Docker
+
+
+**1:** Create a new version of the Dockerfile. Should look like:
 
 ```dockerfile
 
@@ -1175,7 +1184,7 @@ RUN chmod +x scripts
 USER $AIRFLOW_UID
 ```
 
-**2:** Use same Docker-compose.yaml, same .env file, same entrypoint.sh and same requirements.txt
+**2:** Use the same Docker-compose.yaml, same .env file, same entrypoint.sh and same requirements.txt
 
 **3:** 
 
@@ -1277,11 +1286,11 @@ It should print:
 +--------+---------------------+-------+-------+
 ```
 
-### Optimized data ingestion
+## Ingesting data to local Postgres new version
 
 PostgreSQL’s COPY command is specifically designed for efficient bulk loading of data from a file (or memory buffer, in this case) into a table. It is highly optimized for performance, allowing it to insert large volumes of data in one go.
 
-Lets modify the DAG with this COPY command:
+Lets modify the DAG with this COPY command inside process_and_insert_to_db function:
 
 ```python
 
@@ -1352,3 +1361,50 @@ def process_and_insert_to_db_with_copy(csv_name, user, password, host, port, db,
 
 
 The COPY command directly streams data into the database with minimal overhead, making it faster and more memory-efficient. SQLAlchemy, while flexible and powerful for general database management, isn’t designed to match the performance of PostgreSQL's COPY command for bulk inserts.
+
+
+### Ingesting data to GCP new version
+
+**1:** Lets modify upload_to_gcs function like this:
+
+```python
+
+def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="google_cloud_default"):
+    hook = GCSHook(gcp_conn_id)
+    hook.upload(
+        bucket_name=bucket,
+        object_name=object_name,
+        filename=local_file
+    )
+```    
+
+and task 3 like this:
+
+```python
+
+local_to_gcs_task = PythonOperator(
+    task_id="local_to_gcs_task",
+    python_callable=upload_to_gcs,
+    op_kwargs={
+        "bucket": BUCKET,
+        "object_name": f"raw/{parquet_file}",
+        "local_file": f"{path_to_local_home}/{parquet_file}",
+        "gcp_conn_id": "google_cloud_default"
+    },
+    dag=dag
+)
+```
+
+Full code in airflow2025/dags/data_ingestion_gcp.py
+
+
+**2:** Unpause the GCP_ingestion DAG, should look like this:
+
+
+![airflownew2](images/airflownew2.jpg)
+
+
+**3:** Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see a new external_table table
+
+![airflownew3](images/airflownew3.jpg)
+

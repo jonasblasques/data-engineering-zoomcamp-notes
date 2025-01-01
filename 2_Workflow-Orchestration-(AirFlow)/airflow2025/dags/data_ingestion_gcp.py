@@ -7,6 +7,7 @@ from airflow.operators.python import PythonOperator
 
 from google.cloud import storage
 from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator
+from airflow.providers.google.cloud.hooks.gcs import GCSHook
 import pyarrow.csv
 import pyarrow.parquet 
 import requests
@@ -16,7 +17,7 @@ import shutil
 # Make sure the values ​​match your terraform main.tf file
 PROJECT_ID="zoomcamp-airflow-444903"
 BUCKET="zoomcamp_datalake"
-BIGQUERY_DATASET = "zoomcamp_bigquery"
+BIGQUERY_DATASET = "airflow2025"
 
 path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
 
@@ -49,24 +50,21 @@ def format_to_parquet(src_file):
     pyarrow.parquet.write_table(table, src_file.replace('.csv', '.parquet'))
 
 
-def upload_to_gcs(bucket, object_name, local_file):
-
-    storage.blob._MAX_MULTIPART_SIZE = 5 * 1024 * 1024  # 5 MB
-    storage.blob._DEFAULT_CHUNKSIZE = 5 * 1024 * 1024  # 5 MB
-
-    client = storage.Client()
-    bucket = client.bucket(bucket)
-
-    blob = bucket.blob(object_name)
-    blob.upload_from_filename(local_file)
+def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="google_cloud_default"):
+    hook = GCSHook(gcp_conn_id)
+    hook.upload(
+        bucket_name=bucket,
+        object_name=object_name,
+        filename=local_file
+    )
 
 
 # Defining the DAG
 dag = DAG(
     "GCP_ingestion",
     schedule_interval="0 6 2 * *",
-    start_date=datetime(2021, 3, 1),
-    end_date=datetime(2021, 3, 5),
+    start_date=datetime(2021, 4, 1),
+    end_date=datetime(2021, 4, 5),
     catchup=True, 
     max_active_runs=1,
 )
@@ -106,10 +104,11 @@ local_to_gcs_task = PythonOperator(
     task_id="local_to_gcs_task",
     python_callable=upload_to_gcs,
     op_kwargs={
-            "bucket": BUCKET,
-            "object_name": f"raw/{parquet_file}",
-            "local_file": f"{path_to_local_home}/{parquet_file}",
-        },
+        "bucket": BUCKET,
+        "object_name": f"raw/{parquet_file}",
+        "local_file": f"{path_to_local_home}/{parquet_file}",
+        "gcp_conn_id": "google_cloud_default"
+    },
     dag=dag
 )
 
@@ -120,7 +119,7 @@ bigquery_external_table_task = BigQueryCreateExternalTableOperator(
             "tableReference": {
                 "projectId": PROJECT_ID,
                 "datasetId": BIGQUERY_DATASET,
-                "tableId": "external_table",
+                "tableId": table_name_template,
             },
             "externalDataConfiguration": {
                 "sourceFormat": "PARQUET",
