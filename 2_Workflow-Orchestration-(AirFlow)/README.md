@@ -1186,9 +1186,7 @@ USER $AIRFLOW_UID
 
 **2:** Use the same Docker-compose.yaml, same .env file, same entrypoint.sh and same requirements.txt
 
-**3:** 
-
-Make sure to execute the docker-compose command in the airflow2025 directory:
+**3:** Make sure to execute the docker-compose command in the airflow2025 directory:
 
 ```
 docker-compose build
@@ -1228,7 +1226,17 @@ The airflow db upgrade command ensures that the database is configured and ready
 docker network ls
 ```
 
-**8:**  We will use this docker-compose-lesson1.yaml file:
+It should print something like this:
+
+```
+    NETWORK ID     NAME                  DRIVER    SCOPE
+    e843f42a6fe1   bridge                bridge    local
+    690b4b59769b   airflow2025_default   bridge    local
+    1b4769ea7218   host                  host      local
+    348b319579e3   none                  null      local
+```    
+
+**8:**  Modify the docker-compose.yaml file from lesson 1 by adding the network (airflow2025_default) info and removing away the pgAdmin service
 
 ```dockerfile
 
@@ -1363,7 +1371,7 @@ def process_and_insert_to_db_with_copy(csv_name, user, password, host, port, db,
 The COPY command directly streams data into the database with minimal overhead, making it faster and more memory-efficient. SQLAlchemy, while flexible and powerful for general database management, isn’t designed to match the performance of PostgreSQL's COPY command for bulk inserts.
 
 
-### Ingesting data to GCP new version
+## Ingesting data to GCP new version
 
 **1:** Lets modify upload_to_gcs function like this:
 
