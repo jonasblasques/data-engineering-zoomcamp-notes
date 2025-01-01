@@ -1367,6 +1367,7 @@ def process_and_insert_to_db_with_copy(csv_name, user, password, host, port, db,
 
 ```
 
+Full code in airflow2025/dags/data_ingestion_local2.py
 
 The COPY command directly streams data into the database with minimal overhead, making it faster and more memory-efficient. SQLAlchemy, while flexible and powerful for general database management, isn’t designed to match the performance of PostgreSQL's COPY command for bulk inserts.
 
