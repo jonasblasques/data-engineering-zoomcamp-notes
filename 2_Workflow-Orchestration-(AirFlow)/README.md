@@ -1147,7 +1147,7 @@ This is a quick, simple & less memory-intensive setup of Airflow that works on a
 Only runs the webserver and the scheduler and runs the DAGs in the scheduler rather than running them in external workers:
 
 
-**1:** Create a new sub-directory called airflow2025 in your project dir. Inside airflow2025 create dags, google, logs and plugins folders.
+**1:** Create a new sub-directory called airflow2025 in your project dir. Inside airflow2025 create dags, google and logs folders.
 
 The directory structure should look like this:
 
@@ -1155,11 +1155,15 @@ The directory structure should look like this:
 
 ├── airflow2025
 │   ├── dags
-│       ├── data_ingestion_local.py
-│       ├── data_ingestion_gcp.py
+│   |   ├── data_ingestion_local.py
+│   |   ├── data_ingestion_local2.py
+│   |   └── data_ingestion_gcp.py
+|   |
 │   ├── google
-│       └── credentials.json
-│   ├── logs
+│   |   └── credentials.json
+|   |
+│   └──  logs
+|
 ├── docker-compose.yaml
 ├── Dockerfile
 ├── requirements.txt
@@ -1324,6 +1328,8 @@ webserver:
 
 **4:** Copy your google-credentials.json inside the google folder. Remember to add this json to the .gitignore file !
 
+Also copy data_ingestion_local.py, data_ingestion_local2.py and data_ingestion_gcp.py from this repo to your dags folder
+
 
 **5:** Create a requirements.txt, should look like:
 
@@ -1361,8 +1367,21 @@ Password: airflow
 
 ## Ingesting data to local Postgres old version
 
+**1:** Create a new sub-directory called database_ny_taxi2025 at the same level as airflow2025 folder. Inside database_ny_taxi2025 create ny_taxi_postgres_data folder and docker-compose-lesson1.yaml file
 
-**1:** Prepare postgres
+The directory structure should look like this:
+
+```
+
+├── database_ny_taxi2025
+│   └── ny_taxi_postgres_data
+|
+└── docker-compose-lesson1.yaml
+
+```
+
+
+**2:** Prepare postgres
 
  On a separate terminal, find out which virtual network it's running on with:
  
@@ -1380,10 +1399,9 @@ It should print something like this:
     348b319579e3   none                  null      local
 ```    
 
-**2:**  Modify the docker-compose.yaml file from lesson 1 by adding the network (airflow2025_default) info and removing away the pgAdmin service
+**3:**  Modify the docker-compose.yaml file from lesson 1 by adding the network (airflow2025_default) info and removing away the pgAdmin service. docker-compose-lesson1.yaml should look like this:
 
 ```dockerfile
-
 
 services:
   pgdatabase:
@@ -1406,7 +1424,7 @@ networks:
     name: airflow2025_default
 ```    
 
-**3:** Run Postgres: 
+**4:** Run Postgres: 
 
 Make sure to execute the docker-compose command in the database_ny_taxi2025 directory:
 
@@ -1414,18 +1432,18 @@ Make sure to execute the docker-compose command in the database_ny_taxi2025 dire
     docker-compose -f docker-compose-lesson1.yaml up
 ```
 
-**4:** Once the container is running, we can log into our database with the following command:
+**5:** Once the container is running, we can log into our database with the following command:
 ```
     pgcli -h localhost -p 5433 -u root2 -d ny_taxi
 ```
 
-**5:** Open the Airflow dashboard and unpause the "yellow_taxi_ingestion_slow" DAG:
+**6:** Open the Airflow dashboard and unpause the "yellow_taxi_ingestion_slow" DAG from data_ingestion_local.py:
 
 After executing, should look like this:
 
 ![airflownew1](images/airflownew1.jpg)
 
-**6:** Check tables on your local Postgres database:
+**7:** Check tables on your local Postgres database:
 
 It should print:
 
@@ -1523,7 +1541,9 @@ The COPY command directly streams data into the database with minimal overhead, 
 
 To create a connection with Google Cloud Platform (GCP) from the Airflow UI go to the top menu and click on Admin, From the dropdown, select Connections. This will take you to the page where you can manage your Airflow connections.
 
-On the Connections page, click the + button:
+On the Connections page, click the + button. 
+
+Complete Connection id, Connection type, your project id and Keyfile Path (with your json name)
 
 ![gcpairflow](images/gcpairflow.jpg)
 
@@ -1549,7 +1569,7 @@ import requests
 import gzip
 import shutil
 
-# Make sure the values ​​match your terraform main.tf file
+# Make sure values ​​match your google resources
 PROJECT_ID="zoomcamp-airflow-444903"
 BUCKET="zoomcamp_datalake"
 BIGQUERY_DATASET = "airflow2025"
@@ -1669,7 +1689,13 @@ bigquery_external_table_task = BigQueryCreateExternalTableOperator(
 download_task >> process_task >> local_to_gcs_task >> bigquery_external_table_task
 ```
 
+This line of code is to use the connection created in the previous step:
 
+```python
+
+gcp_conn_id="gcp-airflow"
+
+```
 
 
 **3:** Unpause the GCP_ingestion DAG, should look like this:
