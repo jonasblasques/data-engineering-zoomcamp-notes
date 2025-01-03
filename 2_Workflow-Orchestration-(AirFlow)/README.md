@@ -1147,7 +1147,9 @@ This is a quick, simple & less memory-intensive setup of Airflow that works on a
 Only runs the webserver and the scheduler and runs the DAGs in the scheduler rather than running them in external workers:
 
 
-**1:** Create a new sub-directory called airflow2025 in your project dir. Inside airflow2025 create dags, google and logs folders.
+### 1: Create a new sub-directory called airflow2025 in your project dir. 
+
+Inside airflow2025 create dags, google and logs folders.
 
 The directory structure should look like this:
 
@@ -1170,7 +1172,7 @@ The directory structure should look like this:
 ```
 
 
-**2:** Create a Dockerfile. Should look like:
+### 2:  Create a Dockerfile. Should look like:
 
 ```dockerfile
 
@@ -1189,7 +1191,7 @@ COPY ./google /opt/airflow/google
 
 This Dockerfile creates a Docker image for Apache Airflow, installs additional Python packages from a requirements.txt file and copies google credentials into the container
 
-**3:** Create a Docker-compose.yaml. Should look like:
+### 3:  Create a Docker-compose.yaml. Should look like:
 
 ```yaml
 
@@ -1350,7 +1352,7 @@ Volumes:
 - shared-data: Shared volume to store Airflow's initialization data that other services can use.
 
 
-**4:** Copy your google-credentials.json inside the google folder. 
+### 4:  Copy your google-credentials.json inside the google folder. 
 
 > [!WARNING]  
 > Remember to add this json to the .gitignore file !
@@ -1364,7 +1366,7 @@ Also copy from this repo to your dags folder:
 - data_ingestion_gcp.py 
 
 
-**5:** Create a requirements.txt, should look like:
+### 5:  Create a requirements.txt, should look like:
 
 ```
 apache-airflow-providers-google
@@ -1376,7 +1378,9 @@ requests
 ```
 
 
-**6:** Build the image. You only need to do this the first time you run Airflow or if you modified the Dockerfile or the requirements.txt file:
+### 6:  Build the image. 
+
+You only need to do this the first time you run Airflow or if you modified the Dockerfile or the requirements.txt file:
 
 ```
     docker-compose build
@@ -1384,7 +1388,7 @@ requests
 
 First-time build can take up to 10 mins.
 
-**7:** Run Airflow:    
+### 7: Run Airflow:    
 
 ```
     docker-compose up -d
@@ -1423,9 +1427,9 @@ and webserver logs should look like this:
 
 In the docker logs you can see how the webserver and the scheduler wait for the database to be ready to start.
 
-**8:** You may now access the Airflow GUI by browsing to localhost:8080. 
+### 8: Airflow GUI 
 
-It may take a few minutes to load the webApp
+You may now access the Airflow GUI by browsing to localhost:8080. It may take a few minutes to load the webApp
 
 ```
 Username: airflow
