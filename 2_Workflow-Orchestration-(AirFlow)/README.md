@@ -10,6 +10,7 @@
     - [Ingesting data to GCP with Airflow](#ingesting-data-to-gcp-with-airflow)
 - [Airflow 2025](#airflow-2025)
     - [Setting up Airflow 2.10.4 with Docker](#setting-up-airflow-2104-with-docker)
+    - [Ingesting data to local Postgres old version](#ingesting-data-to-local-postgres-old-version)
     - [Ingesting data to local Postgres new version](#ingesting-data-to-local-postgres-new-version)
     - [Ingesting data to GCP new version](#ingesting-data-to-gcp-new-version)
 
