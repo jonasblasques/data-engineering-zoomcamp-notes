@@ -1174,29 +1174,19 @@ The directory structure should look like this:
 
 ```dockerfile
 
-# First-time build can take upto 10 mins.
-
 FROM apache/airflow:2.10.4-python3.8
 
 ENV AIRFLOW_HOME=/opt/airflow
 
-
-# Switch to airflow user to install Python packages
 USER airflow
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
-
-
-USER root
-
-# Prepare the environment
 WORKDIR $AIRFLOW_HOME
 COPY ./google /opt/airflow/google
-
-USER 50000
 ```
+
+First-time build can take upto 10 mins.
 
 This Dockerfile creates a Docker image for Apache Airflow, installs additional Python packages from a requirements.txt file and copies google credentials into the container
 
@@ -1204,7 +1194,7 @@ This Dockerfile creates a Docker image for Apache Airflow, installs additional P
 
 ```yaml
 
-version: '3'
+version: '3.8'
 services:
     postgres:
         image: postgres:13
@@ -1221,10 +1211,9 @@ services:
 
     init-airflow:
         build: .
+        user: root
         depends_on:
         - postgres
-        env_file:
-            - .env
         environment:
         - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow    
         command: >
@@ -1234,11 +1223,32 @@ services:
             sleep 2;
           done;
           airflow db migrate && airflow connections create-default-connections &&
-          airflow users create -r Admin -u admin -p admin -e admin@example.com -f admin -l airflow
+          airflow users create -r Admin -u admin -p admin -e admin@example.com -f admin -l airflow &&
+          airflow users create -r Admin -u airflow -p airflow -e airflow@example.com -f airflow -l airflow &&
+          echo 'Initialization complete' &&
+          touch /opt/airflow/shared/initialized
           "
+
+        healthcheck:
+            test: ["CMD-SHELL", "airflow db check && echo 'Database ready!'"]
+            interval: 10s
+            timeout: 10s
+            retries: 5
+            start_period: 10s
+
+        volumes:
+        - shared-data:/opt/airflow/shared            
+
     scheduler:
         build: .
-        command: scheduler
+        command: >
+            bash -c "
+            until [ -f /opt/airflow/shared/initialized ]; do
+                echo 'Waiting for init-airflow to complete...';
+                sleep 2;
+            done;
+            airflow scheduler
+            "
         depends_on:
             - postgres
             - init-airflow
@@ -1258,14 +1268,19 @@ services:
         volumes:
             - ./dags:/opt/airflow/dags
             - ./logs:/opt/airflow/logs
-            - ./plugins:/opt/airflow/plugins
-            - ./scripts:/opt/airflow/scripts
             - ./google:/opt/airflow/google:ro
-
+            - shared-data:/opt/airflow/shared
 
     webserver:
         build: .
-        command: webserver
+        command: >
+            bash -c "
+            until [ -f /opt/airflow/shared/initialized ]; do
+                echo 'Waiting for init-airflow to complete...';
+                sleep 2;
+            done;
+            airflow webserver
+            "
         depends_on:
             - postgres
             - init-airflow
@@ -1286,9 +1301,8 @@ services:
         volumes:
             - ./dags:/opt/airflow/dags
             - ./logs:/opt/airflow/logs
-            - ./plugins:/opt/airflow/plugins
             - ./google:/opt/airflow/google:ro
-            - ./scripts:/opt/airflow/scripts
+            - shared-data:/opt/airflow/shared            
 
         user: "50000:0"
         ports:
@@ -1301,29 +1315,40 @@ services:
 
 volumes:
   postgres-db-volume:
+  shared-data:
 ```  
 
-postgres:
+Postgres:
 
 - Runs PostgreSQL 13 and sets up the database with user airflow, password airflow, and database airflow.
 - Persists data using a named volume (postgres-db-volume).
 
-init-airflow:
+Init-airflow:
 
-- Initializes the Airflow environment by waiting for PostgreSQL to be ready, running database migrations, creating default connections, and creating an admin user.
+- Ensure PostgreSQL is ready (pg_isready).
+- Migrate the Airflow database schema (airflow db migrate).
+- Set up default Airflow connections and create default users (Admin and airflow).
+- Marks initialization as complete by touching a file (/opt/airflow/shared/initialized).
+- Shares data in a volume (shared-data) to be used by other services
 
-scheduler:
+Scheduler:
 
+- Waits for init-airflow to finish initializing by checking the initialized file before starting the Airflow scheduler.
 - Configures the Airflow scheduler with specific settings, such as the executor type and database connection.
-- Mounts various directories for DAGs, logs, and plugins.
+- Maps directories for Airflow DAGs (./dags), logs (./logs), and Google credentials (./google) to the container's respective directories.
 
-webserver:
+Webserver:
 
+- Similar to the scheduler, it waits for the initialized file before starting the Airflow web server.
 - Runs the Airflow web server, providing the web interface for managing DAGs, tasks, and users.
 - Depends on postgres, init-airflow, and scheduler.
 - Exposes port 8080 for access to the web UI.
-- Configures user creation, database connection, and other Airflow settings.
 
+
+Volumes:
+
+- postgres-db-volume: Stores PostgreSQL data persistently.
+- shared-data: Shared volume to store Airflow's initialization data that other services can use.
 
 
 **4:** Copy your google-credentials.json inside the google folder. Remember to add this json to the .gitignore file !
