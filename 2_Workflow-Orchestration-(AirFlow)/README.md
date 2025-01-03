@@ -1380,6 +1380,39 @@ requests
     docker-compose up -d
 ```
 
+The first time it is run, the airflow-init service may take a few minutes to prepare the database
+
+In docker desktop if you want you can go to the logs section of airflow-init and see something like this:
+
+```
+2025-01-03 13:16:47 postgres:5432 - accepting connections
+2025-01-03 13:16:53 DB: postgresql+psycopg2://airflow:***@postgres/airflow
+2025-01-03 13:16:53 Performing upgrade to the metadata database postgresql+psycopg2://airflow:***@postgres/airflow
+2025-01-03 13:17:14 Database migrating done!
+
+2025-01-03 13:17:30 User "admin" created with role "Admin"
+2025-01-03 13:17:35 User "airflow" created with role "Admin"
+2025-01-03 13:17:36 Initialization complete
+```
+
+and webserver logs should look like this:
+
+```
+2025-01-03 13:17:34 Waiting for init-airflow to complete...
+2025-01-03 13:17:36 Waiting for init-airflow to complete...
+
+2025-01-03 13:20:34   ____________       _____________
+2025-01-03 13:20:34  ____    |__( )_________  __/__  /________      __
+2025-01-03 13:20:34 ____  /| |_  /__  ___/_  /_ __  /_  __ \_ | /| / /
+2025-01-03 13:20:34 ___  ___ |  / _  /   _  __/ _  / / /_/ /_ |/ |/ /
+2025-01-03 13:20:34  _/_/  |_/_/  /_/    /_/    /_/  \____/____/|__/
+2025-01-03 13:20:34 Running the Gunicorn Server with:
+2025-01-03 13:20:34 Workers: 4 sync
+2025-01-03 13:20:34 Host: 0.0.0.0:8080
+```
+
+In the docker logs you can see how the webserver and the scheduler wait for the database to be ready to start.
+
 **8:** You may now access the Airflow GUI by browsing to localhost:8080. 
 
 It may take a few minutes to load the webApp
