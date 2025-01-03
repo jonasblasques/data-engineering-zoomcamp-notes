@@ -1186,7 +1186,6 @@ WORKDIR $AIRFLOW_HOME
 COPY ./google /opt/airflow/google
 ```
 
-First-time build can take upto 10 mins.
 
 This Dockerfile creates a Docker image for Apache Airflow, installs additional Python packages from a requirements.txt file and copies google credentials into the container
 
@@ -1368,11 +1367,13 @@ requests
 ```
 
 
-**6:** Build the image. It may take several minutes You only need to do this the first time you run Airflow or if you modified the Dockerfile or the requirements.txt file:
+**6:** Build the image. You only need to do this the first time you run Airflow or if you modified the Dockerfile or the requirements.txt file:
 
 ```
     docker-compose build
 ```
+
+First-time build can take up to 10 mins.
 
 **7:** Run Airflow:    
 
