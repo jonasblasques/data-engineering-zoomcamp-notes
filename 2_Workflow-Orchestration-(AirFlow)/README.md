@@ -1350,9 +1350,18 @@ Volumes:
 - shared-data: Shared volume to store Airflow's initialization data that other services can use.
 
 
-**4:** Copy your google-credentials.json inside the google folder. Remember to add this json to the .gitignore file !
+**4:** Copy your google-credentials.json inside the google folder. 
 
-Also copy data_ingestion_local.py, data_ingestion_local2.py and data_ingestion_gcp.py from this repo to your dags folder
+> [!WARNING]  
+> Remember to add this json to the .gitignore file !
+
+---
+
+Also copy from this repo to your dags folder:
+
+- data_ingestion_local.py 
+- data_ingestion_local2.py 
+- data_ingestion_gcp.py 
 
 
 **5:** Create a requirements.txt, should look like:
