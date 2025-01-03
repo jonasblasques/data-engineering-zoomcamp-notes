@@ -50,7 +50,7 @@ def format_to_parquet(src_file):
     pyarrow.parquet.write_table(table, src_file.replace('.csv', '.parquet'))
 
 
-def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="google_cloud_default"):
+def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="gcp-airflow"):
     hook = GCSHook(gcp_conn_id)
     hook.upload(
         bucket_name=bucket,
@@ -63,8 +63,8 @@ def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="google_cloud_def
 dag = DAG(
     "GCP_ingestion",
     schedule_interval="0 6 2 * *",
-    start_date=datetime(2021, 4, 1),
-    end_date=datetime(2021, 4, 5),
+    start_date=datetime(2021, 1, 1),
+    end_date=datetime(2021, 1, 5),
     catchup=True, 
     max_active_runs=1,
 )
@@ -107,7 +107,7 @@ local_to_gcs_task = PythonOperator(
         "bucket": BUCKET,
         "object_name": f"raw/{parquet_file}",
         "local_file": f"{path_to_local_home}/{parquet_file}",
-        "gcp_conn_id": "google_cloud_default"
+        "gcp_conn_id": "gcp-airflow"
     },
     dag=dag
 )
@@ -126,6 +126,7 @@ bigquery_external_table_task = BigQueryCreateExternalTableOperator(
                 "sourceUris": [f"gs://{BUCKET}/raw/{parquet_file}"],
             },
         },
+        gcp_conn_id="gcp-airflow",
         dag=dag
     )
 

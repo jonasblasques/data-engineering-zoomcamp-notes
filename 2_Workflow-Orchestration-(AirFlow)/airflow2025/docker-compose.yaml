@@ -13,16 +13,42 @@ services:
             interval: 5s
             retries: 5
 
+    init-airflow:
+        build: .
+        depends_on:
+        - postgres
+        env_file:
+            - .env
+        environment:
+        - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow    
+        command: >
+          bash -c "
+          until pg_isready -h postgres -U airflow; do
+            echo 'Waiting for PostgreSQL to be ready...';
+            sleep 2;
+          done;
+          airflow db migrate && airflow connections create-default-connections &&
+          airflow users create -r Admin -u admin -p admin -e admin@example.com -f admin -l airflow
+          "
     scheduler:
         build: .
         command: scheduler
         depends_on:
             - postgres
-        env_file:
-            - .env
+            - init-airflow
         environment:
-        - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/google/zoomcamp-airflow-444903-33738e1bcf7e.json  
-        - AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=google-cloud://zoomcamp-airflow-444903//opt/airflow/google/zoomcamp-airflow-444903-33738e1bcf7e.json           
+        - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+        - AIRFLOW_UID=50000
+        - COMPOSE_PROJECT_NAME=airflow2025
+        - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+        - AIRFLOW__SCHEDULER__SCHEDULER_HEARTBEAT_SEC=10
+        - AIRFLOW_CONN_METADATA_DB=postgres+psycopg2://airflow:airflow@postgres:5432/airflow
+        - AIRFLOW_VAR__METADATA_DB_SCHEMA=airflow
+        - _AIRFLOW_WWW_USER_CREATE=True
+        - _AIRFLOW_WWW_USER_USERNAME=airflow
+        - _AIRFLOW_WWW_USER_PASSWORD=airflow
+        - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+        - AIRFLOW__CORE__LOAD_EXAMPLES=False       
         volumes:
             - ./dags:/opt/airflow/dags
             - ./logs:/opt/airflow/logs
@@ -33,15 +59,24 @@ services:
 
     webserver:
         build: .
-        entrypoint: ./scripts/entrypoint.sh
+        command: webserver
         depends_on:
             - postgres
+            - init-airflow
             - scheduler
-        env_file:
-            - .env
         environment:
-        - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/google/zoomcamp-airflow-444903-33738e1bcf7e.json   
-        - AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT=google-cloud://zoomcamp-airflow-444903//opt/airflow/google/zoomcamp-airflow-444903-33738e1bcf7e.json          
+        - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+        - AIRFLOW_UID=50000
+        - COMPOSE_PROJECT_NAME=airflow2025
+        - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+        - AIRFLOW__SCHEDULER__SCHEDULER_HEARTBEAT_SEC=10
+        - AIRFLOW_CONN_METADATA_DB=postgres+psycopg2://airflow:airflow@postgres:5432/airflow
+        - AIRFLOW_VAR__METADATA_DB_SCHEMA=airflow
+        - _AIRFLOW_WWW_USER_CREATE=True
+        - _AIRFLOW_WWW_USER_USERNAME=airflow
+        - _AIRFLOW_WWW_USER_PASSWORD=airflow
+        - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+        - AIRFLOW__CORE__LOAD_EXAMPLES=False   
         volumes:
             - ./dags:/opt/airflow/dags
             - ./logs:/opt/airflow/logs
@@ -49,7 +84,7 @@ services:
             - ./google:/opt/airflow/google:ro
             - ./scripts:/opt/airflow/scripts
 
-        user: "${AIRFLOW_UID:-50000}:0"
+        user: "50000:0"
         ports:
             - "8080:8080"
         healthcheck:

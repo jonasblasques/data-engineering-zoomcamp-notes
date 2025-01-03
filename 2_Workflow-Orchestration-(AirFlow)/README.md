@@ -1141,64 +1141,214 @@ Apache Airflow has undergone significant enhancements between versions 2.2.3 and
 
 ## Setting up Airflow 2.10.4 with Docker
 
+This is a quick, simple & less memory-intensive setup of Airflow that works on a LocalExecutor.
 
-**1:** Create a new version of the Dockerfile. Should look like:
+Only runs the webserver and the scheduler and runs the DAGs in the scheduler rather than running them in external workers:
+
+
+**1:** Create a new sub-directory called airflow2025 in your project dir. Inside airflow2025 create dags, google, logs and plugins folders.
+
+The directory structure should look like this:
+
+```
+
+├── airflow2025
+│   ├── dags
+│       ├── data_ingestion_local.py
+│       ├── data_ingestion_gcp.py
+│   ├── google
+│       └── credentials.json
+│   ├── logs
+├── docker-compose.yaml
+├── Dockerfile
+├── requirements.txt
+```
+
+
+**2:** Create a Dockerfile. Should look like:
 
 ```dockerfile
+
+# First-time build can take upto 10 mins.
 
 FROM apache/airflow:2.10.4-python3.8
 
 ENV AIRFLOW_HOME=/opt/airflow
 
-# Install system dependencies
-USER root
-RUN apt-get update -qq && apt-get install -y --no-install-recommends \
-    vim \
-    curl \
-    tar \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Switch to airflow user to install Python packages
 USER airflow
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir pandas sqlalchemy psycopg2-binary requests
 
-# Install Google Cloud SDK
+SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
+
+
 USER root
-ARG CLOUD_SDK_VERSION=322.0.0
-ENV GCLOUD_HOME=/opt/google-cloud-sdk
-ENV PATH="${GCLOUD_HOME}/bin/:${PATH}"
-
-RUN curl -fL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz" \
-    | tar -xz -C /opt && \
-    /opt/google-cloud-sdk/install.sh --quiet
 
 # Prepare the environment
 WORKDIR $AIRFLOW_HOME
-
-COPY scripts scripts
 COPY ./google /opt/airflow/google
-RUN chmod +x scripts
 
-USER $AIRFLOW_UID
+USER 50000
 ```
 
-**2:** Use the same Docker-compose.yaml, same .env file, same entrypoint.sh and same requirements.txt
+This Dockerfile creates a Docker image for Apache Airflow, installs additional Python packages from a requirements.txt file and copies google credentials into the container
 
-**3:** Make sure to execute the docker-compose command in the airflow2025 directory:
+**3:** Create a Docker-compose.yaml. Should look like:
+
+```yaml
+
+version: '3'
+services:
+    postgres:
+        image: postgres:13
+        environment:
+        - POSTGRES_USER=airflow
+        - POSTGRES_PASSWORD=airflow
+        - POSTGRES_DB=airflow
+        volumes:
+            - postgres-db-volume:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD", "pg_isready", "-U", "airflow"]
+            interval: 5s
+            retries: 5
+
+    init-airflow:
+        build: .
+        depends_on:
+        - postgres
+        env_file:
+            - .env
+        environment:
+        - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow    
+        command: >
+          bash -c "
+          until pg_isready -h postgres -U airflow; do
+            echo 'Waiting for PostgreSQL to be ready...';
+            sleep 2;
+          done;
+          airflow db migrate && airflow connections create-default-connections &&
+          airflow users create -r Admin -u admin -p admin -e admin@example.com -f admin -l airflow
+          "
+    scheduler:
+        build: .
+        command: scheduler
+        depends_on:
+            - postgres
+            - init-airflow
+        environment:
+        - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+        - AIRFLOW_UID=50000
+        - COMPOSE_PROJECT_NAME=airflow2025
+        - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+        - AIRFLOW__SCHEDULER__SCHEDULER_HEARTBEAT_SEC=10
+        - AIRFLOW_CONN_METADATA_DB=postgres+psycopg2://airflow:airflow@postgres:5432/airflow
+        - AIRFLOW_VAR__METADATA_DB_SCHEMA=airflow
+        - _AIRFLOW_WWW_USER_CREATE=True
+        - _AIRFLOW_WWW_USER_USERNAME=airflow
+        - _AIRFLOW_WWW_USER_PASSWORD=airflow
+        - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+        - AIRFLOW__CORE__LOAD_EXAMPLES=False       
+        volumes:
+            - ./dags:/opt/airflow/dags
+            - ./logs:/opt/airflow/logs
+            - ./plugins:/opt/airflow/plugins
+            - ./scripts:/opt/airflow/scripts
+            - ./google:/opt/airflow/google:ro
+
+
+    webserver:
+        build: .
+        command: webserver
+        depends_on:
+            - postgres
+            - init-airflow
+            - scheduler
+        environment:
+        - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+        - AIRFLOW_UID=50000
+        - COMPOSE_PROJECT_NAME=airflow2025
+        - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+        - AIRFLOW__SCHEDULER__SCHEDULER_HEARTBEAT_SEC=10
+        - AIRFLOW_CONN_METADATA_DB=postgres+psycopg2://airflow:airflow@postgres:5432/airflow
+        - AIRFLOW_VAR__METADATA_DB_SCHEMA=airflow
+        - _AIRFLOW_WWW_USER_CREATE=True
+        - _AIRFLOW_WWW_USER_USERNAME=airflow
+        - _AIRFLOW_WWW_USER_PASSWORD=airflow
+        - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+        - AIRFLOW__CORE__LOAD_EXAMPLES=False   
+        volumes:
+            - ./dags:/opt/airflow/dags
+            - ./logs:/opt/airflow/logs
+            - ./plugins:/opt/airflow/plugins
+            - ./google:/opt/airflow/google:ro
+            - ./scripts:/opt/airflow/scripts
+
+        user: "50000:0"
+        ports:
+            - "8080:8080"
+        healthcheck:
+            test: [ "CMD-SHELL", "[ -f /home/airflow/airflow-webserver.pid ]" ]
+            interval: 30s
+            timeout: 30s
+            retries: 3
+
+volumes:
+  postgres-db-volume:
+```  
+
+postgres:
+
+- Runs PostgreSQL 13 and sets up the database with user airflow, password airflow, and database airflow.
+- Persists data using a named volume (postgres-db-volume).
+
+init-airflow:
+
+- Initializes the Airflow environment by waiting for PostgreSQL to be ready, running database migrations, creating default connections, and creating an admin user.
+
+scheduler:
+
+- Configures the Airflow scheduler with specific settings, such as the executor type and database connection.
+- Mounts various directories for DAGs, logs, and plugins.
+
+webserver:
+
+- Runs the Airflow web server, providing the web interface for managing DAGs, tasks, and users.
+- Depends on postgres, init-airflow, and scheduler.
+- Exposes port 8080 for access to the web UI.
+- Configures user creation, database connection, and other Airflow settings.
+
+
+
+**4:** Copy your google-credentials.json inside the google folder. Remember to add this json to the .gitignore file !
+
+
+**5:** Create a requirements.txt, should look like:
 
 ```
-docker-compose build
+apache-airflow-providers-google
+pyarrow
+pandas
+sqlalchemy
+psycopg2-binary
+requests
 ```
 
-**4:** Run Airflow:    
+
+**6:** Build the image. It may take several minutes You only need to do this the first time you run Airflow or if you modified the Dockerfile or the requirements.txt file:
+
+```
+    docker-compose build
+```
+
+**7:** Run Airflow:    
 
 ```
     docker-compose up -d
 ```
 
-**5:** You may now access the Airflow GUI by browsing to localhost:8080. 
+**8:** You may now access the Airflow GUI by browsing to localhost:8080. 
 
 It may take a few minutes to load the webApp
 
@@ -1207,18 +1357,11 @@ Username: airflow
 Password: airflow 
 ```
 
-**6:** Database error. Make database migrations
 
-Airflow database migrations may not have run successfully. You need to make sure that your Airflow tables are properly created and updated. Run the following command to initialize or update the database:
-
-    docker-compose run --rm webserver airflow db upgrade
-
-When you set up Airflow for the first time or when you upgrade to a new version, the database may require migrations to update its schema and ensure that all tables, indexes, and configurations are in line with the latest version of Airflow. If you do not run this command, Airflow may not function properly as it will not be able to access data correctly.
-
-The airflow db upgrade command ensures that the database is configured and ready for use, allowing Airflow to operate stably.    
+## Ingesting data to local Postgres old version
 
 
-**7:** Prepare postgres
+**1:** Prepare postgres
 
  On a separate terminal, find out which virtual network it's running on with:
  
@@ -1236,7 +1379,7 @@ It should print something like this:
     348b319579e3   none                  null      local
 ```    
 
-**8:**  Modify the docker-compose.yaml file from lesson 1 by adding the network (airflow2025_default) info and removing away the pgAdmin service
+**2:**  Modify the docker-compose.yaml file from lesson 1 by adding the network (airflow2025_default) info and removing away the pgAdmin service
 
 ```dockerfile
 
@@ -1262,7 +1405,7 @@ networks:
     name: airflow2025_default
 ```    
 
-**9:** Run Postgres: 
+**3:** Run Postgres: 
 
 Make sure to execute the docker-compose command in the database_ny_taxi2025 directory:
 
@@ -1270,18 +1413,18 @@ Make sure to execute the docker-compose command in the database_ny_taxi2025 dire
     docker-compose -f docker-compose-lesson1.yaml up
 ```
 
-**10:** Once the container is running, we can log into our database with the following command:
+**4:** Once the container is running, we can log into our database with the following command:
 ```
     pgcli -h localhost -p 5433 -u root2 -d ny_taxi
 ```
 
-**11:** Open the Airflow dashboard and unpause the "yellow_taxi_ingestion_slow" DAG:
+**5:** Open the Airflow dashboard and unpause the "yellow_taxi_ingestion_slow" DAG:
 
 After executing, should look like this:
 
 ![airflownew1](images/airflownew1.jpg)
 
-**12:** Check tables on your local Postgres database:
+**6:** Check tables on your local Postgres database:
 
 It should print:
 
@@ -1374,23 +1517,123 @@ The COPY command directly streams data into the database with minimal overhead, 
 
 ## Ingesting data to GCP new version
 
-**1:** Lets modify upload_to_gcs function like this:
+
+**1:** Create connection with GCP:
+
+To create a connection with Google Cloud Platform (GCP) from the Airflow UI go to the top menu and click on Admin, From the dropdown, select Connections. This will take you to the page where you can manage your Airflow connections.
+
+On the Connections page, click the + button:
+
+![gcpairflow](images/gcpairflow.jpg)
+
+
+
+**2:** Lets modify data_ingestion_gcp like this:
 
 ```python
 
-def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="google_cloud_default"):
+import os
+import logging
+from datetime import datetime
+
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+
+from google.cloud import storage
+from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator
+from airflow.providers.google.cloud.hooks.gcs import GCSHook
+import pyarrow.csv
+import pyarrow.parquet 
+import requests
+import gzip
+import shutil
+
+# Make sure the values ​​match your terraform main.tf file
+PROJECT_ID="zoomcamp-airflow-444903"
+BUCKET="zoomcamp_datalake"
+BIGQUERY_DATASET = "airflow2025"
+
+path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
+
+
+# Utility functions
+def download_and_unzip(csv_name_gz, csv_name, url):
+
+    # Download the CSV.GZ file
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(csv_name_gz, 'wb') as f_out:
+            f_out.write(response.content)
+    else:
+        print(f"Error downloading file: {response.status_code}")
+        return False
+
+    # Unzip the CSV file
+    with gzip.open(csv_name_gz, 'rb') as f_in:
+        with open(csv_name, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    
+    return True
+
+
+def format_to_parquet(src_file):
+    if not src_file.endswith('.csv'):
+        logging.error("Can only accept source files in CSV format, for the moment")
+        return
+    table = pyarrow.csv.read_csv(src_file)
+    pyarrow.parquet.write_table(table, src_file.replace('.csv', '.parquet'))
+
+
+def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="gcp-airflow"):
     hook = GCSHook(gcp_conn_id)
     hook.upload(
         bucket_name=bucket,
         object_name=object_name,
         filename=local_file
     )
-```    
 
-and task 3 like this:
 
-```python
+# Defining the DAG
+dag = DAG(
+    "GCP_ingestion",
+    schedule_interval="0 6 2 * *",
+    start_date=datetime(2021, 1, 1),
+    end_date=datetime(2021, 1, 5),
+    catchup=True, 
+    max_active_runs=1,
+)
 
+table_name_template = 'yellow_taxi_{{ execution_date.strftime(\'%Y_%m\') }}'
+csv_name_gz_template = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv.gz'
+csv_name_template = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv'
+
+parquet_file = csv_name_template.replace('.csv', '.parquet')
+
+url_template = "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.csv.gz"
+
+# Task 1
+download_task = PythonOperator(
+    task_id="download_and_unzip",
+    python_callable=download_and_unzip,
+    op_kwargs={
+        'csv_name_gz': csv_name_gz_template,
+        'csv_name': csv_name_template,
+        'url': url_template
+    },
+    dag=dag
+)
+
+# Task 2
+process_task = PythonOperator(
+    task_id="format_to_parquet_task",
+    python_callable=format_to_parquet,
+    op_kwargs={
+        "src_file": f"{path_to_local_home}/{csv_name_template}"
+    },
+    dag=dag
+)
+
+# Task 3
 local_to_gcs_task = PythonOperator(
     task_id="local_to_gcs_task",
     python_callable=upload_to_gcs,
@@ -1398,22 +1641,43 @@ local_to_gcs_task = PythonOperator(
         "bucket": BUCKET,
         "object_name": f"raw/{parquet_file}",
         "local_file": f"{path_to_local_home}/{parquet_file}",
-        "gcp_conn_id": "google_cloud_default"
+        "gcp_conn_id": "gcp-airflow"
     },
     dag=dag
 )
+
+# Task 4
+bigquery_external_table_task = BigQueryCreateExternalTableOperator(
+        task_id="bigquery_external_table_task",
+        table_resource={
+            "tableReference": {
+                "projectId": PROJECT_ID,
+                "datasetId": BIGQUERY_DATASET,
+                "tableId": table_name_template,
+            },
+            "externalDataConfiguration": {
+                "sourceFormat": "PARQUET",
+                "sourceUris": [f"gs://{BUCKET}/raw/{parquet_file}"],
+            },
+        },
+        gcp_conn_id="gcp-airflow",
+        dag=dag
+    )
+
+
+download_task >> process_task >> local_to_gcs_task >> bigquery_external_table_task
 ```
 
-Full code in airflow2025/dags/data_ingestion_gcp.py
 
 
-**2:** Unpause the GCP_ingestion DAG, should look like this:
+
+**3:** Unpause the GCP_ingestion DAG, should look like this:
 
 
 ![airflownew2](images/airflownew2.jpg)
 
 
-**3:** Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see a new external_table table
+**4:** Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see a new external_table table
 
 ![airflownew3](images/airflownew3.jpg)
 
