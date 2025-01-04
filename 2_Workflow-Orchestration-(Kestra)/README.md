@@ -1213,6 +1213,8 @@ Head over to pgadmin, final table looks like this:
 
 ## Load Data to GCP
 
+_([Video source](https://www.youtube.com/watch?v=nKqjjLJ7YXs))_
+
 Now that you've learned how to build ETL pipelines locally using Postgres, we are ready to move to the cloud. In this section, we'll load the same Yellow and Green Taxi data to Google Cloud Platform (GCP) using:
 
 - Google Cloud Storage (GCS) as a data lake
@@ -1528,6 +1530,8 @@ External Table → Temporary Table → Final Table.
 
 
 ## Load Data to GCP with backfill
+
+_([Video source](https://www.youtube.com/watch?v=DoaZ5JWEkH0))_
 
 We can now schedule the same pipeline shown above to run at 9:00 AM on the first day of every month for the green dataset and to run at 10:00 AM on the first day of every month for the yellow dataset. You can backfill historical data directly from the Kestra UI.
 
