@@ -20,6 +20,9 @@ port = "5432"
 db = "ny_taxi"
 
 
+taxi_type = "green"
+
+
 def download_and_unzip(csv_name_gz, csv_name, url):
 
     # Download the CSV.GZ file
@@ -51,28 +54,56 @@ def process_and_insert_to_db_with_copy(csv_name, user, password, host, port, db,
     cursor = conn.cursor()
 
     # Create the specified table if it does not already exist.
-    create_table_query = f"""
-    CREATE TABLE IF NOT EXISTS {table_name} (
-        "VendorID" TEXT,
-        "tpep_pickup_datetime" TIMESTAMP,
-        "tpep_dropoff_datetime" TIMESTAMP,
-        "passenger_count" REAL,
-        "trip_distance" REAL,
-        "RatecodeID" TEXT,
-        "store_and_fwd_flag" TEXT,
-        "PULocationID" TEXT,
-        "DOLocationID" TEXT,
-        "payment_type" REAL,
-        "fare_amount" REAL,
-        "extra" REAL,
-        "mta_tax" REAL,
-        "tip_amount" REAL,
-        "tolls_amount" REAL,
-        "improvement_surcharge" REAL,
-        "total_amount" REAL,
-        "congestion_surcharge" REAL
-    );
-    """
+    if taxi_type == "yellow":
+        create_table_query = f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            "VendorID" TEXT,
+            "tpep_pickup_datetime" TIMESTAMP,
+            "tpep_dropoff_datetime" TIMESTAMP,
+            "passenger_count" REAL,
+            "trip_distance" REAL,
+            "RatecodeID" TEXT,
+            "store_and_fwd_flag" TEXT,
+            "PULocationID" TEXT,
+            "DOLocationID" TEXT,
+            "payment_type" REAL,
+            "fare_amount" REAL,
+            "extra" REAL,
+            "mta_tax" REAL,
+            "tip_amount" REAL,
+            "tolls_amount" REAL,
+            "improvement_surcharge" REAL,
+            "total_amount" REAL,
+            "congestion_surcharge" REAL
+        );
+        """
+    elif taxi_type == "green":
+        create_table_query = f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            "VendorID"               TEXT,
+            "lpep_pickup_datetime"   TIMESTAMP,
+            "lpep_dropoff_datetime"  TIMESTAMP,
+            "store_and_fwd_flag"      TEXT,
+            "RatecodeID"             TEXT,
+            "PULocationID"           TEXT,
+            "DOLocationID"           TEXT,
+            "passenger_count"        REAL,
+            "trip_distance"          REAL,
+            "fare_amount"            REAL,
+            "extra"                  REAL,
+            "mta_tax"                REAL,
+            "tip_amount"             REAL,
+            "tolls_amount"           REAL,
+            "ehail_fee"              REAL,
+            "improvement_surcharge"  REAL,
+            "total_amount"           REAL,
+            "payment_type"           REAL,
+            "trip_type"              REAL,
+            "congestion_surcharge"   REAL
+        );
+        """
+
+
     # Runs the query
     cursor.execute(create_table_query)
     # Commits the changes to the database, ensuring the table is created.
@@ -82,8 +113,15 @@ def process_and_insert_to_db_with_copy(csv_name, user, password, host, port, db,
     df_iter = pd.read_csv(csv_name, iterator=True, chunksize=300000)
     for i, chunk in enumerate(df_iter):
         
-        chunk['tpep_pickup_datetime'] = pd.to_datetime(chunk['tpep_pickup_datetime'])
-        chunk['tpep_dropoff_datetime'] = pd.to_datetime(chunk['tpep_dropoff_datetime'])
+        if taxi_type == "yellow":
+
+            chunk['tpep_pickup_datetime'] = pd.to_datetime(chunk['tpep_pickup_datetime'])
+            chunk['tpep_dropoff_datetime'] = pd.to_datetime(chunk['tpep_dropoff_datetime'])
+
+        elif taxi_type == "green":
+
+            chunk['lpep_pickup_datetime'] = pd.to_datetime(chunk['lpep_pickup_datetime'])
+            chunk['lpep_dropoff_datetime'] = pd.to_datetime(chunk['lpep_dropoff_datetime'])            
 
         # Memory buffer is created using io.StringIO() to hold the chunk as a CSV
         buffer = io.StringIO()
@@ -105,9 +143,10 @@ def process_and_insert_to_db_with_copy(csv_name, user, password, host, port, db,
 
 
 
+
 # Defining the DAG
 dag = DAG(
-    "yellow_taxi_ingestion",
+    f"{taxi_type}_taxi_local_ingestion",
     schedule_interval="0 6 2 * *",
     start_date=datetime(2021, 1, 1),
     end_date=datetime(2021, 3, 28),
@@ -115,11 +154,10 @@ dag = DAG(
     max_active_runs=1,
 )
 
-table_name_template = 'yellow_taxi_{{ execution_date.strftime(\'%Y_%m\') }}'
+table_name_template = f'{taxi_type}_taxi_{{{{ execution_date.strftime(\'%Y_%m\') }}}}'
 csv_name_gz_template = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv.gz'
 csv_name_template = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv'
-
-url_template = "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.csv.gz"
+url_template = f"https://github.com/DataTalksClub/nyc-tlc-data/releases/download/{taxi_type}/{taxi_type}_tripdata_{{{{ execution_date.strftime(\'%Y-%m\') }}}}.csv.gz"
 
 # Task 1
 download_task = PythonOperator(
