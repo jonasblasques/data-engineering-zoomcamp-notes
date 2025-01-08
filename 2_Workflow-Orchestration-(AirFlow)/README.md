@@ -1910,7 +1910,12 @@ Size of persistent volume for webserver, workers and logs from 100Gi to 10Gi:
 size: 10Gi
 ```
 
-Full custom code:
+Default chart yaml:
+
+-  [`default-values.yaml`](airflow-kubernetes/default-values.yaml)
+
+
+Customized yaml with local executor, disables triggerer and smaller volumes:
 
 -  [`values.yaml`](airflow-kubernetes/values.yaml)
 
