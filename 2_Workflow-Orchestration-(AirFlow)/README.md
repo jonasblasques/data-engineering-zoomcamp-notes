@@ -1832,13 +1832,13 @@ curl https://sdk.cloud.google.com | bash
 exec -l $SHELL
 ```
 
-install plugin gcloud-auth-plugin:
+Install plugin gcloud-auth-plugin:
 
 ```
 install plugin gcloud-auth-plugin
 ```
 
-install kubectl:
+Install kubectl:
 
 kubectl is the command-line interface (CLI) tool used for interacting with Kubernetes clusters. It allows users to manage and deploy applications, inspect cluster resources, and perform various administrative tasks in a Kubernetes environment.
 
@@ -1847,7 +1847,7 @@ curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stabl
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 ```
 
-install helm:
+Install helm:
 
 Helm is a package manager for Kubernetes, which simplifies the process of deploying and managing applications on Kubernetes clusters. Helm packages applications into "charts," which are pre-configured Kubernetes resources bundled together.
 
@@ -1859,6 +1859,8 @@ curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 helm repo add apache-airflow https://airflow.apache.org
 helm repo update
 ```
+
+By adding this repository, you can now use Helm to search for and install Apache Airflow charts from this source.
 
 **3: Create a new Kubernetes cluster on Google Kubernetes Engine (GKE)**
 
