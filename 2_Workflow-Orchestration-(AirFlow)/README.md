@@ -1873,7 +1873,7 @@ gcloud container clusters create airflow-cluster \
 
 can take up to 5 mins
 
-Create a new namespace called airflow within a Kubernetes cluster.
+Then create a new namespace called airflow within a Kubernetes cluster.
 
 In Kubernetes, namespaces are a way to organize and isolate resources within a cluster. They allow you to divide the cluster into multiple virtual clusters, each containing its own set of resources, such as pods, services, and deployments. This helps in managing and organizing resources for different projects, teams, or applications within the same physical Kubernetes cluster.
 
