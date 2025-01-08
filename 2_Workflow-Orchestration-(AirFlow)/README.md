@@ -1956,3 +1956,70 @@ After a few minutes the DAG should appear in the UI:
 **9: Trigger DAG**
 
 ![kubedag](images/kubedag.jpg)
+
+
+## Ingesting data to GCP
+
+**1: Copy the DAG**
+
+copy the DAG as in the previous example
+
+-  [`data_ingestion_gcp.py`](airflow-kubernetes/data_ingestion_gcp.py)
+
+**2: Create connection with GCP**
+
+To create a connection with Google Cloud Platform (GCP) from the Airflow UI go to the top menu and click on Admin, From the dropdown, select Connections. This will take you to the page where you can manage your Airflow connections.
+
+On the Connections page, click the + button.
+
+Complete Connection id, Connection type, your project id and Keyfile Json (just copy and paste google json credentials)
+
+![kubeconn](images/kubeconn.jpg)
+
+
+**3: install python dependencies**
+
+Modify the values.yaml to include the python dependencies. Add this line just above the executor variable:
+
+```yaml
+
+extraPipPackages:
+  - apache-airflow[google]
+  - google-cloud-storage
+  - pyarrow
+  - pandas
+  - requests  
+
+# Airflow executor
+# One of: LocalExecutor, LocalKubernetesExecutor, CeleryExecutor, KubernetesExecutor, CeleryKubernetesExecutor
+executor: "LocalExecutor"
+```
+
+Full custom code:
+
+-  [`values-gcp.yaml`](airflow-kubernetes/values-gcp.yaml)
+
+
+**4: Upgrade airflow deployment**
+
+Update Airflow deployment with this command:
+
+```
+helm upgrade airflow apache-airflow/airflow -n airflow -f values-gcp.yaml
+```
+
+
+**5: Unpause DAG**
+
+Unpause the DAG, it should automatically start to do the catch-up
+
+![kubegcprun](images/kubegcprun.jpg)
+
+
+Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see a new external_table table:
+
+![kubebq1](images/kubebq1.jpg)
+
+and query it:
+
+![kubebq2](images/kubebq2.jpg)
