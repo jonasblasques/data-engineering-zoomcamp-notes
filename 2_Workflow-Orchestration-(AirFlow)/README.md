@@ -1839,7 +1839,7 @@ helm repo update
 
 **3: Create a new Kubernetes cluster on Google Kubernetes Engine (GKE)**
 
-This command creates a GKE cluster called airflow-cluster2 in the us-central1 region, with a single node using the e2-standard-4 machine type. This would be a minimal setup suitable for testing or development purposes.
+This command creates a GKE cluster called airflow-cluster in the us-central1 region, with a single node using the e2-standard-4 machine type. This would be a minimal setup suitable for testing or development purposes.
 
 ```
 gcloud container clusters create airflow-cluster \
@@ -1847,6 +1847,8 @@ gcloud container clusters create airflow-cluster \
   --machine-type=e2-standard-4 \
   --region=us-central1
 ```  
+
+can take up to 5 mins
 
 Create a new namespace called airflow within a Kubernetes cluster.
 
@@ -1875,6 +1877,12 @@ triggerer:
   enabled: false
 ```  
 
+Size of persistent volume for webserver, workers and logs from 100Gi to 10Gi:
+
+```yaml
+size: 10Gi
+```
+
 Full custom code:
 
 -  [`values.yaml`](airflow-kubernetes/values.yaml)
@@ -1887,6 +1895,8 @@ This command installs the Apache Airflow application to a Kubernetes cluster usi
 ```
 helm install airflow apache-airflow/airflow -n airflow -f values.yaml
 ```
+
+can take up to 5 mins
 
 **6: Check Pods**
 
@@ -1910,6 +1920,9 @@ kubectl port-forward -n airflow svc/airflow-webserver 8080:8080
 ```
 
 go to localhost:8080
+
+Username: admin
+Password: admin
 
 ![kube2](images/kube2.jpg)
 
