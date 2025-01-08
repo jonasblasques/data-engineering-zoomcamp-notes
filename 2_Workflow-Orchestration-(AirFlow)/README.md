@@ -1855,6 +1855,8 @@ Helm is a package manager for Kubernetes, which simplifies the process of deploy
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
 
+Add the official Apache Airflow Helm chart repository to your Helm client:
+
 ```
 helm repo add apache-airflow https://airflow.apache.org
 helm repo update
