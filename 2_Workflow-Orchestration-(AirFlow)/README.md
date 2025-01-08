@@ -1842,7 +1842,7 @@ helm repo update
 This command creates a GKE cluster called airflow-cluster2 in the us-central1 region, with a single node using the e2-standard-4 machine type. This would be a minimal setup suitable for testing or development purposes.
 
 ```
-gcloud container clusters create airflow-cluster2 \
+gcloud container clusters create airflow-cluster \
   --num-nodes=1 \
   --machine-type=e2-standard-4 \
   --region=us-central1
