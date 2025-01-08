@@ -1788,7 +1788,29 @@ gcp_conn_id="gcp-airflow"
 
 # Airflow and Kubernetes
 
+Kubernetes is an open-source platform for managing containerized applications. Its architecture is designed to provide scalability, reliability, and automation for deploying and running applications. Here’s a simple breakdown of its architecture:
+
+**1. Cluster**
+
+A Kubernetes cluster is the main unit, consisting of two types of components: Control Plane and Worker Nodes.
+
+**2. Control Plane**
+
+The control plane manages the cluster and decides where and how applications run
+
+**3. Worker Nodes**
+
+Worker nodes are where your applications (containers) actually run. Each node has a Kubelet: A small agent that communicates with the control plane and ensures containers are running as instructed.
+
+**4. Pods**
+
+A pod is the smallest unit in Kubernetes. Each pod contains one or more containers that share storage, network, and specifications. Kubernetes manages applications by managing pods.
+
+**Kubernetes and Airflow**
+
 Kubernetes can be used as the underlying infrastructure to run Airflow. Airflow’s components, like the web server, scheduler, and worker nodes, can be deployed on a Kubernetes cluster. Kubernetes takes care of scaling and managing these components.
+
+**Google Kubernetes Engine (GKE)**
 
 Google Kubernetes Engine (GKE) is a managed environment provided by Google Cloud for deploying, managing, and scaling containerized applications using Kubernetes. Kubernetes is an open-source platform for automating containerized application deployment, scaling, and operations. GKE takes care of the underlying infrastructure, including provisioning virtual machines, networking, and storage, so users can focus on building and running their applications.
 
