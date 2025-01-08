@@ -1920,10 +1920,10 @@ This command forwards a local port to a port on a service in a Kubernetes cluste
 kubectl port-forward -n airflow svc/airflow-webserver 8080:8080
 ```
 
-go to localhost:8080
+Go to localhost:8080
 
-Username: admin
-Password: admin
+- Username: admin
+- Password: admin
 
 ![kube2](images/kube2.jpg)
 
@@ -1949,6 +1949,8 @@ kubectl exec -it -n airflow airflow-scheduler-0 -- bash
 ```
 
 ![kube3](images/kube3.jpg)
+
+As you can see, the file was copied successfully inside de pod
 
 After a few minutes the DAG should appear in the UI:
 
