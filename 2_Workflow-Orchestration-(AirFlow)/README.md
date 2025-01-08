@@ -1963,6 +1963,9 @@ After a few minutes the DAG should appear in the UI:
 
 ## Ingesting data to GCP with kubernetes
 
+Before you begin, check the Permissions in GCS.
+Confirm that the zoomcamp_datalake bucket exists and that your service key has permissions to write to it, as well as create tables in BigQuery.
+
 **1: Copy the DAG**
 
 copy the DAG as in the previous example
