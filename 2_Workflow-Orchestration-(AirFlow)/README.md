@@ -15,6 +15,7 @@
     - [Ingesting data to GCP new version](#ingesting-data-to-gcp-new-version)
 - [Airflow and Kubernetes](#airflow-and-kubernetes)    
     - [Setting up Airflow with Kubernetes](#setting-up-airflow-with-kubernetes)
+    - [Ingesting data to GCP with kubernetes](#ingesting-data-to-gcp-with-kubernetes)
 
     
 
@@ -1958,7 +1959,7 @@ After a few minutes the DAG should appear in the UI:
 ![kubedag](images/kubedag.jpg)
 
 
-## Ingesting data to GCP
+## Ingesting data to GCP with kubernetes
 
 **1: Copy the DAG**
 
