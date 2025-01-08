@@ -14,7 +14,7 @@
     - [Ingesting data to local Postgres new version](#ingesting-data-to-local-postgres-new-version)
     - [Ingesting data to GCP new version](#ingesting-data-to-gcp-new-version)
 - [Airflow and Kubernetes](#airflow-and-kubernetes)    
-    - [Setting up Airflow with Kubernetes)](#setting-up-airflow-with-kubernetes)
+    - [Setting up Airflow with Kubernetes](#setting-up-airflow-with-kubernetes)
 
     
 
@@ -1798,6 +1798,8 @@ Google Kubernetes Engine (GKE) is a managed environment provided by Google Cloud
 
 Enabling the API is the first step in using Google Kubernetes Engine, and it ensures that the required services and resources for managing Kubernetes clusters are available in your project. You can enable it from the Google Cloud Console or via the gcloud command-line tool. Once the API is enabled, you can use GKE to run and manage containerized workloads in a fully managed Kubernetes environment.
 
+![kubeapi](images/kubeapi.jpg)
+
 **2: Install SDK, kubectl and helm**
 
 Install SDK on linux/WSL2:
@@ -1854,6 +1856,10 @@ In Kubernetes, namespaces are a way to organize and isolate resources within a c
 kubectl create namespace airflow
 ```
 
+Browse to the Clusters tab on Kubernetes Engine to view the newly created cluster:
+
+![kube0](images/kube0.jpg)
+
 **4: values.yaml**
 
 The values.yaml file in Helm is a configuration file used to customize the deployment of a Helm chart. Helm charts come with a set of default configuration values, but you can modify these values to suit your specific needs by creating and using a custom values.yaml file.
@@ -1869,6 +1875,8 @@ triggerer:
   enabled: false
 ```  
 
+Full custom code:
+
 -  [`values.yaml`](airflow-kubernetes/values.yaml)
 
 
@@ -1879,3 +1887,59 @@ This command installs the Apache Airflow application to a Kubernetes cluster usi
 ```
 helm install airflow apache-airflow/airflow -n airflow -f values.yaml
 ```
+
+**6: Check Pods**
+
+This command will display details such as the names, statuses, and other information about the pods in the "airflow" namespace.
+
+```
+kubectl get pods -n airflow
+```
+
+should show something like this:
+
+![kube1](images/kube1.jpg)
+
+
+**7: Access the Airflow web interface**
+
+This command forwards a local port to a port on a service in a Kubernetes cluster:
+
+```
+kubectl port-forward -n airflow svc/airflow-webserver 8080:8080
+```
+
+go to localhost:8080
+
+![kube2](images/kube2.jpg)
+
+
+**8: Load DAGS**
+
+This command copies all Python files from the local localdags directory to the dags directory of the specified Airflow pod.
+
+Adjust with your local path:
+
+```
+kubectl cp /mnt/c/users/nacho/desktop/localdags/*.py airflow/airflow-scheduler-0:/opt/airflow/dags -n airflow
+```
+
+-  [`hello.py.yaml`](airflow-kubernetes/hello.py)
+
+Once copied, you can access the pod.
+
+This command opens an interactive Bash shell inside the airflow-scheduler-0 pod in the airflow namespace. It allows you to interact with the pod directly, similar to accessing a terminal on a local machine.
+
+```
+kubectl exec -it -n airflow airflow-scheduler-0 -- bash
+```
+
+![kube3](images/kube3.jpg)
+
+After a few minutes the DAG should appear in the UI:
+
+![kubedag0](images/kubedag0.jpg)
+
+**9: Trigger DAG**
+
+![kubedag](images/kubedag.jpg)
