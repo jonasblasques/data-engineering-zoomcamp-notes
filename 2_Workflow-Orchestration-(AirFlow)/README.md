@@ -13,6 +13,8 @@
     - [Ingesting data to local Postgres old version](#ingesting-data-to-local-postgres-old-version)
     - [Ingesting data to local Postgres new version](#ingesting-data-to-local-postgres-new-version)
     - [Ingesting data to GCP new version](#ingesting-data-to-gcp-new-version)
+- [Airflow and Kubernetes](#airflow-and-kubernetes)    
+    - [Setting up Airflow with Kubernetes)](#setting-up-airflow-with-kubernetes)
 
     
 
@@ -1780,3 +1782,100 @@ gcp_conn_id="gcp-airflow"
 
 ![airflownew3](images/airflownew3.jpg)
 
+
+
+
+# Airflow and Kubernetes
+
+Kubernetes can be used as the underlying infrastructure to run Airflow. Airflow’s components, like the web server, scheduler, and worker nodes, can be deployed on a Kubernetes cluster. Kubernetes takes care of scaling and managing these components.
+
+Google Kubernetes Engine (GKE) is a managed environment provided by Google Cloud for deploying, managing, and scaling containerized applications using Kubernetes. Kubernetes is an open-source platform for automating containerized application deployment, scaling, and operations. GKE takes care of the underlying infrastructure, including provisioning virtual machines, networking, and storage, so users can focus on building and running their applications.
+
+
+## Setting up Airflow with Kubernetes
+
+**1: Enable Kubernetes Engine API**
+
+Enabling the API is the first step in using Google Kubernetes Engine, and it ensures that the required services and resources for managing Kubernetes clusters are available in your project. You can enable it from the Google Cloud Console or via the gcloud command-line tool. Once the API is enabled, you can use GKE to run and manage containerized workloads in a fully managed Kubernetes environment.
+
+**2: Install SDK, kubectl and helm**
+
+Install SDK on linux/WSL2:
+
+```
+curl https://sdk.cloud.google.com | bash
+exec -l $SHELL
+```
+
+install plugin gcloud-auth-plugin:
+
+```
+install plugin gcloud-auth-plugin
+```
+
+install kubectl:
+
+kubectl is the command-line interface (CLI) tool used for interacting with Kubernetes clusters. It allows users to manage and deploy applications, inspect cluster resources, and perform various administrative tasks in a Kubernetes environment.
+
+```
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+```
+
+install helm:
+
+Helm is a package manager for Kubernetes, which simplifies the process of deploying and managing applications on Kubernetes clusters. Helm packages applications into "charts," which are pre-configured Kubernetes resources bundled together.
+
+```
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+
+```
+helm repo add apache-airflow https://airflow.apache.org
+helm repo update
+```
+
+**3: Create a new Kubernetes cluster on Google Kubernetes Engine (GKE)**
+
+This command creates a GKE cluster called airflow-cluster2 in the us-central1 region, with a single node using the e2-standard-4 machine type. This would be a minimal setup suitable for testing or development purposes.
+
+```
+gcloud container clusters create airflow-cluster2 \
+  --num-nodes=1 \
+  --machine-type=e2-standard-4 \
+  --region=us-central1
+```  
+
+Create a new namespace called airflow within a Kubernetes cluster.
+
+In Kubernetes, namespaces are a way to organize and isolate resources within a cluster. They allow you to divide the cluster into multiple virtual clusters, each containing its own set of resources, such as pods, services, and deployments. This helps in managing and organizing resources for different projects, teams, or applications within the same physical Kubernetes cluster.
+
+```
+kubectl create namespace airflow
+```
+
+**4: values.yaml**
+
+The values.yaml file in Helm is a configuration file used to customize the deployment of a Helm chart. Helm charts come with a set of default configuration values, but you can modify these values to suit your specific needs by creating and using a custom values.yaml file.
+
+Changes made:
+
+```yaml
+executor: "LocalExecutor"
+```
+
+```yaml
+triggerer:
+  enabled: false
+```  
+
+-  [`values.yaml`](airflow-kubernetes/values.yaml)
+
+
+**5: Install airflow**
+
+This command installs the Apache Airflow application to a Kubernetes cluster using the apache-airflow/airflow Helm chart, with custom settings specified in the values.yaml file, and it installs the release into the airflow namespace of the cluster.
+
+```
+helm install airflow apache-airflow/airflow -n airflow -f values.yaml
+```
