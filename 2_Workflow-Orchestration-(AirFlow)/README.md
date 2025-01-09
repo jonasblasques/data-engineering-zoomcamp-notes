@@ -1821,6 +1821,8 @@ Google Kubernetes Engine (GKE) is a managed environment provided by Google Cloud
 
 Enabling the API is the first step in using Google Kubernetes Engine, and it ensures that the required services and resources for managing Kubernetes clusters are available in your project. You can enable it from the Google Cloud Console or via the gcloud command-line tool. Once the API is enabled, you can use GKE to run and manage containerized workloads in a fully managed Kubernetes environment.
 
+Nn the left hand side find Kubernetes Engine → Configurationand enable the Kubernetes Engine API 
+
 ![kubeapi](images/kubeapi.jpg)
 
 **2: Install SDK, kubectl and helm**
@@ -1875,7 +1877,7 @@ gcloud container clusters create airflow-cluster \
   --region=us-central1
 ```  
 
-can take up to 5 mins
+Can take up to 5 mins
 
 Then create a new namespace called airflow within a Kubernetes cluster.
 
@@ -1889,7 +1891,7 @@ Browse to the Clusters tab on Kubernetes Engine to view the newly created cluste
 
 ![kube0](images/kube0.jpg)
 
-**4: values.yaml**
+**4: Values.yaml**
 
 The values.yaml file in Helm is a configuration file used to customize the deployment of a Helm chart. Helm charts come with a set of default configuration values, but you can modify these values to suit your specific needs by creating and using a custom values.yaml file.
 
@@ -1915,7 +1917,7 @@ Default chart yaml:
 -  [`default-values.yaml`](airflow-kubernetes/default-values.yaml)
 
 
-Customized yaml with local executor, disables triggerer and smaller volumes:
+Customized yaml with local executor, disabled triggerer and reduced volumes:
 
 -  [`values.yaml`](airflow-kubernetes/values.yaml)
 
@@ -1928,7 +1930,7 @@ This command installs the Apache Airflow application to a Kubernetes cluster usi
 helm install airflow apache-airflow/airflow -n airflow -f values.yaml
 ```
 
-can take up to 5 mins
+It may take up to 5 minutes
 
 **6: Check Pods**
 
@@ -2014,7 +2016,7 @@ Complete Connection id, Connection type, your project id and Keyfile Json (just 
 ![kubeconn](images/kubeconn.jpg)
 
 
-**3: install python dependencies**
+**3: Install python dependencies**
 
 Modify the values.yaml to include the python dependencies. Add this line just above the executor variable:
 
