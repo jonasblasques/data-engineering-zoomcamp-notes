@@ -1821,7 +1821,7 @@ Google Kubernetes Engine (GKE) is a managed environment provided by Google Cloud
 
 Enabling the API is the first step in using Google Kubernetes Engine, and it ensures that the required services and resources for managing Kubernetes clusters are available in your project. You can enable it from the Google Cloud Console or via the gcloud command-line tool. Once the API is enabled, you can use GKE to run and manage containerized workloads in a fully managed Kubernetes environment.
 
-Nn the left hand side find Kubernetes Engine → Configurationand enable the Kubernetes Engine API 
+On the left hand side find Kubernetes Engine → Configurationand enable the Kubernetes Engine API 
 
 ![kubeapi](images/kubeapi.jpg)
 
