@@ -895,17 +895,7 @@ _([Video source](https://www.youtube.com/watch?v=OkfLX28Ecjg))_
 - CSV files accessible here: https://github.com/DataTalksClub/nyc-tlc-data/releases
 - Flow: [`02_postgres_taxi.yaml`](flows/02_postgres_taxi.yaml)
 
-> [!NOTE]  
-> slightly modify the flow. Use table: "public.{{inputs.taxi}}_tripdata_temp" instead of table: "public.{{inputs.
-> taxi}}_tripdata_{{inputs.year}}_{{inputs.month}}" to avoid generating multiple temporary tables
->
-> Also add this task at the end: 
-> ```yaml
-> - id: purge_files
->   type: io.kestra.plugin.core.storage.PurgeCurrentExecutionFiles
->   description: To avoid cluttering your storage, we will remove the downloaded files
-> ```
----
+
 
 To keep things simple, we'll use the same database as the one we set up for Kestra in Docker Compose.
 
