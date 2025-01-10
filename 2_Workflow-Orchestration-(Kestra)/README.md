@@ -1126,7 +1126,7 @@ WHEN NOT MATCHED THEN
 
 - **INSERT:** Specifies the columns that will be inserted into the target table (green_tripdata).
 
-**VALUES:** Specifies the values for each column from the source table (S). These values are dynamically pulled from the source table's columns for each record.
+- **VALUES:** Specifies the values for each column from the source table (S). These values are dynamically pulled from the source table's columns for each record.
 
 
 ### Tables explanation
