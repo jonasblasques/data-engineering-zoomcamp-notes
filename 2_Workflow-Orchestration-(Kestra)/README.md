@@ -1,7 +1,7 @@
 # Workflow Orchestration
 
 - [0. Module 1 recap](#0-module-1-recap)
-- [1. Conceptual Material: Introduction to Orchestration and Kestra](#1-conceptual material-introduction-to-orchestration-and-kestra)
+- [1. Conceptual Material: Introduction to Orchestration and Kestra](#1-conceptual-material-introduction-to-orchestration-and-kestra)
   - [Introduction to Workflow Orchestration](#introduction-to-workflow-orchestration)
   - [Introduction to Kestra](#introduction-to-kestra)
   - [Getting started pipeline](#getting-started-pipeline)
