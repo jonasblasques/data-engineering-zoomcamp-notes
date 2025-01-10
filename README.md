@@ -38,9 +38,17 @@ For the course you'll need:
 * ETL Pipelines: Load Data to Local Postgres
 * ETL Pipelines: Load Data to Google Cloud Platform (GCP)
 
+### [Module 3: Data Warehouse](3_Data-Warehouse/)
+
+* Data Warehouse
+* BigQuery
+* Partitioning and clustering
+* BigQuery best practices
+* Internals of BigQuery
 
 
-## Legacy:
+
+## Extra:
 
 ### [Module 2: Workflow Orchestration (Airflow)](2_Workflow-Orchestration-(AirFlow)/)
 
@@ -52,3 +60,4 @@ For the course you'll need:
 * Ingesting data to local Postgres with Airflow
 * Ingesting data to GCP with Airflow
 * Airflow 2025
+* Airflow with kubernetes
