@@ -1,15 +1,46 @@
 # Workflow Orchestration
 
+- [0. Module 1 recap](#module-1-recap)
 - [1. Conceptual Material: Introduction to Orchestration and Kestra](#introduction-to-orchestration-and-kestra)
   - [Introduction to Workflow Orchestration](#introduction-to-workflow-orchestration)
   - [Introduction to Kestra](#introduction-to-kestra)
+  - [Getting started pipeline](#getting-started-pipeline)
   - [Launch Kestra using Docker Compose](#launch-kestra-using-docker-compose)
 - [2. Hands-On Coding Project: Build Data Pipelines with Kestra](#2-hands-on-coding-project-build-data-pipelines-with-kestra)
-  - [Getting started pipeline](#getting-started-pipeline)
   - [Load Data to Local Postgres](#load-data-to-local-postgres)
   - [Load Data to Local Postgres with backfill](#load-data-to-local-postgres-with-backfill)
   - [Load Data to GCP](#load-data-to-gcp)
   - [Load Data to GCP with backfill](#load-data-to-gcp-with-backfill)
+
+
+
+# 0. Module 1 recap
+
+In the previous lesson we saw the definition of data pipeline and we created a pipeline script that downloaded a CSV and processed it so that we could ingest it to Postgres. This is what our pipeline looked like:
+
+![pipeline1new](images/pipeline1new.jpg)
+
+
+The script we created is an example of how **NOT** to create a pipeline, because it contains 2 steps which could otherwise be separated (downloading and processing). The reason is that if we're simply testing the script, it will have to download the CSV file every single time that we run the script, which is less than ideal. Another reason, for example if the internet is not available, the entire script will fail.
+
+This week we will work on a slightly more complex pipeline. This will involve extracting data from the web. Convert this CSV to a more effective format - parquet. We'll take this file and upload to Google Cloud Storage (data lake). Finally we'll create an external table in Google BigQuery:
+
+
+![pipeline2new](images/pipeline2new.jpg)  
+
+
+**Data Lake:**
+
+- Purpose: Stores raw, unprocessed data from various sources, often for exploratory or advanced analytics.
+- Data Format: Stores data in its original format (structured, semi-structured, or unstructured).
+- Tools: Google Cloud Storage, Amazon S3, or Azure Data Lake.
+
+**Data Warehouse:**
+
+- Purpose: Stores structured and cleaned data optimized for querying and reporting.
+- Data Format: Stores structured and pre-processed data.
+- Performance: Optimized for complex SQL queries and business intelligence (BI) tools.
+- Tools: Google BigQuery, Snowflake, Amazon Redshift or Microsoft Azure Synapse.
 
 
 
@@ -60,9 +91,11 @@ If your infrastructure is cloud-based, you can use your orchestrator to help pro
 
 ## Introduction to Kestra
 
-_([Video source](https://www.youtube.com/watch?v=a2BZ7vOihjg))_
+_([Video source](https://www.youtube.com/watch?v=Np6QmmcgLCs))_
 
-Kestra is an orchestration platform that’s highly flexible and well-equipped to manage all types of pipelines As an example, lets set up a simple workflow to run a Python script every hour and send the result as a Discord notification.
+Kestra is an orchestration platform that’s highly flexible and well-equipped to manage all types of pipelines  Kestra provides a user-friendly interface and a YAML-based configuration format, making it easy to define, monitor, and manage workflows.
+
+Kestra gives you the flexibility on how you control your workflows and gives you the option to do it in no code low code or full code.
 
 Run the following command to start up your instance (bash/ubuntu wsl terminal):
 
@@ -98,401 +131,267 @@ Workflows are referenced as Flows and they are declared using YAML. Within each 
 - Triggers: Instead of manually executing your flow, you can setup triggers to execute it based on a set of conditions such as time schedule or a webhook.
 
 
-### Building our first flow
+## Getting started pipeline
 
-For our first flow, we're going to set up a simple automation that runs a Python script once every hour and sends its output as a notification. The script will make an API request to GitHub to fetch the star count of the Kestra repository and send the result to Discord.
+_([Video source](https://www.youtube.com/watch?v=Np6QmmcgLCs))_
 
 
-**1: Declaring the flow**
+Flow: [`01_getting_started_data_pipeline.yaml`](flows/01_getting_started_data_pipeline.yaml)
 
-Click on Create my first flow. Flows are declared using YAML. This YAML file describes a Kestra workflow configuration:
+This introductory flow is added just to demonstrate a simple data pipeline which extracts data via
+ HTTP REST API, transforms that data in Python and then queries it using DuckDB.
+
+Is going to run an extract task, a transform task, and a query task:
+
+![pipeline0](images/pipeline0.jpg) 
+
+**Declaring the flow**
+
+Click on Create my first flow. Flows are declared using YAML. This YAML file describes a Kestra workflow configuration: 
 
 ```yaml
 
-id: api_example
-namespace: company.team
+id: 01_getting_started_data_pipeline
+namespace: zoomcamp
+
+inputs:
+  - id: columns_to_keep
+    type: ARRAY
+    itemType: STRING
+    defaults:
+      - brand
+      - price
+
 tasks:
-  - id: python_script
-    type: io.kestra.plugin.scripts.python.Commands
-    namespaceFiles:
-      enabled: true
-    runner: PROCESS
-    beforeCommands:
-      - python3 -m venv .venv
-      - . .venv/bin/activate
-      - pip install -r scripts/requirements.txt
-    commands:
-      - python scripts/api_example.py
+  - id: extract
+    type: io.kestra.plugin.core.http.Download
+    uri: https://dummyjson.com/products
+
+  - id: transform
+    type: io.kestra.plugin.scripts.python.Script
+    containerImage: python:3.11-alpine
+    inputFiles:
+      data.json: "{{outputs.extract.uri}}"
+    outputFiles:
+      - "*.json"
+    env:
+      COLUMNS_TO_KEEP: "{{inputs.columns_to_keep}}"
+    script: |
+      import json
+      import os
+
+      columns_to_keep_str = os.getenv("COLUMNS_TO_KEEP")
+      columns_to_keep = json.loads(columns_to_keep_str)
+
+      with open("data.json", "r") as file:
+          data = json.load(file)
+
+      filtered_data = [
+          {column: product.get(column, "N/A") for column in columns_to_keep}
+          for product in data["products"]
+      ]
+
+      with open("products.json", "w") as file:
+          json.dump(filtered_data, file, indent=4)
+
+  - id: query
+    type: io.kestra.plugin.jdbc.duckdb.Query
+    inputFiles:
+      products.json: "{{outputs.transform.outputFiles['products.json']}}"
+    sql: |
+      INSTALL json;
+      LOAD json;
+      SELECT brand, round(avg(price), 2) as avg_price
+      FROM read_json_auto('{{workingDir}}/products.json')
+      GROUP BY brand
+      ORDER BY avg_price DESC;
+    fetchType: STORE
 ```    
 
-
-We will explain each part step by step:
-
-- id: api_example. This defines the unique identifier for the workflow
-
-- namespace: company.team. This specifies the organizational context (namespace) where the workflow resides
-
-- Tasks: The workflow includes one task:
-
-    1. id: python_script. The task's unique identifier
-    2. type: io.kestra.plugin.scripts.python.Commands. This specifies that the task uses the Python plugin provided by Kestra to run Python scripts.
-    3. namespaceFiles: enabled: true. This ensures that namespace files are available to the task. Allow our flow to see other files.
-    4. runner: PROCESS. Indicates that the task will run as an independent process.
-    5. beforeCommands. These commands will execute before the main script runs:
-
-        - python3 -m venv .venv: Creates a virtual environment for Python.
-        - . .venv/bin/activate: Activates the virtual environment.
-        - pip install -r scripts/requirements.txt: Installs dependencies listed in the requirements.txt file.
-
-    6. commands: The main script to execute is python scripts/api_example.py. 
-    
-    
-For Python, you can either use a Commands or Script plugin. Commands is best for executing a separate .py file whereas Script is useful if you want to write your Python directly within the task.
+Then click on save button
 
 
-Click on save button:
-
-![kestra8](images/kestra8.jpg)
-
-Then click on files in orden to create scripts folder and files:
+### Step-by-step explanation of the flow:
 
 
-![kestra9](images/kestra9.jpg)
+**Id and namespace**
 
+To begin with, here we have the ID, which is the name of our workflow. Followed by that, we have the namespace, which is sort of like a folder where we're going to store this. 
 
-**2: Python file**
+```yaml
 
-Now you’re probably wondering, how do I get my Python file into Kestra? We can use the Editor to create this file on the platform and save it in a new folder called scripts as api_example.py
-
-
-![kestra4](images/kestra4.jpg)
-
-
-Click on create folder --> create scripts folder
-
-Inside scripts folder create a api_example.py file with create file option.
-
-Python code should look like this:
-
-```python
-
-import requests
-
-r = requests.get('https://api.github.com/repos/kestra-io/kestra')
-gh_stars = r.json()['stargazers_count']
-print(gh_stars)
+id: 01_getting_started_data_pipeline
+namespace: zoomcamp
 ```
 
-Your Kestra interface should look like this:
+**Inputs**
+
+Following that, we have inputs, which are values we can pass in at the start of our workflow execution to then be able to define what happens. Now this one's looking for an array with two values inside of it, in this case, brand and price, which are default. But if you press execution, you can actually change what these values will be so that we can get different results for different executions.
+
+The flow accepts a single input, an array of strings that specifies which columns to retain when processing the data:
+
+```yaml
+inputs:
+  - id: columns_to_keep
+    type: ARRAY
+    itemType: STRING
+    defaults:
+      - brand
+      - price
+```      
+
+**Task 1: Extract**
+
+Afterwards, we've got our tasks, and as you can see here, the first task is going to extract data.
+
+Downloads a JSON dataset from the URL https://dummyjson.com/products
+
+The downloaded file's URI is accessible in subsequent tasks using {{outputs.extract.uri}}.
+
+```yaml
+tasks:
+  - id: extract
+    type: io.kestra.plugin.core.http.Download
+    uri: https://dummyjson.com/products
+
+```  
+
+**Task 2: Transform**
+
+in the Python code we're starting to transform the data to produce a new file, which is called products.json. Afterwards, we can then pass products.json to our query task
 
 
-![kestra5](images/kestra5.jpg)
+task 2:
+
+```yaml
+tasks:
+
+  - id: transform
+    type: io.kestra.plugin.scripts.python.Script
+    containerImage: python:3.11-alpine
+    inputFiles:
+      data.json: "{{outputs.extract.uri}}"
+    outputFiles:
+      - "*.json"
+    env:
+      COLUMNS_TO_KEEP: "{{inputs.columns_to_keep}}"
+    script: |
+      import json
+      import os
+
+      columns_to_keep_str = os.getenv("COLUMNS_TO_KEEP")
+      columns_to_keep = json.loads(columns_to_keep_str)
+
+      with open("data.json", "r") as file:
+          data = json.load(file)
+
+      filtered_data = [
+          {column: product.get(column, "N/A") for column in columns_to_keep}
+          for product in data["products"]
+      ]
+
+      with open("products.json", "w") as file:
+          json.dump(filtered_data, file, indent=4)
+```     
+
+- Environment: Runs a Python script in a container using the python:3.11-alpine image
+- Takes the JSON file downloaded in the previous task (data.json).
+- Sets COLUMNS_TO_KEEP from the input columns_to_keep
+- Reads the data.json file
+- Extracts only the specified columns (brand and price by default) for each product.
+- Saves the transformed data to products.json.
+- Outputs the filtered JSON file as products.json.
 
 
-**3: Requirements file**
+Python code is directly inside of our workflow, but we can also use Python code in separate files using the command task 
 
-We just need to make sure we install any dependencies before the script runs. We'll need to also make a requirements.txt inside scripts folder with the requests library.
+Python script explanation:
+
+```python
+import json
+import os
+
+# Load the columns to keep from the environment variable
+columns_to_keep_str = os.getenv("COLUMNS_TO_KEEP")
+columns_to_keep = json.loads(columns_to_keep_str)
+
+# Read the input JSON data
+with open("data.json", "r") as file:
+    data = json.load(file)
+
+# Filter data to retain specified columns
+filtered_data = [
+    {column: product.get(column, "N/A") for column in columns_to_keep}
+    for product in data["products"]
+]
+
+# Write the filtered data to a new JSON file
+with open("products.json", "w") as file:
+    json.dump(filtered_data, file, indent=4)
+
+```
 
 
-![kestra7](images/kestra7.jpg)
+
+**Task 3: Query**
+
+- Input Data: Reads the products.json file output from the transform task.
+- Installs and loads DuckDB's JSON extension (INSTALL json; LOAD json;).
+- Reads the products.json file and processes the data: Calculates the average price (avg_price) for 
+each brand. Groups the results by brand. Orders the results in descending order of avg_price.
+- fetchType: STORE: It saves the results of the SQL query to a file. This allows the results to be used by subsequent tasks in the flow
 
 
-**4: Execute**
+```yaml
+tasks:
+
+  - id: query
+    type: io.kestra.plugin.jdbc.duckdb.Query
+    inputFiles:
+      products.json: "{{outputs.transform.outputFiles['products.json']}}"
+    sql: |
+      INSTALL json;
+      LOAD json;
+      SELECT brand, round(avg(price), 2) as avg_price
+      FROM read_json_auto('{{workingDir}}/products.json')
+      GROUP BY brand
+      ORDER BY avg_price DESC;
+    fetchType: STORE
+```    
+
+### 2: Execute
 
 Now let’s test this by saving our flow and executing it! 
 
+We get this wonderful Gantt view that helps us visualize which task has run when and at what point the workflow is at. If I click into these, it gives me some log messages
 
-![kestraexecute](images/kestraexecute.jpg)
 
+![pipeline2](images/pipeline2.jpg) 
 
-**5: Logs**
 
+If you go to the outputs tab now, I will be able to view some of the data generated for the different tasks.
 
-On the Logs page, we can see the output from the Python execution, including with the desired output 
-at the end. It set ups the virtual environment, installs the dependencies inside of requirements.txt 
-and then executes the Python script.
+![pipeline4](images/pipeline4.jpg) 
 
 
-![kestralog](images/kestralog.jpg)
+Click on preview:
 
+![pipeline5](images/pipeline5.jpg) 
 
-**6: Using Outputs**
+We can see we’ve got the JSON that was extracted at the beginning. There’s a lot of data here that is not very useful to us in its current form
 
-Great, we can see that our Python script is correctly fetching the number of stars on the GitHub 
-repository and outputting them to the console. However, we want to send the gh_stars variable back to our Kestra Flow so we can send a 
-notification with this variable. We can adjust our Python task to generate an output which we can pass 
-downstream to the next task.
+Then transform task also produced some data. I can see that we’ve got a JSON file here with products.json and another one called data.json. For example this is the preview from products.json:
 
-Firstly, we need to add kestra to the requirements.txt
 
-Then we’ll need to tweak our Python script to use the Kestra library to send the gh_stars 
-variable to our Flow:
+![pipeline6](images/pipeline6.jpg) 
 
-```python
-import requests
-from kestra import Kestra
 
-r = requests.get('https://api.github.com/repos/kestra-io/kestra')
-gh_stars = r.json()['stargazers_count']
-Kestra.outputs({'gh_stars': gh_stars})
-```
+Then finally, we have the query, and here is where we get a table with the data in a much more organized, sorted format. It’s much more useful to us than that original JSON value. We can then download this or pass it to another task
 
-We use kestra library to assign the gh_stars variable 
-to an gh_stars key in a dictionary which we’ll be able to access inside of Kestra.
+Tasks Query --> Outputs uri --> Preview :
 
-With this change made, we can add an additional task that uses this variable to print it 
-to the logs rather than mixed in with the full Python output. We can use the Log type and 
-use the following syntax to get our output: {{ outputs.task_id.vars.output_name }}. 
-As our Python task was called python_script, we can easily get our Python variable 
-using {{ outputs.python_script.vars.gh_stars }} to retrieve it.
 
-New task should look like this:
-
-```yaml
-
-- id: python_output
-  type: io.kestra.plugin.core.log.Log
-  message: "Number of stars: {{ outputs.python_script.vars.gh_stars }}"
-```
-
-And the full flow should look like this:
-
-```yaml
-id: api_example
-namespace: company.team
-tasks:
-  - id: python_script
-    type: io.kestra.plugin.scripts.python.Commands
-    namespaceFiles:
-      enabled: true
-    runner: PROCESS
-    beforeCommands:
-      - python3 -m venv .venv
-      - . .venv/bin/activate
-      - pip install -r scripts/requirements.txt
-    commands:
-      - python scripts/api_example.py
-
-  - id: python_output
-    type: io.kestra.plugin.core.log.Log
-    message: "Number of stars: {{ outputs.python_script.vars.gh_stars }}"   
-
-```
-
-
-![kestra10](images/kestra10.jpg)
-
-
-Then click on save --> Click on execute
-
-When we execute it, we should see it separated from all the Python logs for easier reading
-
-![kestra11](images/kestra11.jpg)
-
-
-**7: Adding a notification**
-
-Add a task to send the output to Discord. We can do this using the topology view or YAML editor.
-
-Lets use the topology view:
-
-![kestra12](images/kestra12.jpg)
-
-
-We can press the + to add a new task
-
-We’re going to use the DiscordExecution task as this lets us push a message to a webhook which will 
-send a message to a channel.
-
-Search for DiscordExecution in type input field:
-
-![kestra13](images/kestra13.jpg)
-
-Then complete:
-- id: "send_notification"
-- url: "example.com" (we will edit this value later)
-- content: "Number of stars: {{ outputs.python_script.vars.gh_stars }}"
-
-Then save!
-
-
-For our Discord message, we will need to give this task a Webhook URL which we can get 
-from Discord. While nothing else is required, we'll change the username to be Kestra. We can also add an Avatar 
-by using the URL of the GitHub Organisation profile picture.
-
-Instead of hard coding this straight into the avatarUrl box, we can create an input:
-
-```yaml
-inputs:
-  - id: kestra_logo
-    type: STRING
-    defaults: https://avatars.githubusercontent.com/u/59033362?v=4
-```    
-
-While we're creating inputs, we can also make our Webhook URL an input in case we want to reuse it too. 
-
-**Create server and webhook on discord:**
-
-create server--> Inside of server, right click and edit channel --> Integrations --> Create webhook --> copy webhook url
-
-Now we can easily make another input underneath the kestra_logo input using the same format:
-
-
-```yaml
-inputs:
-  - id: kestra_logo
-    type: STRING
-    defaults: https://avatars.githubusercontent.com/u/59033362?v=4
-
-  - id: discord_webhook_url
-    type: STRING
-    defaults: https://discordapp.com/api/webhooks/1234/abcd1234
-```
-
-Change this url "https://discordapp.com/api/webhooks/1234/abcd1234" with your webhook url !
-
-All we need to do now is reference these inputs inside of our tasks and we should be ready to run our flow:
-
-```yaml
-- id: send_notification
-  type: io.kestra.plugin.notifications.discord.DiscordExecution
-  url: "{{ inputs.discord_webhook_url }}"
-  avatarUrl: "{{ inputs.kestra_logo }}"
-  username: Kestra
-  content: "Total of GitHub Stars: {{ outputs.python_script.vars.gh_stars }}"
-```
-
-Before we execute our flow, let's recap and check out the full flow:
-
-```yaml
-id: api_example
-namespace: company.team
-
-inputs:
-  - id: kestra_logo
-    type: STRING
-    defaults: https://avatars.githubusercontent.com/u/59033362?v=4
-
-  - id: discord_webhook_url
-    type: STRING
-    defaults: https://discordapp.com/api/webhooks/1234/abcd1234
-
-tasks:
-  - id: python_script
-    type: io.kestra.plugin.scripts.python.Commands
-    namespaceFiles:
-      enabled: true
-    runner: PROCESS
-    beforeCommands:
-      - python3 -m venv .venv
-      - . .venv/bin/activate
-      - pip install -r scripts/requirements.txt
-    commands:
-      - python scripts/api_example.py
-
-  - id: python_output
-    type: io.kestra.plugin.core.log.Log
-    message: "Number of stars: {{ outputs.python_script.vars.gh_stars }}"
-
-  - id: send_notification
-    type: io.kestra.plugin.notifications.discord.DiscordExecution
-    url: "{{ inputs.discord_webhook_url }}"
-    avatarUrl: "{{ inputs.kestra_logo }}"
-    username: Kestra
-    content: "Total of GitHub Stars: {{ outputs.python_script.vars.gh_stars }}"
-```    
-
-
-Let’s execute this and see the log:
-
-![kestra14](images/kestra14.jpg)
-
-On discord:
-
-
-![kestra15](images/kestra15.jpg)
-
-
-
-**8: Setting up a Trigger**
-
-Now that we have everything running, there's one last step we need to complete this workflow: set up a trigger 
-to execute our flow automatically! For our example, we're going to use a schedule to run it once every hour.
-
-To start with, we can use the triggers keyword underneath our tasks to specify our schedule. Similar to tasks,
- each trigger has an id and a type. For the Schedule type, we will also need to fill in a cron property so it knows what 
- schedule to use.
-
- We can use crontab.guru to help us figure out what the correct cron schedule expression would be to run once
-  every hour.
-
-This cron schedule expression will execute it at minute 0 of every hour:
-
-```yaml
-
-triggers:
-  - id: hour_trigger
-    type: io.kestra.plugin.core.trigger.Schedule
-    cron: 0 * * * *
-```
-
-When we look at our topology view, we can now see our trigger has been correctly recognised. There's no further
- actions needed to set up the trigger, it will work as soon as you've saved your flow! But it is worth noting 
- that if you want to disable it, you can add a disabled property set to true so you don't have to delete it.
-
-
-![kestra16](images/kestra16.jpg) 
-
-
-With that configured, we now have our fully functioning flow that can make an API request to GitHub through 
-our Python script, output a value from that request to the Kestra logs as well as send it as a Discord 
-notification. And on top of that, it will automatically execute once every hour! To recap, our flow should 
-look like this:
-
-
-```yaml
-
-id: api_example
-namespace: company.team
-
-inputs:
-  - id: kestra_logo
-    type: STRING
-    defaults: https://avatars.githubusercontent.com/u/59033362?v=4
-
-  - id: discord_webhook_url
-    type: STRING
-    defaults: https://discordapp.com/api/webhooks/1234/abcd1234
-
-tasks:
-  - id: python_script
-    type: io.kestra.plugin.scripts.python.Commands
-    namespaceFiles:
-      enabled: true
-    runner: PROCESS
-    beforeCommands:
-      - python3 -m venv .venv
-      - . .venv/bin/activate
-      - pip install -r scripts/requirements.txt
-    commands:
-      - python scripts/api_example.py
-
-  - id: python_output
-    type: io.kestra.plugin.core.log.Log
-    message: "Number of stars: {{ outputs.python_script.vars.gh_stars }}"
-
-  - id: send_notification
-    type: io.kestra.plugin.notifications.discord.DiscordExecution
-    url: "{{ inputs.discord_webhook_url }}"
-    avatarUrl: "{{ inputs.kestra_logo }}"
-    username: Kestra
-    content: "Total of GitHub Stars: {{ outputs.python_script.vars.gh_stars }}"
-
-triggers:
-  - id: hour_trigger
-    type: io.kestra.plugin.core.trigger.Schedule
-    cron: 0 * * * *
-```   
+![pipeline7](images/pipeline7.jpg) 
 
 
 
@@ -630,262 +529,6 @@ Under Connection add:
 
 
 # 2. Hands-On Coding Project: Build Data Pipelines with Kestra
-
-## Getting started pipeline
-
-_([Video source](https://www.youtube.com/watch?v=Np6QmmcgLCs))_
-
-Flow: [`01_getting_started_data_pipeline.yaml`](flows/01_getting_started_data_pipeline.yaml)
-
-This introductory flow is added just to demonstrate a simple data pipeline which extracts data via
- HTTP REST API, transforms that data in Python and then queries it using DuckDB.
-
-Is going to run an extract task, a transform task, and a query task:
-
-![pipeline0](images/pipeline0.jpg) 
-
-### 1: Create flow
-Click on Create Flow and paste the following yaml and save it:
-
-```yaml
-
-id: 01_getting_started_data_pipeline
-namespace: zoomcamp
-
-inputs:
-  - id: columns_to_keep
-    type: ARRAY
-    itemType: STRING
-    defaults:
-      - brand
-      - price
-
-tasks:
-  - id: extract
-    type: io.kestra.plugin.core.http.Download
-    uri: https://dummyjson.com/products
-
-  - id: transform
-    type: io.kestra.plugin.scripts.python.Script
-    containerImage: python:3.11-alpine
-    inputFiles:
-      data.json: "{{outputs.extract.uri}}"
-    outputFiles:
-      - "*.json"
-    env:
-      COLUMNS_TO_KEEP: "{{inputs.columns_to_keep}}"
-    script: |
-      import json
-      import os
-
-      columns_to_keep_str = os.getenv("COLUMNS_TO_KEEP")
-      columns_to_keep = json.loads(columns_to_keep_str)
-
-      with open("data.json", "r") as file:
-          data = json.load(file)
-
-      filtered_data = [
-          {column: product.get(column, "N/A") for column in columns_to_keep}
-          for product in data["products"]
-      ]
-
-      with open("products.json", "w") as file:
-          json.dump(filtered_data, file, indent=4)
-
-  - id: query
-    type: io.kestra.plugin.jdbc.duckdb.Query
-    inputFiles:
-      products.json: "{{outputs.transform.outputFiles['products.json']}}"
-    sql: |
-      INSTALL json;
-      LOAD json;
-      SELECT brand, round(avg(price), 2) as avg_price
-      FROM read_json_auto('{{workingDir}}/products.json')
-      GROUP BY brand
-      ORDER BY avg_price DESC;
-    fetchType: STORE
-```    
-
-### Step-by-step explanation of the flow:
-
-
-**Id and namespace**
-
-To begin with, here we have the ID, which is the name of our workflow. Followed by that, we have the namespace, which is sort of like a folder where we're going to store this. 
-
-```yaml
-
-id: 01_getting_started_data_pipeline
-namespace: zoomcamp
-```
-
-**Inputs**
-
-Following that, we have inputs, which are values we can pass in at the start of our workflow execution to then be able to define what happens. Now this one's looking for an array with two values inside of it, in this case, brand and price, which are default. But if you press execution, you can actually change what these values will be so that we can get different results for different executions.
-
-The flow accepts a single input, an array of strings that specifies which columns to retain when processing the data:
-
-```yaml
-inputs:
-  - id: columns_to_keep
-    type: ARRAY
-    itemType: STRING
-    defaults:
-      - brand
-      - price
-```      
-
-**Task 1: Extract**
-
-Afterwards, we've got our tasks, and as you can see here, the first task is going to extract data.
-
-Downloads a JSON dataset from the URL https://dummyjson.com/products
-
-The downloaded file's URI is accessible in subsequent tasks using {{outputs.extract.uri}}.
-
-```yaml
-tasks:
-  - id: extract
-    type: io.kestra.plugin.core.http.Download
-    uri: https://dummyjson.com/products
-
-```  
-
-**Task 2: Transform**
-
-in the Python code we're starting to transform the data to produce a new file, which is called products.json. Afterwards, we can then pass products.json to our query task
-
-
-task 2:
-
-```yaml
-tasks:
-
-  - id: transform
-    type: io.kestra.plugin.scripts.python.Script
-    containerImage: python:3.11-alpine
-    inputFiles:
-      data.json: "{{outputs.extract.uri}}"
-    outputFiles:
-      - "*.json"
-    env:
-      COLUMNS_TO_KEEP: "{{inputs.columns_to_keep}}"
-    script: |
-      import json
-      import os
-
-      columns_to_keep_str = os.getenv("COLUMNS_TO_KEEP")
-      columns_to_keep = json.loads(columns_to_keep_str)
-
-      with open("data.json", "r") as file:
-          data = json.load(file)
-
-      filtered_data = [
-          {column: product.get(column, "N/A") for column in columns_to_keep}
-          for product in data["products"]
-      ]
-
-      with open("products.json", "w") as file:
-          json.dump(filtered_data, file, indent=4)
-```     
-
-- Environment: Runs a Python script in a container using the python:3.11-alpine image
-- Takes the JSON file downloaded in the previous task (data.json).
-- Sets COLUMNS_TO_KEEP from the input columns_to_keep
-- Reads the data.json file
-- Extracts only the specified columns (brand and price by default) for each product.
-- Saves the transformed data to products.json.
-- Outputs the filtered JSON file as products.json.
-
-
-Python code is directly inside of our workflow, but we can also use Python code in separate files using the command task too as in previous example
-
-Python script explanation:
-
-```python
-import json
-import os
-
-# Load the columns to keep from the environment variable
-columns_to_keep_str = os.getenv("COLUMNS_TO_KEEP")
-columns_to_keep = json.loads(columns_to_keep_str)
-
-# Read the input JSON data
-with open("data.json", "r") as file:
-    data = json.load(file)
-
-# Filter data to retain specified columns
-filtered_data = [
-    {column: product.get(column, "N/A") for column in columns_to_keep}
-    for product in data["products"]
-]
-
-# Write the filtered data to a new JSON file
-with open("products.json", "w") as file:
-    json.dump(filtered_data, file, indent=4)
-
-```
-
-
-
-**Task 3: Query**
-
-- Input Data: Reads the products.json file output from the transform task.
-- Installs and loads DuckDB's JSON extension (INSTALL json; LOAD json;).
-- Reads the products.json file and processes the data: Calculates the average price (avg_price) for 
-each brand. Groups the results by brand. Orders the results in descending order of avg_price.
-- fetchType: STORE: It saves the results of the SQL query to a file. This allows the results to be used by subsequent tasks in the flow
-
-
-```yaml
-tasks:
-
-  - id: query
-    type: io.kestra.plugin.jdbc.duckdb.Query
-    inputFiles:
-      products.json: "{{outputs.transform.outputFiles['products.json']}}"
-    sql: |
-      INSTALL json;
-      LOAD json;
-      SELECT brand, round(avg(price), 2) as avg_price
-      FROM read_json_auto('{{workingDir}}/products.json')
-      GROUP BY brand
-      ORDER BY avg_price DESC;
-    fetchType: STORE
-```    
-
-### 2: Execute
-
-We get this wonderful Gantt view that helps us visualize which task has run when and at what point the workflow is at. If I click into these, it gives me some log messages
-
-
-![pipeline2](images/pipeline2.jpg) 
-
-
-If you go to the outputs tab now, I will be able to view some of the data generated for the different tasks.
-
-![pipeline4](images/pipeline4.jpg) 
-
-
-Click on preview:
-
-![pipeline5](images/pipeline5.jpg) 
-
-We can see we’ve got the JSON that was extracted at the beginning. There’s a lot of data here that is not very useful to us in its current form
-
-Then transform task also produced some data. I can see that we’ve got a JSON file here with products.json and another one called data.json. For example this is the preview from products.json:
-
-
-![pipeline6](images/pipeline6.jpg) 
-
-
-Then finally, we have the query, and here is where we get a table with the data in a much more organized, sorted format. It’s much more useful to us than that original JSON value. We can then download this or pass it to another task
-
-Tasks Query --> Outputs uri --> Preview :
-
-
-![pipeline7](images/pipeline7.jpg) 
-
 
 
 ## Load Data to Local Postgres
