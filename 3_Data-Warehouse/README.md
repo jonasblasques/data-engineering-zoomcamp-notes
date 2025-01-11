@@ -99,6 +99,9 @@ Big Query allows you to create external tables from external sources like Google
 
 Let's create an external table named external_yellow_trip_data in my dataset ny_taxi from the CSVs of 2019 and 2020:
 
+
+Let's quickly run this SQL:
+
 ```sql
 
 CREATE OR REPLACE EXTERNAL TABLE `taxi-rides-ny.nytaxi.external_yellow_tripdata`
@@ -108,11 +111,11 @@ OPTIONS (
 );
 ```
 
-Let's quickly run this SQL and see the result:
+and check the results:
 
 ![dw5](images/dw5.jpg)
 
-Let's go to the table and check the results:
+Let's check the table:
 
 ![dw6](images/dw6.jpg)
 
@@ -124,11 +127,13 @@ Looking at the details, the long-term storage size is zero bytes, and the table 
 
 ![dw7](images/dw7.jpg)
 
-Now that we have created our external table, let's quickly query it.
+Now that we have created our external table, let's run this query:
 
 ```sql
 SELECT * FROM taxi-rides-ny.nytaxi.external_yellow_tripdata limit 10;
 ```
+
+Let's check the results:
 
 ![dw8](images/dw8.jpg)
 
