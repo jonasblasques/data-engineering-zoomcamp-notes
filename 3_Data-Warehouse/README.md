@@ -2,6 +2,10 @@
 
 - [OLAP vs OLTP](#olap-vs-oltp)
 - [What is a Data Warehouse?](#what-is-a-data-warehouse)
+- [Big Query](#big-query)
+- [Creating an external table](#creating-an-external-table)
+
+
 
 
 ## Data Warehouse
@@ -89,8 +93,43 @@ Next, let's quickly query one of our public datasets running this command and as
 ![dw4](images/dw4.jpg)
 
 
+## Creating an external table
 
+Big Query allows you to create external tables from external sources like Google Cloud Storage. In my use case, I have a bucket named nyctl data. Inside it, I have CSVs containing my yellow trip data for 2019, 2020, and so on.
 
+Let's create an external table named external_yellow_trip_data in my dataset ny_taxi from the CSVs of 2019 and 2020:
 
+```sql
+
+CREATE OR REPLACE EXTERNAL TABLE `taxi-rides-ny.nytaxi.external_yellow_tripdata`
+OPTIONS (
+  format = 'CSV',
+  uris = ['gs://nyc-tl-data/trip data/yellow_tripdata_2019-*.csv', 'gs://nyc-tl-data/trip data/yellow_tripdata_2020-*.csv']
+);
+```
+
+Let's quickly run this SQL and see the result:
+
+![dw5](images/dw5.jpg)
+
+Let's go to the table and check the results:
+
+![dw6](images/dw6.jpg)
+
+As you can see, all the column names of the CSVs are read and understood by BigQuery. It already knows the data types and can determine if a column is nullable or not.
+
+This is a huge advantage when importing data into BigQuery, as you do not always have to define the schema. However, if needed, you also have the option to define it manually.
+
+Looking at the details, the long-term storage size is zero bytes, and the table size is also zero bytes because the data itself is not stored inside BigQuery; it remains in an external system such as Google Cloud Storage: 
+
+![dw7](images/dw7.jpg)
+
+Now that we have created our external table, let's quickly query it.
+
+```sql
+SELECT * FROM taxi-rides-ny.nytaxi.external_yellow_tripdata limit 10;
+```
+
+![dw8](images/dw8.jpg)
 
 
