@@ -177,6 +177,12 @@ Run the following command to start up your instance (bash/ubuntu wsl terminal):
   postgres:13
 ```
 
+> [!NOTE]  
+> Since I already have postgresql installed locally, I already have port 5432 occupied. 
+> That's why i use for port mapping 5433:5432 instead of 5432:5432
+
+---
+
 
 #### Environment variables
 The container needs 3 environment variables:
@@ -610,7 +616,7 @@ if __name__ == '__main__':
 ```
 
 > [!NOTE]  
-To download the csv.gz, instead of using wget I use the requests library, but the idea is the same
+> To download the csv.gz, instead of using wget I use the requests library, but the idea is the same
 
 ---
 
