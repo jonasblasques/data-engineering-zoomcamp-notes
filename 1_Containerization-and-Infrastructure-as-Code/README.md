@@ -232,8 +232,8 @@ If you want to connect to PostgreSQL inside the container from the host machine,
 use port 5433. You must use the port you have exposed on the host using the -p option: 5433:5432, 
 which means:
 
-Port on the host machine: 5433
-Port inside the container: 5432
+- Port on the host machine: 5433
+- Port inside the container: 5432
 
 If you want to connect to PostgreSQL inside the container from another container, you will need to 
 use port 5432, which is the internal port of the PostgreSQL container. In this case, you don't need 
@@ -246,7 +246,7 @@ the host or outside the Docker network).
 We will use data from the NYC TLC Trip Record Data website. Specifically, we will use yellow_tripdata_2021-01.csv from: https://github.com/DataTalksClub/nyc-tlc-data/releases/tag/yellow
 
 
-**1.** Download it and move the csv file to the working directory, for this repo would be: 1_Containerization-and-Infrastructure-as-Code
+**1.** Download it, unzip it and move the csv file to the working directory, for this repo would be: 1_Containerization-and-Infrastructure-as-Code
 
 
 **2.**  Create an ingest_data.py file that reads the csv file and generates the schema for the Postgres database:
@@ -429,18 +429,21 @@ python ingest_data.py
 
 and after a few minutes the database should be there with all the rows inserted.
 
-Back on the database terminal, we can check:
+Back on the database terminal, we can check this query:
 
+```sql
 SELECT count(1) FROM yellow_taxi_data;
+```
 
 It should print:
 
-    ny_taxi=# select count(1) FROM yellow_taxi_data;
-    count  
-    ---------
-    1369765
-    (1 row)
-
+```
+ny_taxi=# select count(1) FROM yellow_taxi_data;
+count  
+---------
+1369765
+(1 row)
+```
 
 ## Connecting pgAdmin and Postgres with Docker networking
 
@@ -512,16 +515,116 @@ Tools --> Query tool
 
 ## Parameterizing the script
 
+- CSV files accessible here: https://github.com/DataTalksClub/nyc-tlc-data/releases
+
 We will use argparse to handle command line arguments.
 The engine we created for connecting to Postgres will be tweaked so that we pass the parameters and build the URL from them, like this:
 
+```python
+engine = create_engine(f'postgresql://{user}:{password}@{host}:{port}/{db}')
+```
+
+You can check the final version of the script:  
+
+```python
+
+import pandas as pd
+import argparse
+from sqlalchemy import create_engine
+import requests
+import gzip
+import shutil
+
+
+def main(params):
+    user = params.user
+    password = params.password
+    host = params.host 
+    port = params.port 
+    db = params.db
+    table_name = params.table_name
+    url = params.url
+    csv_name_gz = 'output.csv.gz'
+    csv_name = 'output.csv'
+
+    # Download the CSV.GZ file using requests
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(csv_name_gz, 'wb') as f_out:
+            f_out.write(response.content)
+    else:
+        print(f"Error al descargar el archivo: {response.status_code}")
+        return
+
+    # Unzip the CSV file
+    with gzip.open(csv_name_gz, 'rb') as f_in:
+        with open(csv_name, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+
+    # Connect to PostgreSQL database
     engine = create_engine(f'postgresql://{user}:{password}@{host}:{port}/{db}')
+    df_iter = pd.read_csv(csv_name, iterator=True, chunksize=100000)
 
-You can check the completed code in ingest_data.py    
+    # Process the first chunk
+    df = next(df_iter)
+    df.tpep_pickup_datetime = pd.to_datetime(df.tpep_pickup_datetime)
+    df.tpep_dropoff_datetime = pd.to_datetime(df.tpep_dropoff_datetime)
 
-In order to test the script we will have to drop the table we previously created. In pgAdmin, in the sidebar navigate to Servers > Docker localhost > Databases > ny_taxi > Schemas > public > Tables > yellow_taxi_data, right click on yellow_taxi_data and select Query tool. Introduce the following command:
+    # Insert the data into the database
+    df.head(n=0).to_sql(name=table_name, con=engine, if_exists='replace')
+    df.to_sql(name=table_name, con=engine, if_exists='append')
 
-    DROP TABLE yellow_taxi_data;
+    # Process the rest of the chunks
+    while True:
+        try:
+            
+            df = next(df_iter)
+            df.tpep_pickup_datetime = pd.to_datetime(df.tpep_pickup_datetime)
+            df.tpep_dropoff_datetime = pd.to_datetime(df.tpep_dropoff_datetime)
+            df.to_sql(name=table_name, con=engine, if_exists='append')
+            print('inserted another chunk')
+
+        except StopIteration:
+
+            print('completed')
+            break
+
+
+if __name__ == '__main__':
+    
+    parser = argparse.ArgumentParser(description='Ingest CSV data to Postgres')
+    parser.add_argument('--user', help='user name for postgres')
+    parser.add_argument('--password', help='password for postgres')
+    parser.add_argument('--host', help='host for postgres')
+    parser.add_argument('--port', help='port for postgres')
+    parser.add_argument('--db', help='database name for postgres')
+    parser.add_argument('--table_name', help='name of the table where we will write the results to')
+    parser.add_argument('--url', help='url of the csv file')
+
+    args = parser.parse_args()
+
+    main(args)   
+```
+
+> [!NOTE]  
+To download the csv.gz, instead of using wget I use the requests library, but the idea is the same
+
+---
+
+- csv_name_gz: The name of the compressed CSV file to be downloaded (output.csv.gz).
+- csv_name: The name of the decompressed CSV file to be saved locally (output.csv).
+- It uses the requests library to send a GET request to the URL (url). If the request is successful, the response content is written to a file named output.csv.gz.
+- It uses the gzip library to open the compressed file (output.csv.gz).
+- The shutil.copyfileobj function is used to copy the decompressed content to a new file (output.csv)
+
+
+In order to test the script we will have to drop the table we previously created. In pgAdmin, in the sidebar navigate to Servers > Docker localhost > Databases > ny_taxi > Schemas > public > Tables > yellow_taxi_data, right click on yellow_taxi_data and select Query tool. 
+
+Run the following command:
+
+```sql
+DROP TABLE yellow_taxi_data;
+```
 
 We are now ready to test the script with the following command:
 
