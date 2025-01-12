@@ -16,12 +16,42 @@
 
 # 0. Module 1 recap
 
-In the previous lesson we saw the definition of data pipeline and we created a pipeline script that downloaded a CSV and processed it so that we could ingest it to Postgres. This is what our pipeline looked like:
+_([Video source](https://www.youtube.com/watch?v=0yK7LXwYeD0))_
+
+In the previous module we created a script that:
+
+- downloaded a file and unzip it
+- saves it locally as a csv file 
+- loads and inserts the data into a postgres database
+
+This is what our "pipeline" looked like:
 
 ![pipeline1new](images/pipeline1new.jpg)
 
 
-The script we created is an example of how **NOT** to create a pipeline, because it contains 2 steps which could otherwise be separated (downloading and processing). The reason is that if we're simply testing the script, it will have to download the CSV file every single time that we run the script, which is less than ideal. Another reason, for example if the internet is not available, the entire script will fail.
+The script we created is an example of how **NOT** to create a pipeline, because it contains two steps that could be separated (downloading and inserting data). 
+
+**Problems with the current pipeline:**
+
+- If data download succeeds but insertion fails due to a database connection issue, the script needs to restart, including re-downloading the data.
+- if we're simply testing the script, it will have to download the CSV file every single time that we run the script.
+- Adding retry mechanisms and fail-safe logic for each stage becomes cumbersome.
+
+
+**Improved pipeline structure**
+
+To address these problems, we can split the script into two distinct steps or tasks:
+
+![pipeline1modnew](images/pipeline1modnew.jpg)
+
+This structure has dependencies between tasks, where one task's output is the next task's input and Task 2 is only performed if task 1 was executed successfully. 
+
+This is where the need for orchestrators arises. Workflow orchestration tools help define, parameterize, and manage workflows. These tools provide:
+
+- Retry mechanisms.
+- Logging and execution history.
+- Scheduling and monitoring.
+
 
 This week we will work on a slightly more complex pipeline. This will involve extracting data from the web. Convert this CSV to a more effective format - parquet. We'll take this file and upload to Google Cloud Storage (data lake). Finally we'll create an external table in Google BigQuery(data warehouse):
 
