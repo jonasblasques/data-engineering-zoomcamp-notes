@@ -1,6 +1,8 @@
 
 # Containerization and Infrastructure as Code
 
+### Table of contents
+
 - [Introduction](#introduction)
 - [Docker](#docker)
 - [Creating a simple data pipeline in Docker](#creating-a-simple-data-pipeline-in-docker)
