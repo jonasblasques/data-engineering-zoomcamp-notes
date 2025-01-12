@@ -9,11 +9,14 @@
 - [Generating postgres schema](#generating-postgres-schema)
 - [Ingesting data to Postgres with Python](#ingesting-data-to-postgres-with-python)
 - [Connecting pgAdmin and Postgres with Docker networking](#connecting-pgAdmin-and-postgres-with-docker-networking)
+- [Parameterizing the script](#parameterizing-the-script)
 - [Dockerizing the ingestion script](#dockerizing-the-ingestion-script)
 - [Running Postgres and pgAdmin with Docker-compose](#running-postgres-and-pgAdmin-with-docker-compose)
 - [Google Cloud Platform](#google-cloud-platform)
 - [Terraform](#terraform)
 - [Creating GCP infrastructure with Terraform](#creating-GCP-infrastructure-with-terraform)
+
+
 
 
 ## Introduction
