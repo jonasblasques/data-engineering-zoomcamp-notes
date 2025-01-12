@@ -154,9 +154,9 @@ this is really powerful because once BigQuery understands that it only needs to 
 
 ## Creating a partitioned table
 
-First, let's create a non-partitioned table. This will help us see the performance improvements once we partition our data
+First, let's create a non-partitioned table. This will help us see the performance improvements once we partition our data.
 
-from our external database, let's create a **non-partitioned** table by directly copying all its content to a table called yellow_trip_data_non_partitioned.
+From our external table, let's create a **non-partitioned** table by directly copying all its content to a table called yellow_trip_data_non_partitioned.
 
 Let's run this query:
 
@@ -166,7 +166,7 @@ CREATE OR REPLACE TABLE taxi-rides-ny.nytaxi.yellow_tripdata_non_partitoned AS
 SELECT * FROM taxi-rides-ny.nytaxi.external_yellow_tripdata;
 ```
 
-generally, this takes some time because the data has to be copied from Google Cloud Storage to BigQuery storage.
+Generally, this takes some time because the data has to be copied from Google Cloud Storage to BigQuery storage.
 
 Now let's create a **partitioned** table. Let's run this query:
 
@@ -178,15 +178,15 @@ PARTITION BY
 SELECT * FROM taxi-rides-ny.nytaxi.external_yellow_tripdata;
 ```
 
-all the columns are the same as in the external table, but if you look now, it already knows the numbers of rows and the table size, which is almost 14 gigabytes. It also gives you the information about the partition: it’s partitioned by day:
+All the columns are the same as in the external table, but if you look now, it already knows the numbers of rows and the table size, which is almost 14 gigabytes. It also gives you the information about the partition: it’s partitioned by day:
 
 ![dw10](images/dw10.jpg)
 
-in this use case, selecting all the distinct vendor IDs from the non-partitioned table between 1st of June and 30th of June 2019, we can see on the right-hand side at the top that this query will process 1.6 gigabytes of data:
+In this use case, selecting all the distinct vendor IDs from the non-partitioned table between 1st of June and 30th of June 2019, we can see on the right-hand side at the top that this query will process 1.6 gigabytes of data:
 
 ![dw11](images/dw11.jpg)
 
-for our partitioned table, the same query will process about 106 megabytes of data. That's a huge advantage if you want to run this query repeatedly which directly impacts your cost:
+For our partitioned table, the same query will process about 106 megabytes of data. That's a huge advantage if you want to run this query repeatedly which directly impacts your cost:
 
 ![dw12](images/dw12.jpg)
 
@@ -217,14 +217,14 @@ Clustering in BigQuery is a method used to optimize query performance and reduce
 
 ![dw14](images/dw14.jpg)
 
-you can see this is a similar structure to the partitioned table but we have also clustered by the tag
+You can see this is a similar structure to the partitioned table but we have also clustered by the tag
 
 
 ## Creating a clustered table
 
 We have created a partitioned table which is partitioned by pickupdatetime. Let's create a clustered table by vendor_id. The reason for choosing a cluster by vendor_id depends on how you want to query the data.
 
-Let's create this running this query:
+Let's create a partitioned and clustered table running this query:
 
 ```sql
 
@@ -238,14 +238,14 @@ Now, let's take a quick look at a comparison between a partitioned table and a p
 
 ![dw15](images/dw15.jpg)
 
-in this use case, I am counting all the rows which are in my partition table between the pickupdatetime of 1st of June 2019 and 31st of December 2020, which comes from vendor_id = 1. On the right-hand side, top, we can see that it will process 1.1 gigabytes of data.
+In this use case, I am counting all the rows which are in my partition table between the pickupdatetime of 1st of June 2019 and 31st of December 2020, which comes from vendor_id = 1. On the right-hand side, top, we can see that it will process 1.1 gigabytes of data.
 
 Let's run the same query on our partitioned and clustered table:
 
 ![dw16](images/dw16.jpg)
 
-before running this, we can see that the approximation is 1.1 gigabytes, but when we run this query, we can notice that less data is being processed.
+Before running this, we can see that the approximation is 1.1 gigabytes, but when we run this query, we can notice that less data is being processed.
 
-The final processed data shows that it took 0.8 seconds, but it only processed 843 megabytes of data in comparison to 1.1 gigabytes.
+The final processed data shows that it only processed 843 megabytes of data in comparison to 1.1 gigabytes.
 
 
