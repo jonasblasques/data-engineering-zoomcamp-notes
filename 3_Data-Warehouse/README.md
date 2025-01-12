@@ -1,10 +1,15 @@
 # Data Warehouse and BigQuery
 
+### Table of contents
+
 - [OLAP vs OLTP](#olap-vs-oltp)
 - [What is a Data Warehouse?](#what-is-a-data-warehouse)
 - [Big Query](#big-query)
 - [Creating an external table](#creating-an-external-table)
-
+- [Table partitioning](#table-partitioning)
+- [Creating a partitioned table](#creating-a-partitioned-table)
+- [Clustering](#clustering)
+- [Creating a clustered table](#creating-a-clustered-table)
 
 
 
@@ -136,5 +141,111 @@ SELECT * FROM taxi-rides-ny.nytaxi.external_yellow_tripdata limit 10;
 Let's check the results:
 
 ![dw8](images/dw8.jpg)
+
+## Table partitioning
+
+In Google BigQuery, table partitioning is a feature that allows you to divide a large table into smaller, manageable pieces, called partitions. This division is based on a specific column, typically a date or timestamp, or on integer range values. Partitioning is primarily used to improve query performance and reduce costs by allowing you to query only the relevant partitions instead of scanning the entire table.
+
+So how will a partitioned table look when we partition it by creation date?
+
+![dw9](images/dw9.jpg)
+
+this is really powerful because once BigQuery understands that it only needs to get the data for 2nd of March 2018, it will not read or process any data of 1st of March 2018 or 3rd of March 2018.
+
+## Creating a partitioned table
+
+First, let's create a non-partitioned table. This will help us see the performance improvements once we partition our data
+
+from our external database, let's create a **non-partitioned** table by directly copying all its content to a table called yellow_trip_data_non_partitioned.
+
+Let's run this query:
+
+```sql
+
+CREATE OR REPLACE TABLE taxi-rides-ny.nytaxi.yellow_tripdata_non_partitoned AS
+SELECT * FROM taxi-rides-ny.nytaxi.external_yellow_tripdata;
+```
+
+generally, this takes some time because the data has to be copied from Google Cloud Storage to BigQuery storage.
+
+Now let's create a **partitioned** table. Let's run this query:
+
+```sql
+
+CREATE OR REPLACE TABLE taxi-rides-ny.nytaxi.yellow_tripdata_partitoned
+PARTITION BY
+  DATE(tpep_pickup_datetime) AS
+SELECT * FROM taxi-rides-ny.nytaxi.external_yellow_tripdata;
+```
+
+all the columns are the same as in the external table, but if you look now, it already knows the numbers of rows and the table size, which is almost 14 gigabytes. It also gives you the information about the partition: it’s partitioned by day:
+
+![dw10](images/dw10.jpg)
+
+in this use case, selecting all the distinct vendor IDs from the non-partitioned table between 1st of June and 30th of June 2019, we can see on the right-hand side at the top that this query will process 1.6 gigabytes of data:
+
+![dw11](images/dw11.jpg)
+
+for our partitioned table, the same query will process about 106 megabytes of data. That's a huge advantage if you want to run this query repeatedly which directly impacts your cost:
+
+![dw12](images/dw12.jpg)
+
+Moreover we can actually take a look into the partitions generally each data set has information schema table which has a partitions once we select this we can actually see how many rows are falling into which partition.
+
+Let's run this query:
+
+```sql
+
+SELECT table_name, partition_id, total_rows
+FROM `nytaxi.INFORMATION_SCHEMA.PARTITIONS`
+WHERE table_name = 'yellow_tripdata_partitoned'
+ORDER BY total_rows DESC;
+```
+
+partitions looks like this:
+
+![dw13](images/dw13.jpg)
+
+
+## Clustering
+
+Clustering in BigQuery is a method used to optimize query performance and reduce costs by organizing data in a table based on the values in one or more columns. When you cluster a BigQuery table, rows with similar values in the clustering columns are stored together.
+
+- Clustering is applied to a table that's already partitioned (clustering works on top of partitions).
+- You define up to four clustering columns when creating or altering a table.
+- BigQuery organizes the data based on these columns.
+
+![dw14](images/dw14.jpg)
+
+you can see this is a similar structure to the partitioned table but we have also clustered by the tag
+
+
+## Creating a clustered table
+
+We have created a partitioned table which is partitioned by pickupdatetime. Let's create a clustered table by vendor_id. The reason for choosing a cluster by vendor_id depends on how you want to query the data.
+
+Let's create this running this query:
+
+```sql
+
+CREATE OR REPLACE TABLE taxi-rides-ny.nytaxi.yellow_tripdata_partitoned_clustered
+PARTITION BY DATE(tpep_pickup_datetime)
+CLUSTER BY VendorID AS
+SELECT * FROM taxi-rides-ny.nytaxi.external_yellow_tripdata;
+```
+
+Now, let's take a quick look at a comparison between a partitioned table and a partitioned and clustered table:
+
+![dw15](images/dw15.jpg)
+
+in this use case, I am counting all the rows which are in my partition table between the pickupdatetime of 1st of June 2019 and 31st of December 2020, which comes from vendor_id = 1. On the right-hand side, top, we can see that it will process 1.1 gigabytes of data.
+
+Let's run the same query on our partitioned and clustered table:
+
+![dw16](images/dw16.jpg)
+
+before running this, we can see that the approximation is 1.1 gigabytes, but when we run this query, we can notice that less data is being processed.
+
+The final processed data shows that it took 0.8 seconds, but it only processed 843 megabytes of data in comparison to 1.1 gigabytes.
 
 
