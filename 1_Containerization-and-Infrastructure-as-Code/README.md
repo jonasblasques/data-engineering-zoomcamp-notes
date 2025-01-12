@@ -2,6 +2,7 @@
 # Containerization and Infrastructure as Code
 
 - [Introduction](#introduction)
+- [Docker](#docker)
 - [Creating a simple data pipeline in Docker](#creating-a-simple-data-pipeline-in-docker)
 - [Running Postgres in a container](#running-postgres-in-a-container)
 - [Docker Networking and Port Mapping](#docker-networking-and-port-mapping)
@@ -22,6 +23,8 @@
 A **data pipeline** is a service that receives data as input and outputs more data. For example, reading a CSV file, transforming the data somehow and storing it as a table in a PostgreSQL database.
 
 ![pipeline](images/pipeline.jpg)
+
+## Docker
 
 **Docker** is an open-source platform that allows developers to build, package, and deploy applications in isolated environments called containers. It simplifies application deployment by ensuring consistency across different environments (e.g., development, testing, production). With Docker, you can run applications and all their dependencies in a lightweight and portable environment.
 
