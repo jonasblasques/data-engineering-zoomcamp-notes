@@ -553,26 +553,25 @@ def main(params):
     db = params.db
     table_name = params.table_name
     url = params.url
-    csv_name_gz = 'output.csv.gz'
-    csv_name = 'output.csv'
+
 
     # Download the CSV.GZ file using requests
     response = requests.get(url)
     if response.status_code == 200:
-        with open(csv_name_gz, 'wb') as f_out:
+        with open('output.csv.gz', 'wb') as f_out:
             f_out.write(response.content)
     else:
         print(f"Error al descargar el archivo: {response.status_code}")
         return
 
     # Unzip the CSV file
-    with gzip.open(csv_name_gz, 'rb') as f_in:
-        with open(csv_name, 'wb') as f_out:
+    with gzip.open('output.csv.gz', 'rb') as f_in:
+        with open('output.csv', 'wb') as f_out:
             shutil.copyfileobj(f_in, f_out)
 
     # Connect to PostgreSQL database
     engine = create_engine(f'postgresql://{user}:{password}@{host}:{port}/{db}')
-    df_iter = pd.read_csv(csv_name, iterator=True, chunksize=100000)
+    df_iter = pd.read_csv('output.csv', iterator=True, chunksize=100000)
 
     # Process the first chunk
     df = next(df_iter)
@@ -620,8 +619,7 @@ if __name__ == '__main__':
 
 ---
 
-- csv_name_gz: The name of the compressed CSV file to be downloaded (output.csv.gz).
-- csv_name: The name of the decompressed CSV file to be saved locally (output.csv).
+
 - It uses the requests library to send a GET request to the URL (url). If the request is successful, the response content is written to a file named output.csv.gz.
 - It uses the gzip library to open the compressed file (output.csv.gz).
 - The shutil.copyfileobj function is used to copy the decompressed content to a new file (output.csv)
