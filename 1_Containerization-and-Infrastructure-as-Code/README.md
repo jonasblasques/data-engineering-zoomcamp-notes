@@ -142,7 +142,7 @@ In this case, it runs the pipeline.py script using Python.
 Let's build the image:
 
 ```
-docker build -t zoomcampw1 .
+docker build -t zoomcampw1 
 ```
 
 We can now run the container and pass an argument to it, so that our pipeline will receive it:
@@ -169,8 +169,8 @@ Run the following command to start up your instance (bash/ubuntu wsl terminal):
 
 ```
  docker run -it \
-  -e POSTGRES_USER="root2" \
-  -e POSTGRES_PASSWORD="root2" \
+  -e POSTGRES_USER="root" \
+  -e POSTGRES_PASSWORD="root" \
   -e POSTGRES_DB="ny_taxi" \
   -v "C:\Users\nacho\Desktop\data-engineering-zoomcamp\1_Containerization-and Infrastructure-as-Code\ny_taxi_postgres_data:/var/lib/postgresql/data" \
   -p 5433:5432 \
@@ -212,7 +212,7 @@ pip install pgcli
 Once the container is running, open up another terminal and log into our database with the following command:
 
 ```
-pgcli -h localhost -p 5433 -u root2 -d ny_taxi
+pgcli -h localhost -p 5433 -u root -d ny_taxi
 ```
 
 Lets test the db for example with "SELECT 1;", and it should print:
@@ -272,7 +272,7 @@ df = pd.read_csv('yellow_tripdata_2021-01.csv', nrows=100)
 df.tpep_pickup_datetime = pd.to_datetime(df.tpep_pickup_datetime)
 df.tpep_dropoff_datetime = pd.to_datetime(df.tpep_dropoff_datetime)
 
-engine = create_engine('postgresql://root2:root2@localhost:5433/ny_taxi')
+engine = create_engine('postgresql://root:root@localhost:5433/ny_taxi')
 
 print(pd.io.sql.get_schema(df, name='yellow_taxi_data', con=engine))
 ```
@@ -281,7 +281,7 @@ print(pd.io.sql.get_schema(df, name='yellow_taxi_data', con=engine))
 
 The code reads the first 100 rows of yellow_tripdata_2021-01.csv into a Pandas DataFrame called df. The columns tpep_pickup_datetime and tpep_dropoff_datetime in the DataFrame are converted from string format to Pandas datetime objects for easier time-based operations.
 
-*engine = create_engine('postgresql://root2:root2@localhost:5433/ny_taxi')* creates a connection to the database we created in the previous section and since we are accessing from the host machine, we use port 5433.
+*engine = create_engine('postgresql://root:root@localhost:5433/ny_taxi')* creates a connection to the database we created in the previous section and since we are accessing from the host machine, we use port 5433.
 
 The code prints the SQL schema that would represent the df DataFrame if it were stored in the database table yellow_taxi_data. This includes the structure of the table, column names, and data types.
 
@@ -345,7 +345,7 @@ df = next(df_iter)
 df.tpep_pickup_datetime = pd.to_datetime(df.tpep_pickup_datetime)
 df.tpep_dropoff_datetime = pd.to_datetime(df.tpep_dropoff_datetime)
 
-engine = create_engine('postgresql://root2:root2@localhost:5433/ny_taxi')
+engine = create_engine('postgresql://root:root@localhost:5433/ny_taxi')
 
 # Create table
 df.head(n=0).to_sql(name='yellow_taxi_data', con=engine, if_exists='replace')
@@ -469,8 +469,8 @@ Run the following command on a bash/ubuntu wsl terminal:
 
 ```
  docker run -it \
-  -e POSTGRES_USER="root2" \
-  -e POSTGRES_PASSWORD="root2" \
+  -e POSTGRES_USER="root" \
+  -e POSTGRES_PASSWORD="root" \
   -e POSTGRES_DB="ny_taxi" \
   -v "C:\Users\nacho\Desktop\data-engineering-zoomcamp\1_Containerization-and Infrastructure-as-Code\ny_taxi_postgres_data:/var/lib/postgresql/data" \
   -p 5433:5432 \
@@ -498,7 +498,7 @@ Right-click on Servers on the left sidebar --> Register--> Server
 
 Under General give the Server a name: Docker localhost
 
-Under Connection add the same host name: pg-database, port:5432 user:root2 and password:root2
+Under Connection add the same host name: pg-database, port:5432 user:root and password:root
 
 We use port 5432 because we are accessing from a docker container. If it were the case of accessing 
 from the host machine, it would be port 5433.
@@ -633,8 +633,8 @@ We are now ready to test the script with the following command:
 
 
     python ingest_data.py \
-        --user=root2 \
-        --password=root2 \
+        --user=root \
+        --password=root \
         --host=localhost \
         --port=5433 \
         --db=ny_taxi \
@@ -671,8 +671,8 @@ And run it:
     docker run -it \
         --network=pg-network \
         taxi_ingest:v001 \
-        --user=root2 \
-        --password=root2 \
+        --user=root \
+        --password=root \
         --host=pg-database \
         --port=5432 \
         --db=ny_taxi \
@@ -694,8 +694,8 @@ services:
   pgdatabase:
     image: postgres:13
     environment:
-      - POSTGRES_USER=root2
-      - POSTGRES_PASSWORD=root2
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
       - POSTGRES_DB=ny_taxi
     volumes:
       - "./ny_taxi_postgres_data:/var/lib/postgresql/data:rw"
@@ -728,7 +728,7 @@ Since the settings for pgAdmin were stored within the container and we have kill
 
 - Under General give the Server a name: Docker localhost
 
-- Under Connection add the same host name: pgdatabase, port:5432 user:root2 and password:root2 
+- Under Connection add the same host name: pgdatabase, port:5432 user:root and password:root 
 
 The proper way of shutting down the containers is with this command:
 ```
