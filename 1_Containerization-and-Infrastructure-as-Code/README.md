@@ -23,9 +23,15 @@
 
 ## Introduction
 
-**Data Engineering** is the design and development of systems for collecting, storing and analyzing data at scale.
+**Data Engineering** is the discipline of designing, building, and maintaining the systems and infrastructure needed to collect, process, store, and analyze large volumes of data. It focuses on creating the foundation that enables data scientists, analysts, and other stakeholders to work with clean, organized, and reliable data. Key Responsibilities:
 
-A **data pipeline** is a service that receives data as input and outputs more data. For example, reading a CSV file, transforming the data somehow and storing it as a table in a PostgreSQL database.
+- Data Pipelines: Building pipelines to move data from various sources (e.g., databases, APIs, IoT devices) to centralized storage systems like data warehouses or data lakes.
+
+- Data Transformation: Cleaning, transforming, and structuring raw data into formats suitable for analysis or machine learning.
+
+- Data Storage: Designing scalable and efficient storage solutions, often using cloud services like AWS, Google Cloud, or Azure
+
+A **data pipeline** is a series of processes and tools that automate the movement, transformation, and processing of data from one system to another. It allows raw data to be collected from various sources, cleaned, transformed, and made ready for analysis or storage in a target destination like a database, data warehouse, or data lake. For example, reading a CSV file, transforming the data somehow and storing it as a table in a PostgreSQL database.
 
 ![pipeline](images/pipeline.jpg)
 
