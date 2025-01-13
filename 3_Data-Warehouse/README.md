@@ -10,6 +10,7 @@
 - [Creating a partitioned table](#creating-a-partitioned-table)
 - [Clustering](#clustering)
 - [Creating a clustered table](#creating-a-clustered-table)
+- [Partitioning vs Clustering](#partitioning-vs-clustering)
 
 
 
@@ -248,4 +249,62 @@ Before running this, we can see that the approximation is 1.1 gigabytes, but whe
 
 The final processed data shows that it only processed 843 megabytes of data in comparison to 1.1 gigabytes.
 
+
+## Partitioning vs Clustering
+
+_[Video source](https://www.youtube.com/watch?v=-CqXf7vhhDs)_
+
+In the last video, we explored how to create partitioned and clustered tables. In this video, we'll dive deeper into partitioning and clustering in BigQuery.
+
+**Big Query Partitioning**
+
+When creating a partitioned table in BigQuery, you can choose between:
+
+- Time unit column
+- Ingestion time
+- An integer range partitioning
+
+When using Time Unit or Ingestion Time you can partition by daily, hourly, monthly, or yearly time units. Daily is the default and works well when data is medium-sized and evenly distributed across days. Use hourly partitioning when dealing with large amounts of data arriving hourly, enabling more granular data processing. Monthly or yearly partitioning is typically for smaller data volumes spread over a longer time range.
+
+Be cautious about the number of partitions—BigQuery allows a maximum of 4,000 partitions per table.
+
+**Big Query Clustering**
+
+- In clustering, the specified columns are co-located, and their order determines the sort order of the data. For example, clustering by columns A, B, and C will sort data by A first, then B, and finally C.
+
+- Clustering improves filtering and aggregate query performance, especially for clustered columns.
+
+- Clustering is less effective for small datasets (e.g., under 1 GB), where partitioning or clustering adds metadata overhead and costs.
+
+- You can specify up to four clustering columns, which must be top-level, non-repeated columns
+
+- Supported data types for clustering columns include date, boolean, geography, int, numeric, string, and datetime.
+
+**Partitioning vs Clustering**
+
+Uou may combine both partitioning and clustering in a table, but there are important differences between both techniques that you need to be aware of in order to decide what to use for your specific scenario:
+
+| Clustering | Partitioning |
+|---|---|
+| Cost benefit unknown. BQ cannot estimate the reduction in cost before running a query. | Cost known upfront. BQ can estimate the amount of data to be processed before running a query. |
+| High granularity. Multiple criteria can be used to sort the table. | Low granularity. Only a single column can be used to partition the table. |
+| Benefits from queries that commonly use filters or aggregation against multiple particular columns. | Benefits when you filter or aggregate on a single column. |
+| No partition limit | Limited to 4000 partitions|
+
+
+**When to Use Clustering Over Partitioning:**
+
+- When partitioning results in small data sizes per partition (e.g., under 1 GB). If your partitions are really small or your column has a high amount of granularity then using clustering makes more sense.
+- When partitioning would result in over 4000 partitions.
+- If frequent modifications impact a large number of partitions, clustering may be a better alternative. For example if you are writing data to your bigquery table every hour and that modifies all your partitions then that might not be a good idea.
+
+**Automatic Reclustering**
+
+As the data is added to your cluster table, generally the newly inserted data is written into different blocks, which obviously does not overlap with your clustering strategy. These overlapping key ranges generally weaken the sort property of the table and can increase your query time.
+
+To maintain the performance characteristic of a cluster table, BigQuery performs automatic clustering. This is done in the background, so you generally don't realize this, and it does not impact your query performance.
+
+For partitioned tables, clustering is maintained for data within the scope of each partition, and this is also handled automatically.
+
+Another very important part of automatic clustering is that it doesn't cost the end user anything. It's done in the background by BigQuery itself and has no cost at all.
 
