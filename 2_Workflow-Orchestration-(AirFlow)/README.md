@@ -90,9 +90,9 @@ _([Video source](https://www.youtube.com/watch?v=0yK7LXwYeD0))_
 
 In the previous module we created a script that:
 
-- downloaded a file and unzip it
-- saves it locally as a csv file 
-- loads and inserts the data into a postgres database
+- Downloads a file and unzips it.
+- Saves it locally as a CSV file.
+- Loads and inserts the data into a PostgreSQL database.
 
 This is what our "pipeline" looked like:
 
@@ -116,8 +116,9 @@ To address these problems, we can split the script into two distinct steps or ta
 
 This structure has dependencies between tasks, where one task's output is the next task's input and Task 2 is only performed if task 1 was executed successfully. 
 
-This is where the need for orchestrators arises. Workflow orchestration tools help define, parameterize, and manage workflows. These tools provide:
+*This is where the need for orchestrators arises*. Workflow orchestration tools help define, parameterize, and manage workflows. These tools provide:
 
+- Ensuring tasks are executed in the right sequence or simultaneously, based on predefined rules or dependencies
 - Retry mechanisms.
 - Logging and execution history.
 - Scheduling and monitoring.
