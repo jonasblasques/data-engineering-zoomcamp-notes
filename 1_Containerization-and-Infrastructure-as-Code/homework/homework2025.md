@@ -126,7 +126,7 @@ python ingest_zone.py \
     --host=localhost \
     --port=5433 \
     --db=homework_taxi \
-    --table_name=zone \
+    --table_name=zone 
 ```  
 
 ## Question 3. Trip Segmentation Count
@@ -221,7 +221,7 @@ Output:
 |---------------------+-------------------|
 | East Harlem North   | 18686.68000000009 |
 | East Harlem South   | 16797.26000000006 |
-| Morningside Heights | 78671.70999999889 |
+| Morningside Heights | 13029.78999999993 |
 +---------------------+-------------------+
 ```
 
