@@ -1832,10 +1832,9 @@ The upload_to_gcs utility function is used to upload the file to the specified b
 - create_final_table_task: This task creates a final BigQuery table (green_2022) if it doesn't already exist.
 The table schema includes various fields related to the green taxi trip data (e.g., VendorID, pickup/dropoff datetime, fare amount, etc.). This task uses the BigQueryInsertJobOperator to execute a SQL query in BigQuery.The query creates the table green_2022 in the dataset specified (airflow2025), if it doesn't already exist.The table is created using a CREATE TABLE IF NOT EXISTS statement to ensure it is only created once.
 
-- create_external_table_task: This task creates an external BigQuery table from the parquet file in GCS.
-The external table references the raw data in GCS, using parquet file and specifies the format as PARQUET. This task uses the BigQueryInsertJobOperator to run another SQL query
+- create_external_table_task: This task creates an external BigQuery table for a given month from the parquet file in GCS. The external table references the raw data in GCS, using parquet file and specifies the format as PARQUET. This task uses the BigQueryInsertJobOperator to run another SQL query
 
-- create_temp_table_task: This task creates a temporary table in BigQuery by reading from the external table created earlier. It generates a unique unique_row_id for each record by hashing certain fields, and stores the file name for reference.
+- create_temp_table_task: This task creates a temporary table in BigQuery for a given month by reading from the external table created earlier. It generates a unique unique_row_id for each record by hashing certain fields, and stores the file name for reference.
 
 - merge_to_final_table_task: This task performs a merge operation to update the final table (green_2022) with data from the temporary table. It inserts records into the final table where there is no match (based on the unique_row_id), ensuring that only new or updated data is added. This task uses the BigQueryInsertJobOperator to perform a MERGE SQL operation
 
@@ -2064,6 +2063,10 @@ download_task >> local_to_gcs_task >> create_final_table_task >> create_external
 Unpause the DAG and after a few minutes, should look like this:
 
 ![airflowgcp7](images/airflowgcp7.jpg)
+
+Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should query the 2022 table:
+
+![airflowgcp8](images/airflowgcp8.jpg)
 
 
 # Airflow and Kubernetes
