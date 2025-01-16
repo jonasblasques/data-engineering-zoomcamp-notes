@@ -9,7 +9,8 @@ https://github.com/ManuelGuerra1987/data-engineering-zoomcamp-notes/tree/main/2_
 ## Inserting data manually:
 
 1: Create a green_2022 bucket in Google Cloud Storage
-2: Upload parquet files to the bucket
+
+2: Upload parquet files to the bucket:
 
 ![hw1](images/hw1.jpg)
 
