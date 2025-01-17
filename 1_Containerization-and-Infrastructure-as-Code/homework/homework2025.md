@@ -177,7 +177,15 @@ Answer with outliers:
 
 104,838; 199,013; 109,645; 27,688; 35,202
 
-The October table contains some outliers, i.e. some values ​​that are not from October. To filter those values ​​use this query:
+The October table contains some outliers, i.e. some values ​​that are not from October. 
+
+To filter those values make sure to add:
+
+```sql
+WHERE DATE(lpep_pickup_datetime) >= '2019-10-1' AND DATE(lpep_pickup_datetime) < '2019-11-1' 
+```
+
+Full query:
 
 ```sql
 SELECT 
