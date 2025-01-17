@@ -1834,12 +1834,20 @@ The table schema includes various fields related to the green taxi trip data (e.
 
 - create_external_table_task: This task creates an external BigQuery table for a given month from the parquet file in GCS. The external table references the raw data in GCS, using parquet file and specifies the format as PARQUET. This task uses the BigQueryInsertJobOperator to run another SQL query
 
-- create_temp_table_task: This task creates a temporary table in BigQuery for a given month by reading from the external table created earlier. It generates a unique unique_row_id for each record by hashing certain fields, and stores the file name for reference.
+- create_temp_table_task: This task creates a temporary native table in BigQuery for a given month by reading from the external table created earlier. It generates a unique unique_row_id for each record by hashing certain fields, and stores the file name for reference.
 
-- merge_to_final_table_task: This task performs a merge operation to update the final table (green_2022) with data from the temporary table. It inserts records into the final table where there is no match (based on the unique_row_id), ensuring that only new or updated data is added. This task uses the BigQueryInsertJobOperator to perform a MERGE SQL operation
+- merge_to_final_table_task: This task performs a merge operation to update the final table (green_2022) with data from the temporary table. It inserts records into the final table where there is no match (based on the unique_row_id), ensuring that only new or updated data is added. This task uses the BigQueryInsertJobOperator to perform a MERGE SQL operation.
+
+**Tables explanation**
+
+External Table: Serves as the initial point of access to the raw data. The data in this table is not physically stored in BigQuery. There is a External table for each month
+
+Temporary table: This is a native table created in BigQuery using the data from the external table. Copies the entire dataset from the associated external table into this table, while enriching it with the additional columns unique_row_id and filename. There is a native table for each month.
+
+Final table: After processing the data and ensuring there are no duplicates or inconsistencies, the final data is merged into this table. It represents the cleaned, transformed, and de-duplicated dataset including data from all months.
 
 
-data_ingestion_gcp2 looks like this:
+data_ingestion_gcp2.py looks like this:
 
 ```python
 
@@ -1901,7 +1909,7 @@ file_template = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.parquet'
 consolidated_table_name = "green_2022"
 url_template = "https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.parquet"
 
-# Task 1
+# Task 1: Download file
 download_task = PythonOperator(
     task_id="download",
     python_callable=download,
@@ -1914,7 +1922,7 @@ download_task = PythonOperator(
 
 
 
-# Task 3: Upload file to google storage
+# Task 2: Upload file to google storage
 local_to_gcs_task = PythonOperator(
     task_id="local_to_gcs_task",
     python_callable=upload_to_gcs,
@@ -1927,7 +1935,7 @@ local_to_gcs_task = PythonOperator(
     dag=dag
 )
 
-# Task 4: Create final table
+# Task 3: Create final table
 create_final_table_task = BigQueryInsertJobOperator(
     task_id="create_final_table_task",
     gcp_conn_id="gcp-airflow",
@@ -1966,7 +1974,7 @@ create_final_table_task = BigQueryInsertJobOperator(
     dag=dag,
 )
 
-# Task 5: Create external monthly table
+# Task 4: Create external monthly table
 create_external_table_task = BigQueryInsertJobOperator(
     task_id="create_external_table_task",
     gcp_conn_id="gcp-airflow",
@@ -2007,7 +2015,7 @@ create_external_table_task = BigQueryInsertJobOperator(
     dag=dag
 )
 
-# Task 6: Create internal monthly table
+# Task 5: Create native monthly table
 create_temp_table_task = BigQueryInsertJobOperator(
     task_id="create_temp_table_task",
     gcp_conn_id="gcp-airflow",
@@ -2035,7 +2043,7 @@ create_temp_table_task = BigQueryInsertJobOperator(
 )
 
 
-# Task 6
+# Task 6: Merge
 merge_to_final_table_task = BigQueryInsertJobOperator(
     task_id="merge_to_final_table_task",
     gcp_conn_id="gcp-airflow",

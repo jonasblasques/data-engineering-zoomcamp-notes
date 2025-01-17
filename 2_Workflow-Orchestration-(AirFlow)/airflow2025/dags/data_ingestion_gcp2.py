@@ -56,7 +56,7 @@ file_template = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.parquet'
 consolidated_table_name = "green_2022"
 url_template = "https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.parquet"
 
-# Task 1
+# Task 1: Download file
 download_task = PythonOperator(
     task_id="download",
     python_callable=download,
@@ -69,7 +69,7 @@ download_task = PythonOperator(
 
 
 
-# Task 3: Upload file to google storage
+# Task 2: Upload file to google storage
 local_to_gcs_task = PythonOperator(
     task_id="local_to_gcs_task",
     python_callable=upload_to_gcs,
@@ -82,7 +82,7 @@ local_to_gcs_task = PythonOperator(
     dag=dag
 )
 
-# Task 4: Create final table
+# Task 3: Create final table
 create_final_table_task = BigQueryInsertJobOperator(
     task_id="create_final_table_task",
     gcp_conn_id="gcp-airflow",
@@ -121,7 +121,7 @@ create_final_table_task = BigQueryInsertJobOperator(
     dag=dag,
 )
 
-# Task 5: Create external monthly table
+# Task 4: Create external monthly table
 create_external_table_task = BigQueryInsertJobOperator(
     task_id="create_external_table_task",
     gcp_conn_id="gcp-airflow",
@@ -162,7 +162,7 @@ create_external_table_task = BigQueryInsertJobOperator(
     dag=dag
 )
 
-# Task 6: Create internal monthly table
+# Task 5: Create native monthly table
 create_temp_table_task = BigQueryInsertJobOperator(
     task_id="create_temp_table_task",
     gcp_conn_id="gcp-airflow",
@@ -190,7 +190,7 @@ create_temp_table_task = BigQueryInsertJobOperator(
 )
 
 
-# Task 6
+# Task 6: Merge
 merge_to_final_table_task = BigQueryInsertJobOperator(
     task_id="merge_to_final_table_task",
     gcp_conn_id="gcp-airflow",
