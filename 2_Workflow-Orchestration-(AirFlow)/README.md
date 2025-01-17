@@ -1840,12 +1840,14 @@ The table schema includes various fields related to the green taxi trip data (e.
 
 **Tables explanation**
 
-External Table: Serves as the initial point of access to the raw data. The data in this table is not physically stored in BigQuery. There is a External table for each month
+- External Table: Serves as the initial point of access to the raw data. The data in this table is not physically stored in BigQuery. There is a External table for each month
 
-Temporary table: This is a native table created in BigQuery using the data from the external table. Copies the entire dataset from the associated external table into this table, while enriching it with the additional columns unique_row_id and filename. There is a native table for each month.
+- Temporary table: This is a native table created in BigQuery using the data from the external table. Copies the entire dataset from the associated external table into this table, while enriching it with the additional columns unique_row_id and filename. There is a native table for each month.
 
-Final table: After processing the data and ensuring there are no duplicates or inconsistencies, the final data is merged into this table. It represents the cleaned, transformed, and de-duplicated dataset including data from all months.
+- Final table: After processing the data and ensuring there are no duplicates or inconsistencies, the final data is merged into this table. It represents the cleaned, transformed, and de-duplicated dataset including data from all months.
 
+
+**DAG code**
 
 data_ingestion_gcp2.py looks like this:
 
