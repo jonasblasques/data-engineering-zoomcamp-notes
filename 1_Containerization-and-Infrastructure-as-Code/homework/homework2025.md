@@ -142,52 +142,6 @@ python ingest_zone.py \
 
 
 ```sql
-SELECT COUNT(1) 
-FROM public."green_tripdata_2019-10"
-WHERE trip_distance <= 1;
-```
-
-Output:
-
-```
-+--------+
-| count  |
-|--------|
-| 104838 |
-+--------+
-```
-
-```sql
-SELECT COUNT(1) 
-FROM public."green_tripdata_2019-10"
-WHERE trip_distance > 1 AND trip_distance <= 3;
-```
-
-Output:
-
-```
-+--------+
-| count  |
-|--------|
-| 199013 |
-+--------+
-```
-
-Answer with outliers:
-
-104,838; 199,013; 109,645; 27,688; 35,202
-
-The October table contains some outliers, i.e. some values ​​that are not from October. 
-
-To filter those values make sure to add:
-
-```sql
-WHERE DATE(lpep_pickup_datetime) >= '2019-10-1' AND DATE(lpep_pickup_datetime) < '2019-11-1' 
-```
-
-Full query:
-
-```sql
 SELECT 
     CASE
 		WHEN trip_distance <= 1 THEN 'Range 1'
@@ -197,14 +151,17 @@ SELECT
         ELSE 'Bigger distance'
     END AS ranges,
     COUNT(*) AS trip_count
-FROM public.green_taxi_data
-WHERE DATE(lpep_pickup_datetime) >= '2019-10-1' AND DATE(lpep_pickup_datetime) < '2019-11-1' 
+FROM public."green_tripdata_2019-10"
+WHERE DATE(lpep_pickup_datetime) >= '2019-10-1' 
+AND DATE(lpep_dropoff_datetime) < '2019-11-1' 
 GROUP BY ranges;
 ```
 
-Answer without outliers:
+Answer:
 
-104,830; 198,995; 109,642; 27,686; 35,201
+104,802; 198,924; 109,603; 27,678; 35,189
+
+
 
 
 ## Question 4. Longest trip for each day
