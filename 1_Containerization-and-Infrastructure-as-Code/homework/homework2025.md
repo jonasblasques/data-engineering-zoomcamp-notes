@@ -177,6 +177,27 @@ Answer with outliers:
 
 104,838; 199,013; 109,645; 27,688; 35,202
 
+The October table contains some outliers, i.e. some values ​​that are not from October. To filter those values ​​use this query:
+
+```sql
+SELECT 
+    CASE
+		WHEN trip_distance <= 1 THEN 'Range 1'
+        WHEN trip_distance >1 AND trip_distance <=3 THEN 'Range 3'
+        WHEN trip_distance >3 AND trip_distance <=7 THEN 'Range 7'
+		WHEN trip_distance >7 AND trip_distance <=10 THEN 'Range 10'
+        ELSE 'Bigger distance'
+    END AS ranges,
+    COUNT(*) AS trip_count
+FROM public.green_taxi_data
+WHERE DATE(lpep_pickup_datetime) >= '2019-10-1' AND DATE(lpep_pickup_datetime) < '2019-11-1' 
+GROUP BY ranges;
+```
+
+Answer without outliers:
+
+104,830; 198,995; 109,642; 27,686; 35,201
+
 
 ## Question 4. Longest trip for each day
 
