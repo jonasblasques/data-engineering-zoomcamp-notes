@@ -46,7 +46,16 @@ For the course you'll need:
 * BigQuery best practices
 * Internals of BigQuery
 
+### [Module 4: Analytics Engineering](4_Analytics-Engineering/)
 
+* Basics of analytics engineering
+* dbt (data build tool)
+* BigQuery and dbt
+* Postgres and dbt
+* dbt models
+* Testing and documenting
+* Deployment to the cloud and locally
+* Visualizing the data with google data studio and metabase
 
 ## Extra:
 
