@@ -1279,19 +1279,31 @@ download_task: Uses download_and_unzip function. Downloads and decompresses a .c
 **3: Unpause the DAG**
 
 Open the Airflow dashboard and unpause the "GCP_ingestion_single_file" DAG from data_ingestion_gcp.py.
+
 After executing all tasks, should look like this::
 
 
 ![airflownew2](images/airflownew2.jpg)
-
+<br><br>
 
 **4: Check table in BigQuery** 
 
-Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see a new external table:
+Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see a new external table inside your "airflow2025" dataset:
 
 ![airflownew3](images/airflownew3.jpg)
+<br><br>
 
+Now you can query the table:
 
+![airflownew4](images/airflownew4.jpg)
+<br><br>
+
+You can also see the uploaded parquet file by searching the Cloud Storage service, selecting your bucket and then clickin on the raw/ folder. You may click on the filename to access an info panel:
+
+![airflowgcp6](images/airflowgcp6.jpg)
+<br><br>
+
+You may now shutdown Airflow by running docker-compose down on the terminal where you run it.
 
 ## Ingesting data to GCP multiple files
 
