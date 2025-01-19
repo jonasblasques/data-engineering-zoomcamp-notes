@@ -43,7 +43,7 @@ def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="gcp-airflow"):
 
 # Defining the DAG
 dag = DAG(
-    "homework_module3_v24",
+    "GCP_ingestion_multiple_files",
     schedule_interval="0 6 2 * *",
     start_date=datetime(2022, 1, 1),
     end_date=datetime(2022, 12, 5),

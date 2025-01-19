@@ -61,7 +61,7 @@ def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="gcp-airflow"):
 
 # Defining the DAG
 dag = DAG(
-    "GCP_ingestion",
+    "GCP_ingestion_single_file",
     schedule_interval="0 6 2 * *",
     start_date=datetime(2021, 1, 1),
     end_date=datetime(2021, 1, 5),
