@@ -677,7 +677,7 @@ Password: airflow
 We will need to create a new container to add a postgres database where we will insert the data.
 We want to run our Postgres setup from module 1 as well as Airflow to ingest the NYC taxi trip data to our local Postgres.
 
-![airflow9](images/airflow9.jpg)
+![airflowgcp9](images/airflowgcp9.jpg)
 <br><br>
 
 In this example, we will download and insert data from yellow_tripdata_2021-01, yellow_tripdata_2021-02 and yellow_tripdata_2021-03.
