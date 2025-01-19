@@ -1324,6 +1324,9 @@ The table schema includes various fields related to the green taxi trip data (e.
 
 - merge_to_final_table_task: This task performs a merge operation to update the final table (green_2022) with data from the temporary table. It inserts records into the final table where there is no match (based on the unique_row_id), ensuring that only new or updated data is added. This task uses the BigQueryInsertJobOperator to perform a MERGE SQL operation.
 
+![airflowgcp10](images/airflowgcp10.jpg)
+<br><br>
+
 **Tables explanation**
 
 - External Table: Serves as the initial point of access to the raw data. The data in this table is not physically stored in BigQuery. There is a External table for each month
@@ -1333,7 +1336,7 @@ The table schema includes various fields related to the green taxi trip data (e.
 - Final table: After processing the data and ensuring there are no duplicates or inconsistencies, the final data is merged into this table. It represents the cleaned, transformed, and de-duplicated dataset including data from all months.
 
 
-**DAG code**
+**1: Prepare the DAG**
 
 data_ingestion_gcp2.py looks like this:
 
@@ -1556,14 +1559,17 @@ download_task >> local_to_gcs_task >> create_final_table_task >> create_external
 
 ```
 
+**2: Unpause the DAG**
+
 Unpause the DAG and after a few minutes, should look like this:
 
 ![airflowgcp7](images/airflowgcp7.jpg)
+<br><br>
 
 Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should query the 2022 table:
 
 ![airflowgcp8](images/airflowgcp8.jpg)
-
+<br><br>
 
 # Airflow and Kubernetes
 
