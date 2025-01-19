@@ -11,8 +11,8 @@
     - [Setting up Airflow 2.10.4 with Docker](#setting-up-airflow-2104-with-docker)
     - [Ingesting data to local Postgres with Airflow](#ingesting-data-to-local-postgres-with-airflow)
     - [Ingesting data to local Postgres new version](#ingesting-data-to-local-postgres-new-version)    
-    - [Ingesting data to GCP](#ingesting-data-to-gcp)
-    - [Ingesting data to GCP multiple months](#ingesting-data-to-gcp-multiple-months)
+    - [Ingesting data to GCP single files](#ingesting-data-to-gcp-single-files)
+    - [Ingesting data to GCP multiple files](#ingesting-data-to-gcp-multiple-files)
 - [Airflow and Kubernetes](#airflow-and-kubernetes)    
     - [Setting up Airflow with Kubernetes](#setting-up-airflow-with-kubernetes)
     - [Ingesting data to GCP with kubernetes](#ingesting-data-to-gcp-with-kubernetes)
@@ -1057,10 +1057,15 @@ Full code in airflow/dags/data_ingestion_local2.py
 The COPY command directly streams data into the database with minimal overhead, making it faster and more memory-efficient. SQLAlchemy, while flexible and powerful for general database management, isn’t designed to match the performance of PostgreSQL's COPY command for bulk inserts.
 
 
-## Ingesting data to GCP
+## Ingesting data to GCP single file
 
+We will now run a slightly more complex DAG that will download the NYC taxi trip data, convert it to parquet, upload it to a GCP bucket and ingest it to GCP's BigQuery.
 
-**1:** Create connection with GCP:
+First we are going to create a single external table in big query and in the next step we are going to insert all the monthly tables and merge them into a final consolidated table
+
+![airflowgcp2](images/airflowgcp2.jpg)
+
+**1: Create connection with GCP:**
 
 To create a connection with Google Cloud Platform (GCP) from the Airflow UI go to the top menu and click on Admin, From the dropdown, select Connections. This will take you to the page where you can manage your Airflow connections.
 
@@ -1072,7 +1077,9 @@ Complete Connection id, Connection type, your project id and Keyfile Path (with 
 
 
 
-**2:** Lets modify data_ingestion_gcp like this:
+**2: Prepare a DAG** 
+
+data_ingestion_gcp.py look like this:
 
 ```python
 
@@ -1092,7 +1099,7 @@ import requests
 import gzip
 import shutil
 
-# Make sure values ​​match your google resources
+# Make sure the values ​​match your terraform main.tf file
 PROJECT_ID="zoomcamp-airflow-444903"
 BUCKET="zoomcamp_datalake"
 BIGQUERY_DATASET = "airflow2025"
@@ -1139,7 +1146,7 @@ def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="gcp-airflow"):
 
 # Defining the DAG
 dag = DAG(
-    "GCP_ingestion",
+    "GCP_ingestion_single_file",
     schedule_interval="0 6 2 * *",
     start_date=datetime(2021, 1, 1),
     end_date=datetime(2021, 1, 5),
@@ -1220,8 +1227,58 @@ gcp_conn_id="gcp-airflow"
 
 ```
 
+**Let's explain step by step what this code does:**
 
-**3:** Unpause the GCP_ingestion DAG, should look like this:
+Google Cloud modules:
+
+- storage to interact with Google Cloud Storage.
+- BigQueryCreateExternalTableOperator to create an external table in BigQuery.
+- GCSHook for uploading files to Google Cloud Storage.
+
+Data processing modules:
+
+- pyarrow.csv and pyarrow.parquet for converting CSV to Parquet format.
+- requests for downloading files from a URL.
+- gzip and shutil for decompressing .gz files.
+
+Configuration Variables:
+
+- PROJECT_ID: The Google Cloud project ID.
+- BUCKET: The Google Cloud Storage bucket name.
+- BIGQUERY_DATASET: The BigQuery dataset name.
+- path_to_local_home: Local directory path for Airflow tasks.
+
+Utility Functions:
+
+- download_and_unzip: Downloads a .csv.gz file from a URL. Decompresses the file into a .csv format.
+
+- format_to_parquet: Converts a CSV file to a Parquet file using PyArrow.
+
+- upload_to_gcs: Uploads a local file to a specified GCS bucket. Uses the Airflow GCSHook for the connection.
+
+
+Dynamic Variables:
+
+- Table Name Template: This creates a template for the BigQuery table name. For example "yellow_taxi_2025_01"
+- csv_name_gz_template: This template generates the file name for the compressed .csv.gz file. For example "output_2025_01.csv.gz"
+- csv_name_template: This template generates the file name for the decompressed .csv file. For example "output_2025_01.csv"
+- parquet_file: This replaces the .csv extension in csv_name_template with .parquet. For example "output_2025_01.parquet"
+- url_template: This template generates the download URL for the .csv.gz file. The {{ execution_date.strftime('%Y-%m') }} dynamically inserts the YYYY-MM format of the execution date into the URL.
+
+Task Definitions:
+
+download_task: Uses download_and_unzip function. Downloads and decompresses a .csv.gz file for a specific month. The file is determined dynamically using Airflow's execution_date.
+
+- process_task: Uses format_to_parquet function. Converts the downloaded CSV file to Parquet format. The input file path is dynamically generated.
+
+- local_to_gcs_task: Uses upload_to_gcs function with the specified arguments. A connection is established to GCS using the Google Cloud Storage library. The local Parquet file is uploaded to the specified bucket and folder (raw/)
+
+- bigquery_external_table_task: Uses BigQueryCreateExternalTableOperator, a predefined operator from Airflow's Google Cloud BigQuery provider. It simplifies the process of creating external tables. This task creates an external table in Google BigQuery in the specified project and dataset, pointing to the Parquet file stored in GCS. Table name is dynamically generated based on the execution date. The URI is gs://{BUCKET}/raw/{parquet_file}, where BUCKET is the name of the GCS bucket and parquet_file is the file name generated in previous steps. 
+
+
+**3: Unpause the DAG**
+
+Unpause the "GCP_ingestion_single_file" DAG, should look like this:
 
 
 ![airflownew2](images/airflownew2.jpg)
@@ -1233,7 +1290,7 @@ gcp_conn_id="gcp-airflow"
 
 
 
-## Ingesting data to GCP multiple months
+## Ingesting data to GCP multiple files
 
 Previously, we loaded a single table into GCP. Now we are going to load an entire year, for example all 2022 data for the green taxi. We will need the following tasks:
 
