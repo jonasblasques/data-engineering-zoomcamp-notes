@@ -11,7 +11,7 @@
     - [Setting up Airflow 2.10.4 with Docker](#setting-up-airflow-2104-with-docker)
     - [Ingesting data to local Postgres with Airflow](#ingesting-data-to-local-postgres-with-airflow)
     - [Ingesting data to local Postgres new version](#ingesting-data-to-local-postgres-new-version)    
-    - [Ingesting data to GCP single files](#ingesting-data-to-gcp-single-files)
+    - [Ingesting data to GCP single file](#ingesting-data-to-gcp-single-file)
     - [Ingesting data to GCP multiple files](#ingesting-data-to-gcp-multiple-files)
 - [Airflow and Kubernetes](#airflow-and-kubernetes)    
     - [Setting up Airflow with Kubernetes](#setting-up-airflow-with-kubernetes)
