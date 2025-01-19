@@ -394,7 +394,9 @@ COPY ./google /opt/airflow/google
 
 This Dockerfile creates a Docker image for Apache Airflow, installs additional Python packages from a requirements.txt file and copies google credentials into the container
 
-### 3:  Create a Docker-compose.yaml. Should look like:
+### 3:  Create a Docker-compose.yaml
+
+Docker-compose.yaml should look like this:
 
 ```yaml
 
@@ -562,14 +564,18 @@ Volumes:
 
 ---
 
-Also copy from this repo to your dags folder:
+### 5:  Copy python files. 
+
+Copy from this repo to your dags folder:
 
 - data_ingestion_local.py 
 - data_ingestion_local2.py 
 - data_ingestion_gcp.py 
 - data_ingestion_gcp2.py 
 
-### 5:  Create a requirements.txt, should look like:
+### 6:  Create a requirements.txt
+
+requirements.txt, should look like:
 
 ```
 apache-airflow-providers-google
@@ -601,7 +607,7 @@ The directory structure now should look like this:
 ```
 
 
-### 6:  Build the image. 
+### 7:  Build the image. 
 
 You only need to do this the first time you run Airflow or if you modified the Dockerfile or the requirements.txt file:
 
@@ -611,7 +617,7 @@ You only need to do this the first time you run Airflow or if you modified the D
 
 First-time build can take up to 10 mins.
 
-### 7: Run Airflow:    
+### 8: Run Airflow:    
 
 ```
     docker-compose up -d
