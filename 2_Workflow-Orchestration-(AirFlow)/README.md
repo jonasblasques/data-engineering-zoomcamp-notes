@@ -9,8 +9,8 @@
     - [Introduction to Workflow Orchestration](#introduction-to-workflow-orchestration)
     - [Airflow architecture](#airflow-architecture)
     - [Setting up Airflow 2.10.4 with Docker](#setting-up-airflow-2104-with-docker)
-    - [Ingesting data to local Postgres with Airflow](#ingesting-data-to-local-postgres-with-airflow)
-    - [Ingesting data to local Postgres new version](#ingesting-data-to-local-postgres-new-version)    
+    - [Ingesting data to local Postgres](#ingesting-data-to-local-postgres)
+    - [Ingesting data to local Postgres optimized](#ingesting-data-to-local-postgres-optimized)    
     - [Ingesting data to GCP single file](#ingesting-data-to-gcp-single-file)
     - [Ingesting data to GCP multiple files](#ingesting-data-to-gcp-multiple-files)
 - [Airflow and Kubernetes](#airflow-and-kubernetes)    
@@ -673,7 +673,7 @@ Password: airflow
  
 
 
-## Ingesting data to local Postgres with Airflow
+## Ingesting data to local Postgres
 
 This section focuses on setting up a local PostgreSQL database and using Apache Airflow to ingest NYC taxi trip
 data. The process involves creating a dedicated directory for the database and configuring a docker-compose 
@@ -990,7 +990,7 @@ root2@localhost:ny_taxi> select count(1) from yellow_taxi_2021_02;
 +---------+
 ```
 
-## Ingesting data to local Postgres new version
+## Ingesting data to local Postgres optimized
 
 PostgreSQL’s COPY command is specifically designed for efficient bulk loading of data from a file (or memory buffer, in this case) into a table. It is highly optimized for performance, allowing it to insert large volumes of data in one go.
 
