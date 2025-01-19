@@ -675,7 +675,10 @@ Password: airflow
 ## Ingesting data to local Postgres with Airflow
 
 We will need to create a new container to add a postgres database where we will insert the data.
-We want to run our Postgres setup from last section as well as Airflow to ingest the NYC taxi trip data to our local Postgres.
+We want to run our Postgres setup from module 1 as well as Airflow to ingest the NYC taxi trip data to our local Postgres.
+
+![airflow9](images/airflow9.jpg)
+<br><br>
 
 In this example, we will download and insert data from yellow_tripdata_2021-01, yellow_tripdata_2021-02 and yellow_tripdata_2021-03.
 
@@ -712,7 +715,7 @@ The directory structure now should look like this:
 
 **2: Prepare postgres**
 
- On a separate terminal, lets find out which virtual network it's running on with:
+ On a separate terminal, lets find out which virtual network it's running on airflow with:
  
  ```
 docker network ls
@@ -724,10 +727,8 @@ It should print something like this:
 
 ```
     NETWORK ID     NAME                  DRIVER    SCOPE
-    e843f42a6fe1   bridge                bridge    local
     690b4b59769b   airflow2025_default   bridge    local
-    1b4769ea7218   host                  host      local
-    348b319579e3   none                  null      local
+
 ```    
 
 
@@ -781,7 +782,7 @@ Inside your dags folder, create a data_ingestion_local.py file. The DAG will hav
 - A PythonOperator task that will download the NYC taxi data.
 - A PythonOperator task that will ingest data into our database
 
-Two functions are defined:
+Two utility functions are defined:
 
 - download_and_unzip: Downloads a .csv.gz file from a URL and extracts it into a .csv file. Makes a GET request to fetch the file from the given url. Saves the .gz file locally and unzips the file using the gzip library and writes it to a local .csv file.
 
