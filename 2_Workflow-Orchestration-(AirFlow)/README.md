@@ -354,32 +354,28 @@ This is a quick, simple & less memory-intensive setup of Airflow that works on a
 Only runs the webserver and the scheduler and runs the DAGs in the scheduler rather than running them in external workers:
 
 
-### 1: Create a new sub-directory called airflow2025 in your project dir. 
+### 1: Create a new sub-directory called airflow in your project dir. 
 
-Inside airflow2025 create dags, google and logs folders.
+Inside airflow create dags, google and logs folders.
 
 The directory structure should look like this:
 
 ```
 
-├── airflow2025
+├── airflow
 │   ├── dags
-│   |   ├── data_ingestion_local.py
-│   |   ├── data_ingestion_local2.py
-│   |   └── data_ingestion_gcp.py
 |   |
 │   ├── google
-│   |   └── credentials.json
 |   |
-│   └──  logs
+│   └── logs
 |
-├── docker-compose.yaml
-├── Dockerfile
-├── requirements.txt
+
 ```
 
 
-### 2:  Create a Dockerfile. Should look like:
+### 2:  Create a Dockerfile. 
+
+Create a Dockerfile inside airflow folder. We are going to use this dockerfile:
 
 ```dockerfile
 
@@ -584,6 +580,26 @@ psycopg2-binary
 requests
 ```
 
+The directory structure now should look like this:
+
+```
+
+├── airflow
+│   ├── dags
+│   |   ├── data_ingestion_local.py
+│   |   ├── data_ingestion_local2.py
+│   |   ├── data_ingestion_gcp.py
+|   |   └── data_ingestion_gcp.py
+│   ├── google
+│   |   └── credentials.json
+|   |
+│   └──  logs
+|
+├── docker-compose.yaml
+├── Dockerfile
+└── requirements.txt
+```
+
 
 ### 6:  Build the image. 
 
@@ -648,13 +664,13 @@ Password: airflow
 
 ## Ingesting data to local Postgres with Airflow
 
-**1:** Create a new sub-directory called database_ny_taxi2025 at the same level as airflow2025 folder. Inside database_ny_taxi2025 create ny_taxi_postgres_data folder and docker-compose-lesson1.yaml file
+**1:** Create a new sub-directory called database_ny_taxi at the same level as airflow folder. Inside database_ny_taxi create ny_taxi_postgres_data folder and docker-compose-lesson1.yaml file
 
 The directory structure should look like this:
 
 ```
 
-├── database_ny_taxi2025
+├── database_ny_taxi
 │   └── ny_taxi_postgres_data
 |
 └── docker-compose-lesson1.yaml
