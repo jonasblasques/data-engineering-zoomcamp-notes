@@ -710,13 +710,15 @@ The directory structure now should look like this:
 ```
 
 
-**2:** Prepare postgres
+**2: Prepare postgres**
 
- On a separate terminal, find out which virtual network it's running on with:
+ On a separate terminal, lets find out which virtual network it's running on with:
  
  ```
 docker network ls
 ```
+
+Make sure that you are running the containers for airflow services before running docker network ls
 
 It should print something like this:
 
@@ -728,7 +730,11 @@ It should print something like this:
     348b319579e3   none                  null      local
 ```    
 
-**3:**  Modify the docker-compose.yaml file from lesson 1 by adding the network (airflow2025_default) info and removing away the pgAdmin service. docker-compose-lesson1.yaml should look like this:
+
+
+**3: Create docker-compose.yaml file for the database** 
+
+Modify the docker-compose.yaml file from lesson 1 by adding the network (airflow2025_default) info and removing away the pgAdmin service. docker-compose-lesson1.yaml should look like this:
 
 ```dockerfile
 
@@ -753,7 +759,7 @@ networks:
     name: airflow2025_default
 ```    
 
-**4:** Run Postgres: 
+**4: Run Postgres:**
 
 Make sure to execute the docker-compose command in the database_ny_taxi directory:
 
@@ -761,12 +767,14 @@ Make sure to execute the docker-compose command in the database_ny_taxi director
     docker-compose -f docker-compose-lesson1.yaml up
 ```
 
-**5:** Once the container is running, we can log into our database with the following command:
+**5: Check database with PGCLI** 
+
+Once the container is running, we can log into our database with the following command:
 ```
     pgcli -h localhost -p 5433 -u root2 -d ny_taxi
 ```
 
-**6:** Prepare the DAG
+**6: Prepare the DAG**
 
 Inside your dags folder, create a data_ingestion_local.py file. The DAG will have the following tasks:
 
@@ -790,7 +798,7 @@ The following variables dynamically adapt based on the Airflow execution_date:
 
 Observe how the names of the tables in the database and the URL are generated dynamically according to the execution date using JINJA template.
 
-Should look like this:
+data_ingestion_local.py look like this:
 
 ```python
 
@@ -931,7 +939,9 @@ The tasks are executed sequentially: download_task → process_task
 
 The data is downloaded and extracted before being processed and ingested into the database.
 
-**7:** Open the Airflow dashboard and unpause the "yellow_taxi_ingestion_original" DAG from data_ingestion_local.py.
+**7: Unpause DAG** 
+
+Open the Airflow dashboard and unpause the "yellow_taxi_ingestion_original" DAG from data_ingestion_local.py.
 
 While ingesting the data, you can check logs:
 
@@ -942,7 +952,9 @@ After executing all tasks for all dates, should look like this:
 ![airflow7](images/airflow7.jpg)
 
 
-**8:** Check tables on your local Postgres database:
+**8: Check tables** 
+
+Check tables on your local Postgres database:
 
 Type "\dt" in the pgcli terminal. It should print:
 
