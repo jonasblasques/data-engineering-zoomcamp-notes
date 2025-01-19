@@ -1278,13 +1278,16 @@ download_task: Uses download_and_unzip function. Downloads and decompresses a .c
 
 **3: Unpause the DAG**
 
-Unpause the "GCP_ingestion_single_file" DAG, should look like this:
+Open the Airflow dashboard and unpause the "GCP_ingestion_single_file" DAG from data_ingestion_gcp.py.
+After executing all tasks, should look like this::
 
 
 ![airflownew2](images/airflownew2.jpg)
 
 
-**4:** Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see a new external_table table
+**4: Check table in BigQuery** 
+
+Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see a new external table:
 
 ![airflownew3](images/airflownew3.jpg)
 
