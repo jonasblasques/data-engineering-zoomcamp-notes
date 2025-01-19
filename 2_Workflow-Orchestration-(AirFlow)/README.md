@@ -130,7 +130,10 @@ Cloud-native tools like Apache Spark, dbt, or Google Dataflow are common for ELT
 
 ## Introduction to Workflow Orchestration
 
-Workflow Orchestration refers to the process of organizing, managing, and automating complex workflows, where multiple tasks or processes are coordinated to achieve a specific outcome. It involves ensuring that tasks are executed in the correct order, handling dependencies between them, and managing resources or systems involved in the workflow.
+Workflow Orchestration refers to the process of organizing, managing, and automating complex workflows, where 
+multiple tasks are coordinated to achieve a specific outcome. It involves ensuring that tasks are 
+executed in the correct order, handling dependencies between them, and managing resources or systems involved 
+in the workflow.
 
 Key characteristics of workflow orchestration include:
 
@@ -144,9 +147,8 @@ Key characteristics of workflow orchestration include:
 
 - Monitoring and Reporting: Tracking the progress of workflows, identifying bottlenecks, and providing logs or reports for analysis.
 
-Workflow orchestration is commonly used in areas like cloud computing, data processing, DevOps, and business process automation. 
 
-Popular tools for workflow orchestration include Apache Airflow, Kubernetes, AWS Step Functions, Prefect and Kestra. These tools help streamline and standardize complex workflows across multiple systems or environments.
+Popular tools for workflow orchestration include Apache Airflow, Prefect and Kestra. These tools help streamline and standardize complex workflows across multiple systems or environments.
 
 ## Airflow architecture
 
@@ -368,7 +370,6 @@ The directory structure should look like this:
 │   ├── google
 |   |
 │   └── logs
-|
 
 ```
 
@@ -674,17 +675,25 @@ Password: airflow
 
 ## Ingesting data to local Postgres with Airflow
 
-We will need to create a new container to add a postgres database where we will insert the data.
-We want to run our Postgres setup from module 1 as well as Airflow to ingest the NYC taxi trip data to our local Postgres.
+This section focuses on setting up a local PostgreSQL database and using Apache Airflow to ingest NYC taxi trip
+data. The process involves creating a dedicated directory for the database and configuring a docker-compose 
+file to define the PostgreSQL service. This service connects to Airflow's network, allowing seamless integration
+for data ingestion workflows. 
+
+For testing purposes, we will be ingesting Yellow Taxi data from January to March 2021. You can find all 
+datasets in https://github.com/DataTalksClub/nyc-tlc-data/releases/tag/yellow
+
+
 
 ![airflowgcp9](images/airflowgcp9.jpg)
 <br><br>
 
-In this example, we will download and insert data from yellow_tripdata_2021-01, yellow_tripdata_2021-02 and yellow_tripdata_2021-03.
 
-You can find all datasets in https://github.com/DataTalksClub/nyc-tlc-data/releases/tag/yellow
 
-**1:** Create a new sub-directory called database_ny_taxi at the same level as airflow folder. Inside database_ny_taxi create ny_taxi_postgres_data folder and docker-compose-lesson1.yaml file
+**1: Create a new sub-directory** 
+
+Create a new sub-directory called database_ny_taxi at the same level as airflow folder. Inside database_ny_taxi
+create ny_taxi_postgres_data folder and docker-compose-lesson1.yaml file
 
 The directory structure now should look like this:
 
@@ -713,9 +722,9 @@ The directory structure now should look like this:
 ```
 
 
-**2: Prepare postgres**
+**2: Find the airflow network**
 
- On a separate terminal, lets find out which virtual network it's running on airflow with:
+In a separate terminal, let's find out which virtual network Airflow is running on using the following command:
  
  ```
 docker network ls
@@ -735,7 +744,8 @@ It should print something like this:
 
 **3: Create docker-compose.yaml file for the database** 
 
-Modify the docker-compose.yaml file from lesson 1 by adding the network (airflow2025_default) info and removing away the pgAdmin service. docker-compose-lesson1.yaml should look like this:
+Modify the docker-compose.yaml file from module 1 by adding the network (airflow2025_default) info and removing
+ away the pgAdmin service. docker-compose-lesson1.yaml should look like this:
 
 ```dockerfile
 
@@ -1060,9 +1070,11 @@ The COPY command directly streams data into the database with minimal overhead, 
 
 ## Ingesting data to GCP single file
 
-We will now run a slightly more complex DAG that will download the NYC taxi trip data, convert it to parquet, upload it to a GCP bucket and ingest it to GCP's BigQuery.
+We will now run a slightly more complex DAG that will download the NYC taxi trip data, convert it to parquet, 
+upload it to a GCP bucket and create a external table in BigQuery.
 
-First we are going to create a single external table in big query and in the next step we are going to insert all the monthly tables and merge them into a final consolidated table
+First we are going to create a single external table in big query and in the next section we are going to insert 
+all the monthly tables and merge them into a final consolidated table.
 
 ![airflowgcp2](images/airflowgcp2.jpg)
 
