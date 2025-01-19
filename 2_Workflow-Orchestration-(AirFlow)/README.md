@@ -620,8 +620,12 @@ First-time build can take up to 10 mins.
 ### 8: Run Airflow:    
 
 ```
-    docker-compose up -d
+    docker-compose -p airflow2025 up -d
 ```
+
+The -p option specifies a custom project name (airflow2025 in this case). By default, Docker Compose uses the directory name as the project name, but this flag allows you to override it.
+
+The -d option stands for "detached mode," meaning the containers will run in the background, allowing you to continue using the terminal without being attached to the container logs.
 
 The first time it is run, the airflow-init service may take a few minutes to prepare the database
 
@@ -670,12 +674,34 @@ Password: airflow
 
 ## Ingesting data to local Postgres with Airflow
 
+We will need to create a new container to add a postgres database where we will insert the data.
+We want to run our Postgres setup from last section as well as Airflow to ingest the NYC taxi trip data to our local Postgres.
+
+In this example, we will download and insert data from yellow_tripdata_2021-01, yellow_tripdata_2021-02 and yellow_tripdata_2021-03.
+
+You can find all datasets in https://github.com/DataTalksClub/nyc-tlc-data/releases/tag/yellow
+
 **1:** Create a new sub-directory called database_ny_taxi at the same level as airflow folder. Inside database_ny_taxi create ny_taxi_postgres_data folder and docker-compose-lesson1.yaml file
 
-The directory structure should look like this:
+The directory structure now should look like this:
 
 ```
-
+├── airflow
+│   ├── dags
+│   |   ├── data_ingestion_local.py
+│   |   ├── data_ingestion_local2.py
+│   |   ├── data_ingestion_gcp.py
+|   |   └── data_ingestion_gcp.py
+│   ├── google
+│   |   └── credentials.json
+|   |
+│   └──  logs
+|
+├── docker-compose.yaml
+├── Dockerfile
+└── requirements.txt
+│
+│
 ├── database_ny_taxi
 │   └── ny_taxi_postgres_data
 |
@@ -729,7 +755,7 @@ networks:
 
 **4:** Run Postgres: 
 
-Make sure to execute the docker-compose command in the database_ny_taxi2025 directory:
+Make sure to execute the docker-compose command in the database_ny_taxi directory:
 
 ```
     docker-compose -f docker-compose-lesson1.yaml up
@@ -740,23 +766,205 @@ Make sure to execute the docker-compose command in the database_ny_taxi2025 dire
     pgcli -h localhost -p 5433 -u root2 -d ny_taxi
 ```
 
-**6:** Open the Airflow dashboard and unpause the "yellow_taxi_ingestion_slow" DAG from data_ingestion_local.py:
+**6:** Prepare the DAG
 
-After executing, should look like this:
+Inside your dags folder, create a data_ingestion_local.py file. The DAG will have the following tasks:
 
-![airflownew1](images/airflownew1.jpg)
+- A PythonOperator task that will download the NYC taxi data.
+- A PythonOperator task that will ingest data into our database
 
-**7:** Check tables on your local Postgres database:
+Two functions are defined:
 
-It should print:
+- download_and_unzip: Downloads a .csv.gz file from a URL and extracts it into a .csv file. Makes a GET request to fetch the file from the given url. Saves the .gz file locally and unzips the file using the gzip library and writes it to a local .csv file.
+
+- process_and_insert_to_db: This is our script for module 1. Reads the .csv file in chunks, processes it, and inserts the data into the PostgreSQL database. Connects to the PostgreSQL database using sqlalchemy. Reads the .csv file in chunks of 100,000 rows using pandas. Creates the table in the database (or replaces it if it exists). Appends the data chunk by chunk into the database.
+
+Dynamic Variables:
+
+The following variables dynamically adapt based on the Airflow execution_date:
+
+- table_name_template: Name of the database table (e.g., yellow_taxi_2021_02).
+- csv_name_gz_template: Name of the .csv.gz file (e.g., output_2021_02.csv.gz).
+- csv_name_template: Name of the .csv file (e.g., output_2021_02.csv).
+- url_template: URL to download the .csv.gz
+
+Observe how the names of the tables in the database and the URL are generated dynamically according to the execution date using JINJA template.
+
+Should look like this:
+
+```python
+
+from datetime import datetime
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+
+import pandas as pd
+from sqlalchemy import create_engine
+import requests
+import gzip
+import shutil
+
+
+
+# This info is from docker-compose-lesson1.yaml
+user = "root2"
+password = "root2"
+host = "pgdatabase"
+port = "5432"
+db = "ny_taxi"
+
+
+def download_and_unzip(csv_name_gz, csv_name, url):
+
+    # Download the CSV.GZ file
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(csv_name_gz, 'wb') as f_out:
+            f_out.write(response.content)
+    else:
+        print(f"Error downloading file: {response.status_code}")
+        return False
+
+    # Unzip the CSV file
+    with gzip.open(csv_name_gz, 'rb') as f_in:
+        with open(csv_name, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    
+    return True
+
+
+def process_and_insert_to_db(csv_name, user, password, host, port, db, table_name):
+    # Connect to PostgreSQL database
+    engine = create_engine(f'postgresql://{user}:{password}@{host}:{port}/{db}')
+    df_iter = pd.read_csv(csv_name, iterator=True, chunksize=100000)
+
+    # Process the first chunk
+    df = next(df_iter)
+    df.tpep_pickup_datetime = pd.to_datetime(df.tpep_pickup_datetime)
+    df.tpep_dropoff_datetime = pd.to_datetime(df.tpep_dropoff_datetime)
+
+    # Insert the data into the database
+    df.head(n=0).to_sql(name=table_name, con=engine, if_exists='replace')
+    df.to_sql(name=table_name, con=engine, if_exists='append')
+
+    # Process the rest of the data
+    while True:
+        try:
+            df = next(df_iter)
+            df.tpep_pickup_datetime = pd.to_datetime(df.tpep_pickup_datetime)
+            df.tpep_dropoff_datetime = pd.to_datetime(df.tpep_dropoff_datetime)
+            df.to_sql(name=table_name, con=engine, if_exists='append')
+            print('inserted another chunk')
+
+        except StopIteration:
+            print('completed')
+            break
+
+
+# Defining the DAG
+dag = DAG(
+    "yellow_taxi_ingestion_original",
+    schedule_interval="0 6 2 * *",
+    start_date=datetime(2021, 1, 1),
+    end_date=datetime(2021, 3, 28),
+    catchup=True, # True means run past missed jobs
+    max_active_runs=1,
+)
+
+table_name_template = 'yellow_taxi_{{ execution_date.strftime(\'%Y_%m\') }}'
+csv_name_gz_template = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv.gz'
+csv_name_template = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv'
+
+url_template = "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.csv.gz"
+
+# Task 1
+download_task = PythonOperator(
+    task_id="download_and_unzip",
+    python_callable=download_and_unzip,
+    op_kwargs={
+        'csv_name_gz': csv_name_gz_template,
+        'csv_name': csv_name_template,
+        'url': url_template
+    },
+    dag=dag
+)
+
+# Task 2:
+process_task = PythonOperator(
+    task_id="process_and_insert_to_db",
+    python_callable=process_and_insert_to_db,
+    op_kwargs={
+        'csv_name': csv_name_template,
+        'user': user,
+        'password': password,
+        'host': host,
+        'port': port,
+        'db': db,
+        'table_name': table_name_template
+     
+    },
+    dag=dag
+)
+
+# Establish the sequence of tasks
+download_task >> process_task
+```
+
+**Code Explanation:**
+
+DAG Configuration:
+
+- Schedule: Runs at 6:00 AM on the 2nd day of each month (0 6 2 * *)
+- Date Range: Starts on February 1, 2021, and ends on March 28, 2021.
+- catchup=True: This parameter ensures that if the DAG was paused or missed runs during the period between the start_date and end_date, Airflow will try to "catch up" and run all the missed executions, one for each scheduled date.
+- max_active_runs=1: This limits the DAG to only have one active run at any time, preventing overlapping executions of the DAG
+
+Tasks:
+
+- download_task: Downloads and extracts the .csv.gz file. Uses the download_and_unzip function. Passes the dynamic file names and URL as arguments
+
+- process_task: Processes the .csv file and uploads its content to the PostgreSQL database.Uses the process_and_insert_to_db function. Passes the database credentials, table name, and file name as arguments
+
+Task Dependency:
+
+The tasks are executed sequentially: download_task → process_task
+
+The data is downloaded and extracted before being processed and ingested into the database.
+
+**7:** Open the Airflow dashboard and unpause the "yellow_taxi_ingestion_original" DAG from data_ingestion_local.py.
+
+While ingesting the data, you can check logs:
+
+![airflow6](images/airflow6.jpg)
+
+After executing all tasks for all dates, should look like this:
+
+![airflow7](images/airflow7.jpg)
+
+
+**8:** Check tables on your local Postgres database:
+
+Type "\dt" in the pgcli terminal. It should print:
 
 ```
 +--------+---------------------+-------+-------+
 | Schema | Name                | Type  | Owner |
 |--------+---------------------+-------+-------|
+| public | yellow_taxi_2021_01 | table | root2 |
 | public | yellow_taxi_2021_02 | table | root2 |
 | public | yellow_taxi_2021_03 | table | root2 |
 +--------+---------------------+-------+-------+
+```
+
+Now you can query the tables:
+
+```
+root2@localhost:ny_taxi> select count(1) from yellow_taxi_2021_02;
++---------+
+| count   |
+|---------|
+| 1371708 |
++---------+
 ```
 
 ## Ingesting data to local Postgres new version
@@ -832,7 +1040,7 @@ def process_and_insert_to_db_with_copy(csv_name, user, password, host, port, db,
 
 ```
 
-Full code in airflow2025/dags/data_ingestion_local2.py
+Full code in airflow/dags/data_ingestion_local2.py
 
 The COPY command directly streams data into the database with minimal overhead, making it faster and more memory-efficient. SQLAlchemy, while flexible and powerful for general database management, isn’t designed to match the performance of PostgreSQL's COPY command for bulk inserts.
 
