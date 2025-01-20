@@ -4,7 +4,7 @@
 
 - [Introduction to analytics engineering](#Introduction-to-analytics-engineering)
 - [Introduction to dbt](#Introduction-to-dbt)
-
+- [Setting up dbt with bigquery](#setting-up-dbt-with-bigquery)
 
 
 
@@ -190,3 +190,146 @@ During the project you might already have data loaded into GCP buckets. This raw
 ![ae6](images/ae6.jpg)
 
 <br><br>
+
+## Setting up dbt with bigquery
+
+**1: Create a BigQuery service account**
+
+In order to connect we need the service account JSON file generated from bigquery. Open the [BigQuery credential wizard](https://console.cloud.google.com/apis/credentials/wizard) to create a service account
+
+Select BigQuery API and Application data
+<br>
+
+![ae7](images/ae7.jpg)
+<br><br>
+
+Next --> Continue --> Complete Service account name and description
+<br>
+
+![ae8](images/ae8.jpg)
+<br><br>
+
+Click on Create and continue
+
+Select role --> BigQuery Admin
+
+You can either grant the specific roles the account will need or simply use BigQuery admin, as you'll be the sole user of both accounts and data.
+<br>
+
+![ae9](images/ae9.jpg)
+<br><br>
+
+Click on continue --> Click on Done
+
+
+**2: Download JSON key**
+
+Now that the service account has been created we need to add and download a JSON key, go to the keys section, select "create new key". Select key type JSON and once you click on create it will get inmediately downloaded for you to use.
+
+In the navigation menu (the three horizontal lines in the top-left corner), go to IAM & Admin > Service Accounts.
+
+Find the dbt service account:
+<br>
+
+![ae10](images/ae10.jpg)
+<br><br>
+
+Navigate to the Keys tab. Click on Add Key > Create New Key
+<br>
+
+![ae11](images/ae11.jpg)
+<br><br>
+
+select JSON as the key type --> Create
+
+
+**3: Copy taxi_rides_ny folder**
+
+Copy taxi_rides_ny folder from https://github.com/DataTalksClub/data-engineering-zoomcamp/tree/main/04-analytics-engineering in your 04-analytics-engineering folder
+
+This taxi_rides_ny folder contains macros, models, seeds. Cloning these elements gives you a strong foundation
+for your DBT project, enabling you to focus on building and improving your data pipeline rather than starting
+from scratch. Also saves time by reducing the need to recreate common logic or datasets.
+
+```
+git clone https://github.com/DataTalksClub/data-engineering-zoomcamp.git
+```
+
+Then copy the taxi_rides_ny folder in your own 04-analytics-engineering folder
+
+**4: schema.yml values**
+
+Lets modify project id, dataset name and tables with our own values
+
+Open VS Code, go to taxi_rides_ny --> models --> staging --> schema.yml and edit:
+
+
+```yaml
+
+sources:
+  - name: staging
+    database: zoomcamp-airflow-444903 # project id
+    schema: zoomcamp # dataset name
+     
+    tables:
+      - name: green_tripdata #table name
+      - name: yellow_tripdata #table name
+        
+```         
+
+
+**5: Create a dbt cloud project**
+
+Create a dbt cloud account from [their website](https://www.getdbt.com/pricing/) (free for solo developers)
+Once you have logged in into dbt cloud you will be prompt to create a new project.
+
+You are going to need: 
+
+ - access to your data warehouse (bigquery)
+ - admin access to your repo, where you will have the dbt project. 
+
+ <br>
+
+![ae12](images/ae12.jpg)
+<br><br>
+
+Add new connection --> Select BigQuery
+ <br>
+
+![ae13](images/ae13.jpg)
+<br><br>
+
+Click on Upload a Service Account JSON file --> upload the json from step 2
+
+Click on Save
+
+Back on your project setup, select BigQuery:
+
+ <br>
+
+![ae14](images/ae14.jpg)
+<br><br>
+
+Click on save
+
+Now its time to setup a repository:
+ <br>
+
+![ae15](images/ae15.jpg)
+<br><br>
+
+Select git clone and paste the SSH key from your repo.
+
+![ae16](images/ae16.jpg)
+<br><br>
+
+Click on import --> Click on next
+
+You should look this:
+
+ <br>
+
+![ae17](images/ae17.jpg)
+<br><br>
+
+You will get a deploy key, head to your GH repo and go to the settings tab. You'll find the menu deploy keys. Click on add key and paste the deploy key provided by dbt cloud. Make sure to tikce on "write access"
