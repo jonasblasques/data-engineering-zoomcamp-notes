@@ -5,6 +5,7 @@
 - [Introduction to analytics engineering](#Introduction-to-analytics-engineering)
 - [Introduction to dbt](#Introduction-to-dbt)
 - [Setting up dbt with bigquery](#setting-up-dbt-with-bigquery)
+- [dbt build](#dbt-build)
 
 
 
@@ -333,3 +334,33 @@ You should look this:
 <br><br>
 
 You will get a deploy key, head to your GH repo and go to the settings tab. You'll find the menu deploy keys. Click on add key and paste the deploy key provided by dbt cloud. Make sure to click on "write access"
+
+
+Also make sure you informed taxi_rides_ny as the project subdirectory:
+ <br>
+
+![ae17](images/ae18.jpg)
+<br><br>
+
+
+## dbt build
+
+Open the cloud IDE, create a new branch, click on "Initialize dbt project" and get the result below. Note: it is important to create a new branch, because if we had chosen to work on the master branch we would get stuck in read-only mode.
+
+ <br>
+
+![ae17](images/ae19.jpg)
+<br><br>
+
+Run this command:
+
+```
+dbt build
+```
+
+Should look like this:
+
+ <br>
+
+![ae17](images/ae20.jpg)
+<br><br>
