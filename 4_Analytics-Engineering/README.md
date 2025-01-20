@@ -332,4 +332,4 @@ You should look this:
 ![ae17](images/ae17.jpg)
 <br><br>
 
-You will get a deploy key, head to your GH repo and go to the settings tab. You'll find the menu deploy keys. Click on add key and paste the deploy key provided by dbt cloud. Make sure to tikce on "write access"
+You will get a deploy key, head to your GH repo and go to the settings tab. You'll find the menu deploy keys. Click on add key and paste the deploy key provided by dbt cloud. Make sure to click on "write access"
