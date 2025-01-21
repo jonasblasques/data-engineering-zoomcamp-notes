@@ -5,7 +5,7 @@
 - [Introduction to analytics engineering](#Introduction-to-analytics-engineering)
 - [Introduction to dbt](#Introduction-to-dbt)
 - [Setting up dbt with bigquery](#setting-up-dbt-with-bigquery)
-- [dbt build](#dbt-build)
+
 
 
 
@@ -194,6 +194,9 @@ During the project you might already have data loaded into GCP buckets. This raw
 
 ## Setting up dbt with bigquery
 
+_[Video source](https://www.youtube.com/watch?v=J0XCDyKiU64)_
+
+
 **1: Create a BigQuery service account**
 
 In order to connect we need the service account JSON file generated from bigquery. Open the [BigQuery credential wizard](https://console.cloud.google.com/apis/credentials/wizard) to create a service account
@@ -343,7 +346,7 @@ Also make sure you informed taxi_rides_ny as the project subdirectory:
 <br><br>
 
 
-## dbt build
+**6: dbt build**
 
 Open the cloud IDE, create a new branch, click on "Initialize dbt project" and get the result below. Note: it is important to create a new branch, because if we had chosen to work on the master branch we would get stuck in read-only mode.
 
