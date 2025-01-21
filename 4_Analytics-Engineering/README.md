@@ -386,6 +386,8 @@ When you run dbt build in dbt Cloud, it does the following:
 
 ## Development of dbt Models
 
+_[Video source](https://www.youtube.com/watch?v=ueVy2N54lyc)_
+
 Let's start now with the development of those DBT models. If we go back to the initial lessons, DBT sits on top of our platform, either BigQuery or Postgres.
 
 We already loaded the raw data as the trips data. Now we're going to work on development, testing, and documentation. We'll start with development and by the end of these lessons, we'll deploy this into production to use those transformations in our BI tools.
