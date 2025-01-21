@@ -345,8 +345,12 @@ Also make sure you informed taxi_rides_ny as the project subdirectory:
 ![ae17](images/ae18.jpg)
 <br><br>
 
+Every dbt project has a certain structure, including folders with specific names and global configurations that define how we work with dbt. To get started, dbt provides a starter project with basic configurations and example models. 
+
+dbt must connect to your repository in  GitHub. Using the CLI, you can run dvt init, which generates the file tree and necessary files. If you're using DVT Cloud, the IDE will guide you through the setup process. Among the folders it creates, you'll find a file called project.yml. This file defines your project's name, connections, storage settings, and global configurations.
 
 **6: dbt build**
+
 
 Open the cloud IDE, create a new branch, click on "Initialize dbt project" and get the result below. Note: it is important to create a new branch, because if we had chosen to work on the master branch we would get stuck in read-only mode.
 
@@ -367,3 +371,13 @@ Should look like this:
 
 ![ae17](images/ae20.jpg)
 <br><br>
+
+When you run dbt build in dbt Cloud, it does the following:
+
+- Builds Models: Executes the SQL transformations defined in your project to create or update tables and views in your target data warehouse.
+
+- Runs Tests: Validates data quality by executing both custom tests (defined in .yml files) and standard tests (like unique or not null constraints).
+
+- Updates Snapshots: Captures historical changes in your source data for versioning and time-based analytics.
+
+- Loads Seeds: Loads any seed files (like .csv files) defined in your project into the target data warehouse.
