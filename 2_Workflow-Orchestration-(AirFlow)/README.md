@@ -669,8 +669,10 @@ You may now access the Airflow GUI by browsing to localhost:8080. It may take a 
 Username: airflow
 Password: airflow 
 ```
+<br>
 
- 
+![airflow8](images/airflow8.jpg)
+<br><br>
 
 
 ## Ingesting data to local Postgres
