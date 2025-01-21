@@ -717,9 +717,8 @@ The directory structure now should look like this:
 │
 │
 ├── database_ny_taxi
-│   └── ny_taxi_postgres_data
-|
-└── docker-compose-lesson1.yaml
+│   ├── ny_taxi_postgres_data
+│   └── docker-compose-lesson1.yaml
 
 ```
 
