@@ -6,7 +6,10 @@
 - [Introduction to dbt](#Introduction-to-dbt)
 - [Setting up dbt with bigquery](#setting-up-dbt-with-bigquery)
 - [Development of dbt Models](#development-of-dbt-models)
-
+    - [Anatomy of a dbt model](#Anatomy-of-a-dbt-model)
+    - [FROM clause of a dbt model](#from-clause-of-a-dbt-model)
+    - [Developing the first model](#developing-the-first-model)
+    - [Macros](#macros)
 
 
 
@@ -533,7 +536,8 @@ Next, we'll define the tables we want to use, such as green_tripdata and yellow_
 
 DBT will create a file under models/staging, named stg_green_tripdata.sql. This file contains a simple SELECT statement that uses the source() function to pull data from the defined source. The source() function references the name and table defined in the YAML file, and DBT automatically maps this to the correct schema and table location.
 
-Make sure the values ​​in the YAML match the values ​​in your BigQuery!
+> [!NOTE]  
+> Make sure the values ​​in the YAML match the values ​​in your BigQuery!
 
  <br>
 
