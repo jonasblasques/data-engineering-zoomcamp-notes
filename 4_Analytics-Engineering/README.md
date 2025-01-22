@@ -499,3 +499,268 @@ Another benefit of using ref() is that it automatically builds dependencies betw
 
 ![ae28](images/ae28.jpg)
 <br><br>
+
+
+### Developing the first model
+
+Under the models directory, we'll create a folder named staging. This will represent the initial layer of models responsible for cleaning the source data. Inside the staging folder, we'll create a schema.yml file for defining the sources.
+
+```yaml
+
+version: 2
+
+sources:
+  - name: staging
+    database: zoomcamp-airflow-444903 
+    schema: zoomcamp
+      
+    tables:
+      - name: green_tripdata
+      - name: yellow_tripdata
+
+models:
+    - name: stg_green_tripdata
+    ...  
+    - name: stg_yellow_tripdata
+    ...
+```      
+
+Full code of schema.yml in models --> staging
+
+
+In this file, we'll define the sources and we'll define the database and schema where the data resides.
+Next, we'll define the tables we want to use, such as green_tripdata and yellow_tripdata. Once defined, these sources can be referenced in our models. For example, we'll start by working with the green_tripdata.
+
+DBT will create a file under models/staging, named stg_green_tripdata.sql. This file contains a simple SELECT statement that uses the source() function to pull data from the defined source. The source() function references the name and table defined in the YAML file, and DBT automatically maps this to the correct schema and table location.
+
+Make sure the values ​​in the YAML match the values ​​in your BigQuery!
+
+ <br>
+
+![ae29](images/ae29.jpg)
+<br><br>
+
+One advantage of using DBT's approach is that it adheres to the DRY (Don't Repeat Yourself) principle. If we change the schema or table name in the YAML file, all dependent models will automatically update without requiring code changes in multiple places.
+
+When we build the project, DBT picks up all the models, tests, and configurations defined within it. It executes them in the correct order, based on dependencies.
+
+stg_green_tripdata.sql looks like this:
+
+```sql
+
+{{
+    config(
+        materialized='view'
+    )
+}}
+
+with tripdata as 
+(
+  select *,
+    row_number() over(partition by vendorid, lpep_pickup_datetime) as rn
+  from {{ source('staging','green_tripdata') }}
+  where vendorid is not null 
+)
+select
+    -- identifiers
+    {{ dbt_utils.generate_surrogate_key(['vendorid', 'lpep_pickup_datetime']) }} as tripid,
+    {{ dbt.safe_cast("vendorid", api.Column.translate_type("integer")) }} as vendorid,
+    {{ dbt.safe_cast("ratecodeid", api.Column.translate_type("integer")) }} as ratecodeid,
+    {{ dbt.safe_cast("pulocationid", api.Column.translate_type("integer")) }} as pickup_locationid,
+    {{ dbt.safe_cast("dolocationid", api.Column.translate_type("integer")) }} as dropoff_locationid,
+    
+    -- timestamps
+    cast(lpep_pickup_datetime as timestamp) as pickup_datetime,
+    cast(lpep_dropoff_datetime as timestamp) as dropoff_datetime,
+    
+    -- trip info
+    store_and_fwd_flag,
+    {{ dbt.safe_cast("passenger_count", api.Column.translate_type("integer")) }} as passenger_count,
+    cast(trip_distance as numeric) as trip_distance,
+    {{ dbt.safe_cast("trip_type", api.Column.translate_type("integer")) }} as trip_type,
+
+    -- payment info
+    cast(fare_amount as numeric) as fare_amount,
+    cast(extra as numeric) as extra,
+    cast(mta_tax as numeric) as mta_tax,
+    cast(tip_amount as numeric) as tip_amount,
+    cast(tolls_amount as numeric) as tolls_amount,
+    cast(ehail_fee as numeric) as ehail_fee,
+    cast(improvement_surcharge as numeric) as improvement_surcharge,
+    cast(total_amount as numeric) as total_amount,
+    coalesce({{ dbt.safe_cast("payment_type", api.Column.translate_type("integer")) }},0) as payment_type,
+    {{ get_payment_type_description("payment_type") }} as payment_type_description
+from tripdata
+where rn = 1
+
+
+-- dbt build --select <model_name> --vars '{'is_test_run': 'false'}'
+{% if var('is_test_run', default=true) %}
+
+  limit 100
+
+{% endif %}
+```
+
+This dbt model defines a SQL query that transforms and materializes data from a source table (green_tripdata) into a view in the database.
+
+**Step by step explanation of the model:**
+
+```sql
+{{
+    config(
+        materialized='view'
+    )
+}}
+```
+
+This sets the model to be materialized as a view. A view is a virtual table created dynamically by running the query each time it is accessed, rather than persisting data as a physical table.
+
+
+```sql
+
+with tripdata as 
+(
+  select *,
+    row_number() over(partition by vendorid, lpep_pickup_datetime) as rn
+  from {{ source('staging','green_tripdata') }}
+  where vendorid is not null 
+)
+
+```
+
+- Data Source: Fetches data from the green_tripdata table in the staging schema using the {{ source() }} function, which references an external table defined in dbt's sources.
+
+- Filtering: Excludes rows where vendorid is NULL.
+
+- Deduplication: Uses the row_number() function to assign a unique row number (rn) within each group of records partitioned by vendorid and lpep_pickup_datetime. This helps to remove duplicates later.
+
+The main SELECT statement transforms the cleaned data (tripdata) into a more structured and enriched dataset:
+
+```sql
+{{ dbt_utils.generate_surrogate_key(['vendorid', 'lpep_pickup_datetime']) }} as tripid,
+{{ dbt.safe_cast("vendorid", api.Column.translate_type("integer")) }} as vendorid,
+
+```
+
+- Generates a unique surrogate key (tripid) by combining vendorid and lpep_pickup_datetime using dbt's generate_surrogate_key utility.
+
+- Safely casts vendorid to an integer using dbt's safe_cast() function.
+
+```sql
+
+cast(lpep_pickup_datetime as timestamp) as pickup_datetime,
+cast(lpep_dropoff_datetime as timestamp) as dropoff_datetime,
+
+```
+
+- Converts datetime fields (lpep_pickup_datetime, lpep_dropoff_datetime) to timestamp format for consistent handling.
+
+```sql
+
+{{ dbt.safe_cast("passenger_count", api.Column.translate_type("integer")) }} as passenger_count,
+cast(trip_distance as numeric) as trip_distance,
+```
+
+- Casts fields like passenger_count and trip_distance to appropriate types (integer and numeric).
+
+```sql
+
+cast(fare_amount as numeric) as fare_amount,
+coalesce({{ dbt.safe_cast("payment_type", api.Column.translate_type("integer")) }},0) as payment_type,
+{{ get_payment_type_description("payment_type") }} as payment_type_description
+
+```
+
+- Handles financial data like fare_amount and tip_amount, casting them to numeric
+
+- Uses coalesce() to ensure payment_type is never NULL, defaulting to 0
+
+- Maps payment_type to a human-readable description using a custom function (get_payment_type_description).
+
+Deduplication:
+
+```sql
+
+from tripdata
+where rn = 1
+
+```
+
+- Ensures only the first record for each vendorid and lpep_pickup_datetime combination is included by filtering for rows where rn = 1.
+
+
+### Macros
+
+You may have noticed that I've been using elements enclosed in double curly brackets, such as {{ source() }} and {{ ref() }}. These are macros, and they allow us to dynamically generate SQL code. In DBT, the content inside double curly brackets is written in a templating language called Jinja. This language is similar to Python in its structure and enables us to define how DBT should compile the code.
+
+Macros in DBT are essentially functions that generate code. Unlike functions in Python, the input and output of a macro result in dynamically generated SQL code. Macros are very useful for simplifying repetitive code, adhering to the DRY (Don't Repeat Yourself) principle, and enabling dynamic code generation. For example, you can use loops within a macro to generate complex SQL constructs like case statements.
+
+Let’s create a macro called get_payment_type_description. It will take a parameter, such as payment_type, and generate a SQL case statement. The syntax for defining macros is similar to Python functions:
+
+- Use macro to define the macro.
+- Provide the macro's name.
+- Specify its parameters.
+- Include the SQL code to be dynamically generated
+
+
+Here’s an example of get_payment_type_description.sql macro:
+
+```sql
+
+{#
+    This macro returns the description of the payment_type 
+#}
+
+{% macro get_payment_type_description(payment_type) -%}
+
+    case {{ dbt.safe_cast("payment_type", api.Column.translate_type("integer")) }}  
+        when 1 then 'Credit card'
+        when 2 then 'Cash'
+        when 3 then 'No charge'
+        when 4 then 'Dispute'
+        when 5 then 'Unknown'
+        when 6 then 'Voided trip'
+        else 'EMPTY'
+    end
+
+{%- endmacro %}
+```
+
+This macro is designed to return the description of a given payment_type in a SQL context. It uses a CASE statement to map integer values of payment_type to their corresponding descriptions. 
+
+- The macro uses dbt.safe_cast to ensure payment_type is safely converted to an integer (or a compatible type). This is useful for ensuring type compatibility in SQL.
+
+- api.Column.translate_type("integer") helps translate the type definition for the database being used.
+
+The macro outputs the resulting SQL CASE statement, which can then be embedded in a query to dynamically resolve the description of the payment type.
+
+Example Usage:
+
+ <br>
+
+![ae30](images/ae30.jpg)
+<br><br>
+
+
+We can observe the macro in the stg_green_tripdata.sql file, line 42:
+
+```sql
+
+{{ get_payment_type_description("payment_type") }} as payment_type_description
+
+```
+
+The output of the macro is included in the query as a new column named payment_type_description. For instance:
+
+ <br>
+
+![ae31](images/ae31.jpg)
+<br><br>
+
+
+When compiled, DBT will replace the macro call with the actual SQL case statement. This approach saves time and effort when dealing with large-scale projects.
+
+Macros can also be reused across projects by creating packages. A DBT package is similar to a library in other programming languages. It can contain models, macros, and other reusable components. By adding a package to your project, you can leverage its functionality anywhere in your codebase.
+
+For example, if you find yourself frequently using a macro like get_payment_type_description across multiple projects, you can bundle it into a package and include it in your DBT projects using the packages.yml file.
