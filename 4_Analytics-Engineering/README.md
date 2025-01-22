@@ -10,7 +10,7 @@
     - [FROM clause of a dbt model](#from-clause-of-a-dbt-model)
     - [Developing the first model](#developing-the-first-model)
     - [Macros](#macros)
-
+    - [Packages](#packages)
 
 
 
@@ -768,3 +768,86 @@ When compiled, DBT will replace the macro call with the actual SQL case statemen
 Macros can also be reused across projects by creating packages. A DBT package is similar to a library in other programming languages. It can contain models, macros, and other reusable components. By adding a package to your project, you can leverage its functionality anywhere in your codebase.
 
 For example, if you find yourself frequently using a macro like get_payment_type_description across multiple projects, you can bundle it into a package and include it in your DBT projects using the packages.yml file.
+
+
+### Packages
+
+To start using DBT packages, you need to create a packages.yml file in your project. In this file, you define the packages you want to use. For example, you can include the GitHub or Git URL of a package. Fortunately, there are many pre-built packages available in the DBT Package Hub.
+
+To use a package, you simply define it in your packages.yml. For example, you could import a package like this:
+
+
+```yml
+
+packages:
+  - package: dbt-labs/dbt_utils
+    version: 1.1.1
+  - package: dbt-labs/codegen
+    version: 0.12.1
+```
+
+Once imported, you can use the macros from that package by calling them with a prefix. For instance, if you're using the dbt_utils package, you can call a macro like this:
+
+```sql
+
+{{ dbt_utils.surrogate_key(['field1', 'field2']) }}
+
+```
+
+Packages save you a lot of time by providing pre-built macros, tests, and utilities. They also allow for the reuse of common logic across projects. If your organization frequently uses specific macros (e.g., a macro for handling payment types), you can bundle them into an internal package and share it with other teams.
+
+After defining the packages in packages.yml, you need to run the following command to install them:
+
+```
+
+dbt deps
+
+```
+
+This will download and install the packages into your project. You can find the installed packages and their macros under the dbt_packages directory.
+
+Let’s use the generate_surrogate_key macro from the dbt_utils package. This macro creates a hashed surrogate key based on the specified fields. For example in the stg_green_tripdata.sql file:
+
+```sql
+
+select
+    -- identifiers
+    {{ dbt_utils.generate_surrogate_key(['vendorid', 'lpep_pickup_datetime']) }} as tripid,
+
+from tripdata
+```
+
+This macro generates a hash of the vendor_id and pickup_datetime fields to create a unique identifier for each row. A good practice is to include this surrogate key at the beginning of your table, as it helps define the granularity of the data.
+
+You can compile this code to see how it looks. The macro is applying an MD5 hash to the specified fields. If you're using a different database platform, the resulting code will adapt accordingly. For instance, the syntax might differ slightly in Postgres compared to BigQuery, but DBT's macros and adapters handle this automatically, abstracting the complexity for you.
+
+Once compiled, you can view the resulting SQL code under the target/compiled folder in your project:
+
+ <br>
+
+![ae31](images/ae35.jpg)
+<br><br>
+
+This folder contains the exact SQL generated for your database, which is useful for debugging or understanding how the macros work.
+
+After running the model (dbt build), the process should complete successfully, creating a view. You can check the view details to confirm the output, including the trip_id and other data fields. You can also examine the compiled SQL in the target/compiled folder for additional troubleshooting.
+
+Head over to BigQuery and check the views that dbt generated:
+
+ <br>
+
+![ae31](images/ae32.jpg)
+<br><br>
+
+ <br>
+
+![ae31](images/ae33.jpg)
+<br><br>
+
+ <br>
+
+![ae31](images/ae34.jpg)
+<br><br>
+
+
+
