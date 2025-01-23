@@ -15,6 +15,8 @@
     - [Developing the second model](#developing-the-second-model)
 - [Dimensional Models](#dimensional-models)    
     - [Dim zones](#dim-zones)
+    - [Fact trips](#fact-trips)
+
 - [Building the model](#building-the-model)
 
 
@@ -958,6 +960,104 @@ The dim_zones model will use data from taxi_zone_lookup. It will define fields l
 
 After making these adjustments, we’ll save the model, and the dim_zones table will be ready for use.
 
+ <br>
+
+![ae31](images/ae42.jpg)
+<br><br>
+
+
+### Fact trips
+
+With dim_zones, we are ready to create the next step: a fact table for trips (fact_trips). We will combine the green and yellow trip data, encase it with dimensional data, and materialize it as a table. Materializing it as a table ensures better performance for analytics since this table will be large due to unions and joins.
+
+fact_trips.sql model goal is to:
+
+- Combine both green and yellow trip data.
+- Add a field to identify whether a record is from the green or yellow dataset for easier analysis.
+- Join this data with the dim_zones model to enrich it with pickup and drop-off zone details.
+
+
+fact_trips.sql looks like:
+
+```sql
+
+{{
+    config(
+        materialized='table'
+    )
+}}
+
+with green_tripdata as (
+    select *, 
+        'Green' as service_type
+    from {{ ref('stg_green_tripdata') }}
+), 
+yellow_tripdata as (
+    select *, 
+        'Yellow' as service_type
+    from {{ ref('stg_yellow_tripdata') }}
+), 
+trips_unioned as (
+    select * from green_tripdata
+    union all 
+    select * from yellow_tripdata
+), 
+dim_zones as (
+    select * from {{ ref('dim_zones') }}
+    where borough != 'Unknown'
+)
+select trips_unioned.tripid, 
+    trips_unioned.vendorid, 
+    trips_unioned.service_type,
+    trips_unioned.ratecodeid, 
+    trips_unioned.pickup_locationid, 
+    pickup_zone.borough as pickup_borough, 
+    pickup_zone.zone as pickup_zone, 
+    trips_unioned.dropoff_locationid,
+    dropoff_zone.borough as dropoff_borough, 
+    dropoff_zone.zone as dropoff_zone,  
+    trips_unioned.pickup_datetime, 
+    trips_unioned.dropoff_datetime, 
+    trips_unioned.store_and_fwd_flag, 
+    trips_unioned.passenger_count, 
+    trips_unioned.trip_distance, 
+    trips_unioned.trip_type, 
+    trips_unioned.fare_amount, 
+    trips_unioned.extra, 
+    trips_unioned.mta_tax, 
+    trips_unioned.tip_amount, 
+    trips_unioned.tolls_amount, 
+    trips_unioned.ehail_fee, 
+    trips_unioned.improvement_surcharge, 
+    trips_unioned.total_amount, 
+    trips_unioned.payment_type, 
+    trips_unioned.payment_type_description
+from trips_unioned
+inner join dim_zones as pickup_zone
+on trips_unioned.pickup_locationid = pickup_zone.locationid
+inner join dim_zones as dropoff_zone
+on trips_unioned.dropoff_locationid = dropoff_zone.locationid
+```
+
+- Select all fields from both the green and yellow trip data using ref() for references and add a service_type column to distinguish the datasets.
+
+- Union the data to create a combined dataset (trips_union).
+
+- Join trips_union with dim_zones for both pickup and drop-off zones to associate zone names and other details. Only valid zones will be included (e.g., exclude unknown zones).
+
+When we run the model with the full production dataset, the resulting table will contain millions of rows, representing a comprehensive and enriched fact table. This table is now ready for use in analysis or as a source for BI tools.
+
+With all of this, the fact_trips table is complete, and we can proceed to testing and further analysis.
+
+So far, our project looks like this:
+
+ <br>
+
+![ae31](images/ae43.jpg)
+<br><br>
+
+We can check the lineage to see how the modular data modeling looks. Now, we can observe that fact_trips depends on all the required models. One of the great features of dbt is that it identifies all these connections. This means we can run fact_trips, but first, dbt will execute all its parent models. dbt will test the sources for freshness or other requirements, run any missing or outdated models, and only then build fact_trips.
+
 ## Building the model
 
 **1: schema.yml values**
@@ -1037,5 +1137,12 @@ Dim_zones:
  <br>
 
 ![ae31](images/ae41.jpg)
+<br><br>
+
+Fact_trips:
+
+ <br>
+
+![ae31](images/ae44.jpg)
 <br><br>
 
