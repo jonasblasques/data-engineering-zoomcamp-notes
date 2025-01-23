@@ -13,6 +13,8 @@
     - [Packages](#packages)
     - [Variables](#variables)
     - [Developing the second model](#developing-the-second-model)
+- [Dimensional Models](#dimensional-models)    
+    - [Dim zones](#dim-zones)
 - [Building the model](#building-the-model)
 
 
@@ -919,6 +921,42 @@ where rn = 1
 {% endif %}
 ```
 
+## Dimensional Models
+
+So far, our project looks like this: we have our two sources and a set of models. Now, we need to create our fact and dimensional tables
+
+ <br>
+
+![ae40](images/ae40.jpg)
+<br><br>
+
+### Dim zones
+
+The goal for dim_zones is to act as a master data table containing all the zone information where the taxis operate. These taxis move within specific zones, and we want to ensure we have accurate information about them.
+
+Since we don’t have source data for this, we’ll use the seeds mentioned earlier. For this, we'll leverage the taxi_zone_lookup file. It’s unlikely that this data will change frequently.
+
+We’ll copy this data, save it as a CSV file, and include it in our project under the seeds folder. The file is named taxi_zone_lookup.csv, and it can be downloaded directly from GitHub if needed. Once saved, the seed file will have a distinct icon in the project, and we can preview the data.
+
+The seed contains fields like location_id, which is also present in both the green and yellow trip data. This will allow us to connect the data with the taxi_zone_lookup table for additional context. The dim_zones model is under the core folder.
+
+dim_zones.dql looks like this:
+
+```sql
+
+{{ config(materialized='table') }}
+
+select 
+    locationid, 
+    borough, 
+    zone, 
+    replace(service_zone,'Boro','Green') as service_zone 
+from {{ ref('taxi_zone_lookup') }}
+```
+
+The dim_zones model will use data from taxi_zone_lookup. It will define fields like location, borough, and service_zone. Additionally, we’ll address an issue where all entries labeled as "Borough" were actually "Green Zones," which only green taxis operate in. We'll clean up the data by renaming those values for easier analytics.
+
+After making these adjustments, we’ll save the model, and the dim_zones table will be ready for use.
 
 ## Building the model
 
@@ -994,5 +1032,10 @@ Head over to BigQuery and check the views that dbt generated:
 ![ae31](images/ae34.jpg)
 <br><br>
 
+Dim_zones:
 
+ <br>
+
+![ae31](images/ae41.jpg)
+<br><br>
 
