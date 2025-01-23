@@ -495,7 +495,7 @@ Another benefit of using ref() is that it automatically builds dependencies betw
 
 ### Developing the first model
 
-Under the models directory, we'll create a folder named staging. This will represent the initial layer of models responsible for cleaning the source data. Inside the staging folder, we'll create a schema.yml file for defining the sources.
+Under the models directory, there is a folder named staging. This will represent the initial layer of models responsible for cleaning the source data. Inside the staging folder, there is a schema.yml file for defining the sources:
 
 ```yaml
 
@@ -517,21 +517,16 @@ models:
     ...
 ```      
 
-Full code of schema.yml in models --> staging
+> [!NOTE]  
+> Make sure the values ​​in the YAML match the values ​​in your BigQuery!
+
+Full code: [`schema.yml`](taxi_rides_ny/models/staging/schema.yml)
 
 
 In this file, we'll define the sources and we'll define the database and schema where the data resides.
 Next, we'll define the tables we want to use, such as green_tripdata and yellow_tripdata. Once defined, these sources can be referenced in our models. For example, we'll start by working with the green_tripdata.
 
 DBT will create a file under models/staging, named stg_green_tripdata.sql. This file contains a simple SELECT statement that uses the source() function to pull data from the defined source. The source() function references the name and table defined in the YAML file, and DBT automatically maps this to the correct schema and table location.
-
-> [!NOTE]  
-> Make sure the values ​​in the YAML match the values ​​in your BigQuery!
-
- <br>
-
-![ae29](images/ae29.jpg)
-<br><br>
 
 One advantage of using DBT's approach is that it adheres to the DRY (Don't Repeat Yourself) principle. If we change the schema or table name in the YAML file, all dependent models will automatically update without requiring code changes in multiple places.
 
@@ -874,7 +869,7 @@ When you run dbt build in dbt Cloud, it does the following:
 
 - Loads Seeds: Loads any seed files (like .csv files) defined in your project into the target data warehouse.
 
-**3: check BigQuery**
+**3: Check BigQuery**
 
 Head over to BigQuery and check the views that dbt generated:
 
