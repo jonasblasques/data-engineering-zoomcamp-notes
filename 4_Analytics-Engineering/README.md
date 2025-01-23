@@ -1057,6 +1057,10 @@ So far, our project looks like this:
 
 We can check the lineage to see how the modular data modeling looks. Now, we can observe that fact_trips depends on all the required models. One of the great features of dbt is that it identifies all these connections. This means we can run fact_trips, but first, dbt will execute all its parent models. dbt will test the sources for freshness or other requirements, run any missing or outdated models, and only then build fact_trips.
 
+In production, with no row limits or testing tricks, the final table will handle significantly more data than the test runs. Previously, the limit was 197 rows, but in production, the full table processes 62.7 million rows. This creates the complete fact_trips table, which is now ready for validation.
+
+The final step is to test these models to ensure that all rows and calculations—totaling 62.7 million—are correct before delivering the results.
+
 ## Building the model
 
 **1: schema.yml values**
