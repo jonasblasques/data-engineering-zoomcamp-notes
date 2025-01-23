@@ -839,6 +839,13 @@ sources:
       - name: yellow_tripdata #table name
 ```
 
+Values check:
+
+ <br>
+
+![ae22](images/ae29.jpg)
+<br><br>
+
 **2: dbt build**
 
 In the dbt cloud console, run:
