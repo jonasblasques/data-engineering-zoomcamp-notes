@@ -11,7 +11,7 @@
     - [Developing the first model](#developing-the-first-model)
     - [Macros](#macros)
     - [Packages](#packages)
-    - [Building the model](#building-the-model)
+- [Building the model](#building-the-model)
 
 
 
@@ -819,7 +819,7 @@ Once compiled, you can view the resulting SQL code under the target/compiled fol
 
 This folder contains the exact SQL generated for your database, which is useful for debugging or understanding how the macros work.
 
-### Building the model
+## Building the model
 
 **1: schema.yml values**
 
