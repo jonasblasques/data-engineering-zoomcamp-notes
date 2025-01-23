@@ -12,6 +12,7 @@
     - [Macros](#macros)
     - [Packages](#packages)
     - [Variables](#variables)
+    - [Developing the second model](#developing-the-second-model)
 - [Building the model](#building-the-model)
 
 
@@ -856,6 +857,67 @@ dbt run --vars '{"is_test_run": false}'
 When this command is executed, the code no longer adds the LIMIT 100. This is a useful technique for development, as it allows you to test with smaller datasets (faster and cheaper queries) while ensuring full production data is used during deployment by setting is_test_run to False.
 
 This method, often referred to as a "dev limit," is highly recommended for optimizing development workflows. By default, you’ll have faster and cheaper queries during development, but the limit can easily be removed when working with the full production data.
+
+
+### Developing the second model
+
+The next task is to create the staging file for yellow_trip_data. This is very similar to the previous file, so we won't go into detail about its structure. The code is almost identical, using the same macro.
+
+There are a few differences: the staging file typically includes a straightforward CTE and doesn't use the same variables as before. However, the core SQL logic remains largely the same.
+
+stg_yellow_tripdata.sql looks like this:
+
+```sql
+
+{{ config(materialized='view') }}
+ 
+with tripdata as 
+(
+  select *,
+    row_number() over(partition by vendorid, tpep_pickup_datetime) as rn
+  from {{ source('staging','yellow_tripdata') }}
+  where vendorid is not null 
+)
+select
+   -- identifiers
+    {{ dbt_utils.generate_surrogate_key(['vendorid', 'tpep_pickup_datetime']) }} as tripid,    
+    {{ dbt.safe_cast("vendorid", api.Column.translate_type("integer")) }} as vendorid,
+    {{ dbt.safe_cast("ratecodeid", api.Column.translate_type("integer")) }} as ratecodeid,
+    {{ dbt.safe_cast("pulocationid", api.Column.translate_type("integer")) }} as pickup_locationid,
+    {{ dbt.safe_cast("dolocationid", api.Column.translate_type("integer")) }} as dropoff_locationid,
+
+    -- timestamps
+    cast(tpep_pickup_datetime as timestamp) as pickup_datetime,
+    cast(tpep_dropoff_datetime as timestamp) as dropoff_datetime,
+    
+    -- trip info
+    store_and_fwd_flag,
+    {{ dbt.safe_cast("passenger_count", api.Column.translate_type("integer")) }} as passenger_count,
+    cast(trip_distance as numeric) as trip_distance,
+    -- yellow cabs are always street-hail
+    1 as trip_type,
+    
+    -- payment info
+    cast(fare_amount as numeric) as fare_amount,
+    cast(extra as numeric) as extra,
+    cast(mta_tax as numeric) as mta_tax,
+    cast(tip_amount as numeric) as tip_amount,
+    cast(tolls_amount as numeric) as tolls_amount,
+    cast(0 as numeric) as ehail_fee,
+    cast(improvement_surcharge as numeric) as improvement_surcharge,
+    cast(total_amount as numeric) as total_amount,
+    coalesce({{ dbt.safe_cast("payment_type", api.Column.translate_type("integer")) }},0) as payment_type,
+    {{ get_payment_type_description('payment_type') }} as payment_type_description
+from tripdata
+where rn = 1
+
+-- dbt build --select <model.sql> --vars '{'is_test_run: false}'
+{% if var('is_test_run', default=true) %}
+
+  limit 100
+
+{% endif %}
+```
 
 
 ## Building the model
