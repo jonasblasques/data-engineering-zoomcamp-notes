@@ -11,6 +11,7 @@
     - [Developing the first model](#developing-the-first-model)
     - [Macros](#macros)
     - [Packages](#packages)
+    - [Variables](#variables)
 - [Building the model](#building-the-model)
 
 
@@ -815,6 +816,47 @@ Once compiled, you can view the resulting SQL code under the target/compiled fol
 <br><br>
 
 This folder contains the exact SQL generated for your database, which is useful for debugging or understanding how the macros work.
+
+### Variables
+
+Now, let’s learn about variables. The concept of variables in DBT is similar to variables in any programming language. A variable acts like a container where you store a value that you want to use later, and you can access it whenever needed.
+
+In DBT, variables can be defined at the project level within the dbt_project.yml file, allowing you to use them across various models or macros. For example, you might define a variable payment_type_values as a list of numbers:
+
+```yaml
+
+vars:
+  payment_type_values: [1, 2, 3, 4, 5, 6]
+```  
+
+This list could be used in different scenarios, such as building a CASE statement by looping through the list. Running a test to check if the actual values in the table are part of the list or dynamically setting a variable's value within a macro using the var marker.
+
+Additionally, you can pass a value for a variable during execution. This allows you to customize behavior dynamically at runtime. To access a variable, use the var() marker.
+
+Here’s an example in stg_green_tripdata:
+
+```sql
+
+{% if var('is_test_run', default=true) %}
+
+  limit 100
+
+{% endif %}
+```
+
+
+A conditional execution checks if a variable is_test_run is True. If it’s True, it adds LIMIT 100 to the query. If it’s False, the query proceeds without the limit. The code also defines a default value for is_test_run, which is True. This means that unless specified otherwise, LIMIT 100 will always be added by default.
+
+To test this, you can run the code as it is and confirm that the LIMIT 100 is applied. If you don’t want the limit, you can override the variable during execution by passing a dictionary of variables. For example:
+
+```
+dbt run --vars '{"is_test_run": false}'
+```
+
+When this command is executed, the code no longer adds the LIMIT 100. This is a useful technique for development, as it allows you to test with smaller datasets (faster and cheaper queries) while ensuring full production data is used during deployment by setting is_test_run to False.
+
+This method, often referred to as a "dev limit," is highly recommended for optimizing development workflows. By default, you’ll have faster and cheaper queries during development, but the limit can easily be removed when working with the full production data.
+
 
 ## Building the model
 
