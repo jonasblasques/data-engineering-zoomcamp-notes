@@ -266,28 +266,9 @@ git clone https://github.com/DataTalksClub/data-engineering-zoomcamp.git
 
 Then copy the taxi_rides_ny folder in your own 04-analytics-engineering folder
 
-**4: schema.yml values**
+ 
 
-Lets modify project id, dataset name and tables with our own values
-
-Open VS Code, go to taxi_rides_ny --> models --> staging --> schema.yml and edit:
-
-
-```yaml
-
-sources:
-  - name: staging
-    database: zoomcamp-airflow-444903 # project id
-    schema: zoomcamp # dataset name
-     
-    tables:
-      - name: green_tripdata #table name
-      - name: yellow_tripdata #table name
-        
-```         
-
-
-**5: Create a dbt cloud project**
+**4: Create a dbt cloud project**
 
 Create a dbt cloud account from [their website](https://www.getdbt.com/pricing/) (free for solo developers)
 Once you have logged in into dbt cloud you will be prompt to create a new project.
@@ -377,7 +358,7 @@ On the left sidebar, click on dashboard --> settings --> Edit
 
 
 
-**6: Create new branch**
+**5: Create new branch**
 
 On the left sidebar, click on Develop --> Cloud IDE
 
