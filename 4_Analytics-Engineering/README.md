@@ -11,6 +11,7 @@
     - [Developing the first model](#developing-the-first-model)
     - [Macros](#macros)
     - [Packages](#packages)
+    - [Building the model](#building-the-model)
 
 
 
@@ -320,71 +321,78 @@ Back on your project setup, select BigQuery:
 
 Click on save
 
+Test the connection and click on save the Development credentials, not necessary to change those values:
+
+ <br>
+
+![ae14](images/ae36.jpg)
+<br><br>
+
+
 Now its time to setup a repository:
  <br>
 
 ![ae15](images/ae15.jpg)
 <br><br>
 
-Select git clone and paste the SSH key from your repo.
+Select git clone and paste the SSH key from your repo:
 
 ![ae16](images/ae16.jpg)
 <br><br>
 
 Click on import --> Click on next
 
-You should look this:
+You will get a deploy key:
+
+ <br>
+
+![ae17](images/ae37.jpg)
+<br><br>
+
+Head to your GH repo and go to the settings tab. You'll find the menu deploy keys. Click on add key and paste the deploy key provided by dbt cloud. Make sure to click on "write access":
+
+ <br>
+
+![ae17](images/ae38.jpg)
+<br><br>
+
+Back on dbt cloud, click on next, you should look this:
+
 
  <br>
 
 ![ae17](images/ae17.jpg)
 <br><br>
 
-You will get a deploy key, head to your GH repo and go to the settings tab. You'll find the menu deploy keys. Click on add key and paste the deploy key provided by dbt cloud. Make sure to click on "write access"
 
 
 Also make sure you informed taxi_rides_ny as the project subdirectory:
+
+On the left sidebar, click on dashboard --> settings --> Edit
+
  <br>
 
 ![ae17](images/ae18.jpg)
 <br><br>
 
-Every dbt project has a certain structure, including folders with specific names and global configurations that define how we work with dbt. To get started, dbt provides a starter project with basic configurations and example models. 
-
-dbt must connect to your repository in  GitHub. Using the CLI, you can run dvt init, which generates the file tree and necessary files. If you're using DVT Cloud, the IDE will guide you through the setup process. Among the folders it creates, you'll find a file called project.yml. This file defines your project's name, connections, storage settings, and global configurations.
-
-**6: dbt build**
 
 
-Open the cloud IDE, create a new branch, click on "Initialize dbt project" and get the result below. Note: it is important to create a new branch, because if we had chosen to work on the master branch we would get stuck in read-only mode.
+**6: Create new branch**
 
- <br>
+On the left sidebar, click on Develop --> Cloud IDE
 
-![ae17](images/ae19.jpg)
-<br><br>
 
-Run this command:
-
-```
-dbt build
-```
-
-Should look like this:
+Create a new branch:
 
  <br>
 
-![ae17](images/ae20.jpg)
+![ae39](images/ae39.jpg)
 <br><br>
 
-When you run dbt build in dbt Cloud, it does the following:
+I will use "dbt" branch. After creating the new branch, you can go to your repo on github and see the new branch created.
 
-- Builds Models: Executes the SQL transformations defined in your project to create or update tables and views in your target data warehouse.
+Note: it is important to create a new branch, because if we had chosen to work on the master branch we would get stuck in read-only mode.
 
-- Runs Tests: Validates data quality by executing both custom tests (defined in .yml files) and standard tests (like unique or not null constraints).
-
-- Updates Snapshots: Captures historical changes in your source data for versioning and time-based analytics.
-
-- Loads Seeds: Loads any seed files (like .csv files) defined in your project into the target data warehouse.
 
 
 ## Development of dbt Models
@@ -830,7 +838,55 @@ Once compiled, you can view the resulting SQL code under the target/compiled fol
 
 This folder contains the exact SQL generated for your database, which is useful for debugging or understanding how the macros work.
 
+### Building the model
+
+**1: schema.yml values**
+
+Open VS Code, go to taxi_rides_ny --> models --> staging --> schema.yml
+
+Make sure that project id, dataset name and tables matches your project id, dataset and tables name in BigQuery!
+
+```yaml
+
+sources:
+  - name: staging
+    database: zoomcamp-airflow-444903 # project id
+    schema: zoomcamp # dataset name
+     
+    tables:
+      - name: green_tripdata #table name
+      - name: yellow_tripdata #table name
+```
+
+**2: dbt build**
+
+In the dbt cloud console, run:
+
+```
+dbt build
+```
+
+You should look something like this:
+ <br>
+
+![ae31](images/ae20.jpg)
+<br><br>
+
+ <br>
+
 After running the model (dbt build), the process should complete successfully, creating a view. You can check the view details to confirm the output, including the trip_id and other data fields. You can also examine the compiled SQL in the target/compiled folder for additional troubleshooting.
+
+When you run dbt build in dbt Cloud, it does the following:
+
+- Builds Models: Executes the SQL transformations defined in your project to create or update tables and views in your target data warehouse.
+
+- Runs Tests: Validates data quality by executing both custom tests (defined in .yml files) and standard tests (like unique or not null constraints).
+
+- Updates Snapshots: Captures historical changes in your source data for versioning and time-based analytics.
+
+- Loads Seeds: Loads any seed files (like .csv files) defined in your project into the target data warehouse.
+
+**3: check BigQuery**
 
 Head over to BigQuery and check the views that dbt generated:
 
