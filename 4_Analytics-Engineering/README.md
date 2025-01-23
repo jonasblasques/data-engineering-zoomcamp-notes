@@ -16,7 +16,6 @@
 - [Dimensional Models](#dimensional-models)    
     - [Dim zones](#dim-zones)
     - [Fact trips](#fact-trips)
-
 - [Building the model](#building-the-model)
 
 
