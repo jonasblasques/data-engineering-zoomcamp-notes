@@ -495,6 +495,8 @@ Another benefit of using ref() is that it automatically builds dependencies betw
 
 ### Developing the first model
 
+**schema.yml**
+
 Under the models directory, there is a folder named staging. This will represent the initial layer of models responsible for cleaning the source data. Inside the staging folder, there is a schema.yml file for defining the sources:
 
 ```yaml
@@ -526,11 +528,11 @@ Full code: [`schema.yml`](taxi_rides_ny/models/staging/schema.yml)
 In this file, we'll define the sources and we'll define the database and schema where the data resides.
 Next, we'll define the tables we want to use, such as green_tripdata and yellow_tripdata. Once defined, these sources can be referenced in our models. For example, we'll start by working with the green_tripdata.
 
-DBT will create a file under models/staging, named stg_green_tripdata.sql. This file contains a simple SELECT statement that uses the source() function to pull data from the defined source. The source() function references the name and table defined in the YAML file, and DBT automatically maps this to the correct schema and table location.
-
 One advantage of using DBT's approach is that it adheres to the DRY (Don't Repeat Yourself) principle. If we change the schema or table name in the YAML file, all dependent models will automatically update without requiring code changes in multiple places.
 
-When we build the project, DBT picks up all the models, tests, and configurations defined within it. It executes them in the correct order, based on dependencies.
+**model: stg_green_tripdata.sql**
+
+Inside the staging folder, there is a stg_green_tripdata.sql file. This dbt model defines a SQL query that transforms and materializes data from a source table (green_tripdata) into a view in the database.
 
 stg_green_tripdata.sql looks like this:
 
@@ -590,7 +592,7 @@ where rn = 1
 {% endif %}
 ```
 
-This dbt model defines a SQL query that transforms and materializes data from a source table (green_tripdata) into a view in the database.
+
 
 **Step by step explanation of the model:**
 
