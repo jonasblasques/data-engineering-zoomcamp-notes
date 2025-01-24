@@ -17,6 +17,7 @@
     - [Dim zones](#dim-zones)
     - [Fact trips](#fact-trips)
 - [Building the model](#building-the-model)
+- [Testing](#testing)
 
 
 
@@ -1172,3 +1173,73 @@ Fact_trips:
 ![ae31](images/ae44.jpg)
 <br><br>
 
+
+## Testing
+
+_[Video source](https://www.youtube.com/watch?v=2dNJXHFCHaY)_
+
+We have many models now, but how do we ensure that the data we deliver to the end user is correct? More importantly, how do we make sure that we don't build models on top of incorrect data? We need to identify errors quickly. For this reason, we can use DBT tests.
+
+DBT tests are assumptions we make about our data. They're essentially statements that select data we don’t want to have. If the query produces results, the test fails and stops execution immediately, preventing the building of dependent models. For example, when building a project, if the query returns no results, the test passes, the data is good, and no alerts are triggered.
+
+These assumptions are primarily defined in YAML files like our schema.yml and are compiled into SQL code. DBT comes with four out-of-the-box tests:
+
+- Unique Test - Ensures the uniqueness of a field in the data model.
+- Not Null Test - Verifies that a field does not contain null values.
+- Accepted Values Test - Checks if a field contains only predefined valid values.
+- Foreign Key Test - Ensures relationships between fields in different tables are valid.
+
+For example, the "Accepted Values" test might ensure that a field like payment_type only contains values 1, 2, 3, 4, or 5. If it’s outside this range, the test will fail:
+
+```yaml
+
+          - name: payment_type
+            description: A numeric code signifying how the passenger paid for the trip.
+            tests:
+              - accepted_values:
+                  values: [1,2,3,4,5]
+                  severity: warn
+
+```            
+
+
+Another test ensures that pickup_location has a valid relationship to the ref_taxi_lookup table, verifying it corresponds to a valid taxi zone:
+
+```yaml
+
+          - name: Pickup_locationid
+            description: locationid where the meter was engaged.
+            tests:
+              - relationships:
+                  to: ref('taxi_zone_lookup')
+                  field: locationid
+                  severity: warn
+```                  
+
+Similarly, trip_id must be unique and not null, as it’s the primary key:
+
+```yaml
+
+          - name: tripid
+            description: Primary key for this table, generated with a concatenation of vendorid+pickup_datetime
+            tests:
+                - unique:
+                    severity: warn
+                - not_null:
+                    severity: warn
+```                    
+
+When these tests are compiled, they generate SQL code like this:
+
+ <br>
+
+![ae45](images/ae45.jpg)
+<br><br>
+
+
+If there are no results, the data is valid. Otherwise, it will produce warnings, helping us identify and fix issues in our data quickly:
+
+ <br>
+
+![ae46](images/ae46.jpg)
+<br><br>
