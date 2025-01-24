@@ -1,4 +1,4 @@
-# Data Engineering Zoomcamp
+# Data Engineering Zoomcamp 2025
 
 This repo contains files and notes for the [Data Engineering Zoomcamp](https://github.com/DataTalksClub/data-engineering-zoomcamp) by [Datatalks.Club](https://datatalks.club/)
 
@@ -40,22 +40,23 @@ For the course you'll need:
 
 ### [Module 3: Data Warehouse](3_Data-Warehouse/)
 
+* OLAP vs OLTP
 * Data Warehouse
 * BigQuery
+* Creating an external table
 * Partitioning and clustering
 * BigQuery best practices
-* Internals of BigQuery
 
 ### [Module 4: Analytics Engineering](4_Analytics-Engineering/)
 
-* Basics of analytics engineering
-* dbt (data build tool)
-* BigQuery and dbt
-* Postgres and dbt
-* dbt models
+* Introduction to analytics engineering
+* Introduction to dbt
+* Setting up dbt with bigquery
+* Development of dbt Models
+* Building the model
 * Testing and documenting
-* Deployment to the cloud and locally
-* Visualizing the data with google data studio and metabase
+* Deployment 
+* Visualizing the data 
 
 ## Extra:
 
@@ -68,5 +69,4 @@ For the course you'll need:
 * Setting up Airflow with Docker
 * Ingesting data to local Postgres with Airflow
 * Ingesting data to GCP with Airflow
-* Airflow 2025
 * Airflow with kubernetes
