@@ -1055,11 +1055,13 @@ So far, our project looks like this:
 ![ae31](images/ae43.jpg)
 <br><br>
 
-We can check the lineage to see how the modular data modeling looks. Now, we can observe that fact_trips depends on all the required models. One of the great features of dbt is that it identifies all these connections. This means we can run fact_trips, but first, dbt will execute all its parent models. dbt will test the sources for freshness or other requirements, run any missing or outdated models, and only then build fact_trips.
+We can check the lineage to see how the modular data modeling looks. Now, we can observe that fact_trips depends
+on all the required models. One of the great features of dbt is that it identifies all these connections. This
+means we can run fact_trips, but first, dbt will execute all its parent models. dbt will test the sources for 
+freshness or other requirements, run any missing or outdated models, and only then build fact_trips.
 
-In production, with no row limits or testing tricks, the final table will handle significantly more data than the test runs. Previously, the limit was 197 rows, but in production, the full table processes 62.7 million rows. This creates the complete fact_trips table, which is now ready for validation.
-
-The final step is to test these models to ensure that all rows and calculations—totaling 62.7 million—are correct before delivering the results.
+The final step is to test these models to ensure that all rows and calculations—totaling 62.7 million—are correct 
+before delivering the results.
 
 ## Building the model
 
@@ -1115,6 +1117,27 @@ When you run dbt build in dbt Cloud, it does the following:
 - Updates Snapshots: Captures historical changes in your source data for versioning and time-based analytics.
 
 - Loads Seeds: Loads any seed files (like .csv files) defined in your project into the target data warehouse.
+
+
+By default, only 100 rows are processed in the query for testing purposes. This is controlled by the is_test_run variable, which defaults to true in stg_green_tripdata.sql and stg_yellow_tripdata models:
+
+```python
+
+{% if var('is_test_run', default=true) %}
+
+  limit 100
+
+{% endif %}
+```
+
+
+To run the query without this limit and process the full dataset in production, you need to explicitly set the variable to false by using the following command:
+
+```
+dbt build --select +fact_trips.sql+ --vars '{is_test_run: false}'
+```
+
+This ensures that the model processes the entire dataset
 
 **3: Check BigQuery**
 
