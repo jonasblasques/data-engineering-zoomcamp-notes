@@ -18,6 +18,7 @@
     - [Fact trips](#fact-trips)
 - [Building the model](#building-the-model)
 - [Testing](#testing)
+- [Documentation](#documentation)
 
 
 
@@ -1243,3 +1244,28 @@ If there are no results, the data is valid. Otherwise, it will produce warnings,
 
 ![ae46](images/ae46.jpg)
 <br><br>
+
+
+## Documentation
+
+_[Video source](https://www.youtube.com/watch?v=2dNJXHFCHaY)_
+
+dbt also provides a way to generate documentation for your dbt project and render it as a website. The dbt generated docs will include the following:
+
+- Information about the project:
+  - Model code (both from the .sql files and compiled code)
+  - Model dependencies
+  - Sources
+  - Auto generated DAGs from the ref() and source() macros
+  - Descriptions from the .yml files and tests
+
+- Information about the Data Warehouse (information_schema):
+  - Column names and data types
+  - Table stats like size and rows
+
+dbt docs can be generated on the cloud or locally with this command:
+
+```
+dbt docs generate
+```
+
