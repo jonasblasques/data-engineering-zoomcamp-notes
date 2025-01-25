@@ -960,7 +960,7 @@ from {{ ref('taxi_zone_lookup') }}
 
 The dim_zones model will use data from taxi_zone_lookup. It will define fields like location, borough, and service_zone. Additionally, we’ll address an issue where all entries labeled as "Borough" were actually "Green Zones," which only green taxis operate in. We'll clean up the data by renaming those values for easier analytics.
 
-After making these adjustments, we’ll save the model, and the dim_zones table will be ready for use.
+So far, our project looks like this:
 
  <br>
 
