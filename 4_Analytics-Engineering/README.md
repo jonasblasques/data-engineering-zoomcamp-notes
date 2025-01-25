@@ -20,6 +20,9 @@
 - [Building the model](#building-the-model)
 - [Testing](#testing)
 - [Documentation](#documentation)
+- [Deployment](#deployment)
+
+
 
 
 
@@ -1338,3 +1341,133 @@ dbt docs can be generated on the cloud or locally with this command:
 dbt docs generate
 ```
 
+## Deployment
+
+_[Video source](https://www.youtube.com/watch?v=V2m5C0n8Gro)_
+
+We now have our whole project, so it's time to take it into production, analyze the data, and serve it to our 
+stakeholders. If we recall what we learned about dbt at the very beginning, we introduced layers to our 
+development. We’ve already seen how to handle development, testing, and documentation, all happening in our 
+development environment.
+
+Now, to take it into production, we go through a process called deployment. This involves taking all our code, 
+opening a pull request, and merging the code into the main branch, which affects our production environment. 
+In production, we’ll run the models, but there will be some differences.
+
+For example, during development, we often limit the data. In production, we need all the data without limits. 
+Additionally, in a real-life production scenario, not everyone will have the same access rights. Not everyone 
+will be able to write or read all the data. This is likely handled in a different database or schema with 
+specific access controls.
+
+The deployment workflow works as follows:
+
+- Development is done in custom branches. Each team member works in their own development branch.
+
+- Meanwhile, production continues using the main branch, unaffected by the development branches.
+
+- When a development branch is ready for production, a pull request is opened.
+
+- Once approved, the code is merged into the main branch.
+
+- Run the new models in the production environment using the main branch.
+
+- Schedule the models updating on a nightly, daily or hourly basis to keep the data up to date.
+
+### Running a dbt project in production
+
+We are now going to discuss how to run projects in production. First, under the environment settings, we create
+ a new deployment environment called "production." This environment is labeled as a deployment and categorized 
+ under "prod." Once saved, we're ready to create our first job.
+
+We’ll create a deployment job that runs, for example, nightly. This is where the data transitions to the 
+production environment. By default, it includes a dbt build step, but this can be customized. Within the 
+deployment process, we can create dbt jobs that run multiple commands. A single job can execute multiple steps,
+ such as *dbt build*, *dbt test*, *dbt seed*, or *dbt source freshness*. These runs can be triggered manually, on a 
+ scheduled basis (e.g., using a cron schedule), or via an API.
+
+During execution, these jobs generate metadata that can be used for monitoring and alerting the data platform. 
+In a real-world scenario, this is crucial for ensuring reliability and visibility. For instance, we can perform
+ a complete dbt build, generate documentation for production, and ensure that documentation is accessible to 
+ everyone on the team. We can also run dbt source freshness to validate source data.
+
+The scheduled runs can be set up to occur daily at a specific time, excluding weekends if no data is received on
+ Saturdays or Sundays. Advanced settings include options like timeout configurations and the number of models 
+ to run in parallel. Once saved, jobs can also be triggered on an ad hoc basis.
+
+For API-based triggering, tools like Airflow, Prefect, or Mage can integrate seamlessly with dbt runs. For 
+example, a pipeline could load fresh data into BigQuery and then trigger a dbt run to process it.
+
+After a job is triggered, we can monitor its status. For example, we can view the commit hash associated with 
+the run to see exactly what changes were made in the repository. We can also track the duration of the job and 
+the steps it performed. These include cloning the repository, establishing a connection to the data platform 
+(e.g., BigQuery), installing packages with dbt deps, running source freshness checks, and executing the dbt 
+build.
+
+At the end of the process, the system generates documentation and artifacts such as catalog.json and other 
+metadata files. These files can be analyzed or hosted for further use. The documentation can be made accessible
+ under the settings by defining which job is used to generate it. Once configured, the documentation is readily 
+ available in production, which is invaluable for team collaboration and exposing data sources.
+
+This workflow ensures that all documentation, data sources, and metadata from production runs are centralized,
+ making it easier to share insights and maintain consistency across the team.
+
+### Continuous Integration
+
+
+Another important feature we can implement is creating a continuous integration (CI) job. When working with 
+pull requests, it's essential to ensure automation and quality through CI/CD practices.
+
+What is CI/CD?
+
+- CI (Continuous Integration): Regularly merging code changes into the main branch while automating builds and
+ tests to avoid breaking production.
+
+- CD (Continuous Deployment): Automating the deployment process after the changes pass tests.
+
+The goal is to ensure code is integrated and deployed smoothly without affecting production or development
+ environments. dbt Cloud makes it simple to implement this process.
+
+Setting Up CI in dbt Cloud
+
+1. Create a CI Job:
+
+- This job is triggered by pull requests and helps prevent breaking production.
+- For example, dbt Cloud creates a schema named dbt_cloud_PR_<PR_name> for the pull request. This schema is 
+automatically dropped when the pull request is closed, ensuring that production and development environments 
+remain unaffected.
+
+2. Default and Custom Commands:
+
+- By default, it runs commands on modified models and their dependencies.
+- Additional steps can be included, such as dbt test, which can enforce documentation or other requirements for
+ models.
+
+3. Advanced Settings:
+
+- Define the number of threads, timeouts, or other configurations to optimize the job's performance.
+
+Example Workflow
+
+- Open a pull request for a code change (e.g., fixing a "drop-off location" field mistakenly labeled as "pick-up
+ location").
+
+- Commit the fix and link it to the pull request.
+
+- dbt Cloud, already connected to the repository, automatically detects the changes and triggers the CI job.
+
+- The job compares the changes to the nightly production run, identifies affected models (e.g., fact_trips), 
+and executes tasks only for these models and their children.
+
+- Once the job completes successfully, the pull request can be merged, building trust in the process and ensuring
+ data accuracy.
+
+Benefits of CI Jobs in dbt Cloud:
+
+- Automates tests and builds, reducing manual effort and errors.
+- Prevents breaking production by isolating changes in a temporary schema.
+- Builds confidence in the integration and deployment process.
+- Streamlines collaboration within the team by ensuring consistent workflows.
+
+In this case, the process detected the modified fact_trips model and its children, ran the required tasks, and
+ displayed a successful check. The fix was verified and ready for deployment, illustrating how CI jobs make the 
+ workflow efficient and reliable.
