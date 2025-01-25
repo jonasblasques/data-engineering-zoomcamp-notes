@@ -8,14 +8,15 @@
 - [Development of dbt Models](#development-of-dbt-models)
     - [Anatomy of a dbt model](#Anatomy-of-a-dbt-model)
     - [FROM clause of a dbt model](#from-clause-of-a-dbt-model)
-    - [Developing the first model](#developing-the-first-model)
+    - [Developing the first staging model](#developing-the-first-staging-model)
     - [Macros](#macros)
     - [Packages](#packages)
     - [Variables](#variables)
-    - [Developing the second model](#developing-the-second-model)
-- [Dimensional Models](#dimensional-models)    
+    - [Developing the second staging model](#developing-the-second-staging-model)
+- [Core Models](#core-models)    
     - [Dim zones](#dim-zones)
     - [Fact trips](#fact-trips)
+    - [Monthly zone revenue](#monthly-zone-revenue)
 - [Building the model](#building-the-model)
 - [Testing](#testing)
 - [Documentation](#documentation)
@@ -500,7 +501,7 @@ Another benefit of using ref() is that it automatically builds dependencies betw
 <br><br>
 
 
-### Developing the first model
+### Developing the first staging model
 
 **schema.yml**
 
@@ -864,7 +865,7 @@ When this command is executed, the code no longer adds the LIMIT 100. This is a 
 This method, often referred to as a "dev limit," is highly recommended for optimizing development workflows. By default, you’ll have faster and cheaper queries during development, but the limit can easily be removed when working with the full production data.
 
 
-### Developing the second model
+### Developing the second staging model
 
 The next task is to create the staging file for yellow_trip_data. This is very similar to the previous file, so we won't go into detail about its structure. The code is almost identical, using the same macro.
 
@@ -924,7 +925,7 @@ where rn = 1
 {% endif %}
 ```
 
-## Dimensional Models
+## Core Models
 
 So far, our project looks like this: we have our two sources and a set of models. Now, we need to create our fact and dimensional tables
 
@@ -1065,6 +1066,67 @@ freshness or other requirements, run any missing or outdated models, and only th
 The final step is to test these models to ensure that all rows and calculations—totaling 62.7 million—are correct 
 before delivering the results.
 
+### Monthly zone revenue
+
+This is a dbt model that creates a table summarizing revenue-related metrics for trips data as a table selecting data from our previous dbt model called fact_trips.
+
+This model creates a table with monthly revenue metrics per pickup zone and service type, including various fare components, trip counts, and averages.
+
+It enables analysis of revenue trends, passenger patterns, and trip details across zones and services, giving a clear breakdown of monthly performance.
+
+dm_monthly_zone_revenue.sql looks like:
+
+```sql
+
+{{ config(materialized='table') }}
+
+with trips_data as (
+    select * from {{ ref('fact_trips') }}
+)
+    select 
+    -- Reveneue grouping 
+    pickup_zone as revenue_zone,
+    {{ dbt.date_trunc("month", "pickup_datetime") }} as revenue_month, 
+
+    service_type, 
+
+    -- Revenue calculation 
+    sum(fare_amount) as revenue_monthly_fare,
+    sum(extra) as revenue_monthly_extra,
+    sum(mta_tax) as revenue_monthly_mta_tax,
+    sum(tip_amount) as revenue_monthly_tip_amount,
+    sum(tolls_amount) as revenue_monthly_tolls_amount,
+    sum(ehail_fee) as revenue_monthly_ehail_fee,
+    sum(improvement_surcharge) as revenue_monthly_improvement_surcharge,
+    sum(total_amount) as revenue_monthly_total_amount,
+
+    -- Additional calculations
+    count(tripid) as total_monthly_trips,
+    avg(passenger_count) as avg_monthly_passenger_count,
+    avg(trip_distance) as avg_monthly_trip_distance
+
+    from trips_data
+    group by 1,2,3
+```    
+
+The main query groups the data by:
+
+- Pickup zone (pickup_zone) → Labeled as revenue_zone.
+- Month of the pickup date (pickup_datetime) → Labeled as revenue_month 
+- Service type (service_type) → Such as economy, premium, etc.
+
+For each group, the query calculates revenue-related metrics like revenue_monthly_fare (Sum of fare_amount), revenue_monthly_extra (Sum of additional fees), etc and other metrics like total_monthly_trips (Count of trips), avg_monthly_passenger_count (Average number of passengers per trip) and avg_monthly_trip_distance (Average distance per trip).
+
+Finally, The GROUP BY 1, 2, 3 clause organizes the results by the specified dimensions (pickup zone, revenue month, and service type). Each calculation is applied within these groups. 1 refers to pickup_zone, 2 refers to the truncated month of pickup_datetime, 3 refers to service_type.
+
+So far, our project looks like this:
+
+ <br>
+
+![ae31](images/ae47.jpg)
+<br><br>
+
+
 ## Building the model
 
 **1: schema.yml values**
@@ -1172,6 +1234,13 @@ Fact_trips:
  <br>
 
 ![ae31](images/ae44.jpg)
+<br><br>
+
+dm_monthly_zone_revenue:
+
+ <br>
+
+![ae31](images/ae48.jpg)
 <br><br>
 
 
