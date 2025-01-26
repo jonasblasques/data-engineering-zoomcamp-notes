@@ -1624,7 +1624,7 @@ Our bar chart will now display trips per month but we still want to discriminate
 8. Type in the formula YEAR(pickup_datetime).
 9. Click on Save and Done.
 10. Add the pickup_year field as a breakdown dimension for the bar chart.
-11. Change the Sort dimension to pickup_month 
+11. Change the Sort dimension to pickup_month and make it ascending.
 
 <br>
 
