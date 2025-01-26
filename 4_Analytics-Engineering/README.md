@@ -1474,6 +1474,8 @@ In this case, the process detected the modified fact_trips model and its childre
 
 ## Visualising the transformed data 
 
+_[Video source](https://www.youtube.com/watch?v=39nLTs74A3E)_
+
 Now that we created our models and transformed our data, we are now going to visualize this data.
 
 ### 1: Process the full dataset
