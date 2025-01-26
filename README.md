@@ -60,7 +60,7 @@ For the course you'll need:
 
 ## Extra:
 
-### [Module 2: Workflow Orchestration (Airflow)](2_Workflow-Orchestration-(AirFlow)/)
+### [Module 2: Workflow Orchestration (Airflow)](2_Workflow-Orchestration-AirFlow/)
 
 * Data Lake vs Data Warehouse
 * ETL vs ELT
