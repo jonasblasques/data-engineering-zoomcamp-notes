@@ -11,8 +11,7 @@
     - [Setting up Airflow 2.10.4 with Docker](#setting-up-airflow-2104-with-docker)
     - [Ingesting data to local Postgres](#ingesting-data-to-local-postgres)
     - [Ingesting data to local Postgres optimized](#ingesting-data-to-local-postgres-optimized)    
-    - [Ingesting data to GCP single file](#ingesting-data-to-gcp-single-file)
-    - [Ingesting data to GCP multiple files](#ingesting-data-to-gcp-multiple-files)
+    - [Ingesting data to GCP](#ingesting-data-to-gcp)
 - [Airflow and Kubernetes](#airflow-and-kubernetes)    
     - [Setting up Airflow with Kubernetes](#setting-up-airflow-with-kubernetes)
     - [Ingesting data to GCP with kubernetes](#ingesting-data-to-gcp-with-kubernetes)
@@ -1069,17 +1068,40 @@ Full code in airflow/dags/data_ingestion_local2.py
 The COPY command directly streams data into the database with minimal overhead, making it faster and more memory-efficient. SQLAlchemy, while flexible and powerful for general database management, isn’t designed to match the performance of PostgreSQL's COPY command for bulk inserts.
 
 
-## Ingesting data to GCP single file
 
-We will now run a slightly more complex DAG that will download the NYC taxi trip data, convert it to parquet, 
-upload it to a GCP bucket and create a external table in BigQuery.
 
-First we are going to create a single external table in big query and in the next section we are going to insert 
-all the monthly tables and merge them into a final consolidated table.
+## Ingesting data to GCP
 
-![airflowgcp2](images/airflowgcp2.jpg)
+You can find all datasets in https://github.com/DataTalksClub/nyc-tlc-data/releases/
 
-**1: Create connection with GCP:**
+### Introduction
+
+We will now run a slightly more complex DAG that will:
+
+- Download and unzip one file for each month
+- Convert into parquet
+- Upload it to GCS (bucket)
+- Create the final table with a given schema in BigQuery
+- Create a external table referencing the raw data in GCS in BigQuery
+- Create a temporary native table in BigQuery for a given month by reading from the external table created earlier. Also adds two columns a unique unique_row_id for each record by hashing certain fields, and stores the file name for reference.
+- Update the final table with data from the temporary table
+
+<br>
+![airflowgcp10](images/airflowgcp10.jpg)
+<br><br>
+
+
+**Tables explanation**
+
+- External Table: Serves as the initial point of access to the raw data. The data in this table is not physically stored in BigQuery. There is a External table for each month
+
+- Temporary table: This is a native table created in BigQuery using the data from the external table. Copies the entire dataset from the associated external table into this table, while enriching it with the additional columns unique_row_id and filename. There is a native table for each month.
+
+- Final table: After processing the data and ensuring there are no duplicates or inconsistencies, the final data is merged into this table. It represents the cleaned, transformed, and de-duplicated dataset including data from all months.
+
+
+
+### 1: Create connection with GCP:
 
 To create a connection with Google Cloud Platform (GCP) from the Airflow UI go to the top menu and click on Admin, From the dropdown, select Connections. This will take you to the page where you can manage your Airflow connections.
 
@@ -1091,267 +1113,12 @@ Complete Connection id, Connection type, your project id and Keyfile Path (with 
 
 
 
-**2: Prepare a DAG** 
 
-data_ingestion_gcp.py look like this:
+### 2: Prepare the DAG
 
-```python
+As an example, we will download and process the green files from January 2019 to December 2019.
 
-import os
-import logging
-from datetime import datetime
-
-from airflow import DAG
-from airflow.operators.python import PythonOperator
-
-from google.cloud import storage
-from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator
-from airflow.providers.google.cloud.hooks.gcs import GCSHook
-import pyarrow.csv
-import pyarrow.parquet 
-import requests
-import gzip
-import shutil
-
-# Make sure the values ​​match your terraform main.tf file
-PROJECT_ID="zoomcamp-airflow-444903"
-BUCKET="zoomcamp_datalake"
-BIGQUERY_DATASET = "airflow2025"
-
-path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
-
-
-# Utility functions
-def download_and_unzip(csv_name_gz, csv_name, url):
-
-    # Download the CSV.GZ file
-    response = requests.get(url)
-    if response.status_code == 200:
-        with open(csv_name_gz, 'wb') as f_out:
-            f_out.write(response.content)
-    else:
-        print(f"Error downloading file: {response.status_code}")
-        return False
-
-    # Unzip the CSV file
-    with gzip.open(csv_name_gz, 'rb') as f_in:
-        with open(csv_name, 'wb') as f_out:
-            shutil.copyfileobj(f_in, f_out)
-    
-    return True
-
-
-def format_to_parquet(src_file):
-    if not src_file.endswith('.csv'):
-        logging.error("Can only accept source files in CSV format, for the moment")
-        return
-    table = pyarrow.csv.read_csv(src_file)
-    pyarrow.parquet.write_table(table, src_file.replace('.csv', '.parquet'))
-
-
-def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="gcp-airflow"):
-    hook = GCSHook(gcp_conn_id)
-    hook.upload(
-        bucket_name=bucket,
-        object_name=object_name,
-        filename=local_file
-    )
-
-
-# Defining the DAG
-dag = DAG(
-    "GCP_ingestion_single_file",
-    schedule_interval="0 6 2 * *",
-    start_date=datetime(2021, 1, 1),
-    end_date=datetime(2021, 1, 5),
-    catchup=True, 
-    max_active_runs=1,
-)
-
-table_name_template = 'yellow_taxi_{{ execution_date.strftime(\'%Y_%m\') }}'
-csv_name_gz_template = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv.gz'
-csv_name_template = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv'
-
-parquet_file = csv_name_template.replace('.csv', '.parquet')
-
-url_template = "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.csv.gz"
-
-# Task 1
-download_task = PythonOperator(
-    task_id="download_and_unzip",
-    python_callable=download_and_unzip,
-    op_kwargs={
-        'csv_name_gz': csv_name_gz_template,
-        'csv_name': csv_name_template,
-        'url': url_template
-    },
-    dag=dag
-)
-
-# Task 2
-process_task = PythonOperator(
-    task_id="format_to_parquet_task",
-    python_callable=format_to_parquet,
-    op_kwargs={
-        "src_file": f"{path_to_local_home}/{csv_name_template}"
-    },
-    dag=dag
-)
-
-# Task 3
-local_to_gcs_task = PythonOperator(
-    task_id="local_to_gcs_task",
-    python_callable=upload_to_gcs,
-    op_kwargs={
-        "bucket": BUCKET,
-        "object_name": f"raw/{parquet_file}",
-        "local_file": f"{path_to_local_home}/{parquet_file}",
-        "gcp_conn_id": "gcp-airflow"
-    },
-    dag=dag
-)
-
-# Task 4
-bigquery_external_table_task = BigQueryCreateExternalTableOperator(
-        task_id="bigquery_external_table_task",
-        table_resource={
-            "tableReference": {
-                "projectId": PROJECT_ID,
-                "datasetId": BIGQUERY_DATASET,
-                "tableId": table_name_template,
-            },
-            "externalDataConfiguration": {
-                "sourceFormat": "PARQUET",
-                "sourceUris": [f"gs://{BUCKET}/raw/{parquet_file}"],
-            },
-        },
-        gcp_conn_id="gcp-airflow",
-        dag=dag
-    )
-
-
-download_task >> process_task >> local_to_gcs_task >> bigquery_external_table_task
-```
-
-This line of code is to use the connection created in the previous step:
-
-```python
-
-gcp_conn_id="gcp-airflow"
-
-```
-
-**Let's explain step by step what this code does:**
-
-Google Cloud modules:
-
-- storage to interact with Google Cloud Storage.
-- BigQueryCreateExternalTableOperator to create an external table in BigQuery.
-- GCSHook for uploading files to Google Cloud Storage.
-
-Data processing modules:
-
-- pyarrow.csv and pyarrow.parquet for converting CSV to Parquet format.
-- requests for downloading files from a URL.
-- gzip and shutil for decompressing .gz files.
-
-Configuration Variables:
-
-- PROJECT_ID: The Google Cloud project ID.
-- BUCKET: The Google Cloud Storage bucket name.
-- BIGQUERY_DATASET: The BigQuery dataset name.
-- path_to_local_home: Local directory path for Airflow tasks.
-
-Utility Functions:
-
-- download_and_unzip: Downloads a .csv.gz file from a URL. Decompresses the file into a .csv format.
-
-- format_to_parquet: Converts a CSV file to a Parquet file using PyArrow.
-
-- upload_to_gcs: Uploads a local file to a specified GCS bucket. Uses the Airflow GCSHook for the connection.
-
-
-Dynamic Variables:
-
-- Table Name Template: This creates a template for the BigQuery table name. For example "yellow_taxi_2025_01"
-- csv_name_gz_template: This template generates the file name for the compressed .csv.gz file. For example "output_2025_01.csv.gz"
-- csv_name_template: This template generates the file name for the decompressed .csv file. For example "output_2025_01.csv"
-- parquet_file: This replaces the .csv extension in csv_name_template with .parquet. For example "output_2025_01.parquet"
-- url_template: This template generates the download URL for the .csv.gz file. The {{ execution_date.strftime('%Y-%m') }} dynamically inserts the YYYY-MM format of the execution date into the URL.
-
-Task Definitions:
-
-download_task: Uses download_and_unzip function. Downloads and decompresses a .csv.gz file for a specific month. The file is determined dynamically using Airflow's execution_date.
-
-- process_task: Uses format_to_parquet function. Converts the downloaded CSV file to Parquet format. The input file path is dynamically generated.
-
-- local_to_gcs_task: Uses upload_to_gcs function with the specified arguments. A connection is established to GCS using the Google Cloud Storage library. The local Parquet file is uploaded to the specified bucket and folder (raw/)
-
-- bigquery_external_table_task: Uses BigQueryCreateExternalTableOperator, a predefined operator from Airflow's Google Cloud BigQuery provider. It simplifies the process of creating external tables. This task creates an external table in Google BigQuery in the specified project and dataset, pointing to the Parquet file stored in GCS. Table name is dynamically generated based on the execution date. The URI is gs://{BUCKET}/raw/{parquet_file}, where BUCKET is the name of the GCS bucket and parquet_file is the file name generated in previous steps. 
-
-
-**3: Unpause the DAG**
-
-Open the Airflow dashboard and unpause the "GCP_ingestion_single_file" DAG from data_ingestion_gcp.py.
-
-After executing all tasks, should look like this::
-
-
-![airflownew2](images/airflownew2.jpg)
-<br><br>
-
-**4: Check table in BigQuery** 
-
-Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see a new external table inside your "airflow2025" dataset:
-
-![airflownew3](images/airflownew3.jpg)
-<br><br>
-
-Now you can query the table:
-
-![airflownew4](images/airflownew4.jpg)
-<br><br>
-
-You can also see the uploaded parquet file by searching the Cloud Storage service, selecting your bucket and then clickin on the raw/ folder. You may click on the filename to access an info panel:
-
-![airflowgcp6](images/airflowgcp6.jpg)
-<br><br>
-
-You may now shutdown Airflow by running docker-compose down on the terminal where you run it.
-
-## Ingesting data to GCP multiple files
-
-Previously, we loaded a single table into GCP. Now we are going to load an entire year, for example all 2022 data for the green taxi. We will need the following tasks:
-
-- download_task: This task downloads a parquet file for a given month from a URL (using the requests library) based on the execution date. It uses the download utility function to retrieve the file. 
-
-- local_to_gcs_task: This task uploads the downloaded file from the local machine to Google Cloud Storage (GCS).
-The upload_to_gcs utility function is used to upload the file to the specified bucket and path (raw/{file_template}).
-
-- create_final_table_task: This task creates a final BigQuery table (green_2022) if it doesn't already exist.
-The table schema includes various fields related to the green taxi trip data (e.g., VendorID, pickup/dropoff datetime, fare amount, etc.). This task uses the BigQueryInsertJobOperator to execute a SQL query in BigQuery.The query creates the table green_2022 in the dataset specified (airflow2025), if it doesn't already exist.The table is created using a CREATE TABLE IF NOT EXISTS statement to ensure it is only created once.
-
-- create_external_table_task: This task creates an external BigQuery table for a given month from the parquet file in GCS. The external table references the raw data in GCS, using parquet file and specifies the format as PARQUET. This task uses the BigQueryInsertJobOperator to run another SQL query
-
-- create_temp_table_task: This task creates a temporary native table in BigQuery for a given month by reading from the external table created earlier. It generates a unique unique_row_id for each record by hashing certain fields, and stores the file name for reference.
-
-- merge_to_final_table_task: This task performs a merge operation to update the final table (green_2022) with data from the temporary table. It inserts records into the final table where there is no match (based on the unique_row_id), ensuring that only new or updated data is added. This task uses the BigQueryInsertJobOperator to perform a MERGE SQL operation.
-
-![airflowgcp10](images/airflowgcp10.jpg)
-<br><br>
-
-**Tables explanation**
-
-- External Table: Serves as the initial point of access to the raw data. The data in this table is not physically stored in BigQuery. There is a External table for each month
-
-- Temporary table: This is a native table created in BigQuery using the data from the external table. Copies the entire dataset from the associated external table into this table, while enriching it with the additional columns unique_row_id and filename. There is a native table for each month.
-
-- Final table: After processing the data and ensuring there are no duplicates or inconsistencies, the final data is merged into this table. It represents the cleaned, transformed, and de-duplicated dataset including data from all months.
-
-
-**1: Prepare the DAG**
-
-data_ingestion_gcp2.py looks like this:
+data_ingestion_gcp.py looks like this:
 
 ```python
 
@@ -1363,29 +1130,58 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
 from airflow.providers.google.cloud.hooks.gcs import GCSHook
 import requests
+import gzip
+import shutil
+import pyarrow
+import pyarrow.csv
+import pyarrow.parquet 
 
 
-# This DAG is for homework of module 3
-# Ingest data for green 2022 taxi 
 
-# Make sure the values ​​match your terraform main.tf file
+# Make sure the values ​​match your gcp values
 PROJECT_ID="zoomcamp-airflow-444903"
 BUCKET="zoomcamp_datalake"
-BIGQUERY_DATASET = "airflow2025"
+BIGQUERY_DATASET = "airflow2025b"
 path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
 
 
 # Utility functions
-def download(file, url):
+def download(file_gz, file_csv, url):
 
-    # Download  file
+    # Download the CSV.GZ file
     response = requests.get(url)
     if response.status_code == 200:
-        with open(file, 'wb') as f_out:
+        with open(file_gz, 'wb') as f_out:
             f_out.write(response.content)
     else:
         print(f"Error downloading file: {response.status_code}")
+        print(url)
         return False
+    
+    print(url)
+    print(f"Guardando .gz en: {file_gz}")
+
+    # Unzip the CSV file
+    with gzip.open(file_gz, 'rb') as f_in:
+        with open(file_csv, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    
+    print(f"Guardando .csv en: {file_csv}")
+
+def format_to_parquet(src_file):
+
+    table = pyarrow.csv.read_csv(src_file)
+
+    # change ehail_fee to float64
+    if 'ehail_fee' in table.column_names:
+        # Convertir la columna 'ehail_fee' a float (FLOAT64)
+        table = table.set_column(
+            table.schema.get_field_index('ehail_fee'),
+            'ehail_fee',
+            pyarrow.array(table['ehail_fee'].to_pandas().astype('float64'))  
+        )
+
+    pyarrow.parquet.write_table(table, src_file.replace('.csv', '.parquet'))
 
 
 
@@ -1400,48 +1196,63 @@ def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="gcp-airflow"):
 
 # Defining the DAG
 dag = DAG(
-    "GCP_ingestion_multiple_files",
+    "GCP_ingestion_v10",
     schedule_interval="0 6 2 * *",
-    start_date=datetime(2022, 1, 1),
-    end_date=datetime(2022, 12, 5),
+    start_date=datetime(2019, 1, 1),
+    end_date=datetime(2019, 12, 5),
     catchup=True, 
     max_active_runs=1,
 )
 
 table_name_template = 'green_taxi_{{ execution_date.strftime(\'%Y_%m\') }}'
-file_template = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.parquet'
-consolidated_table_name = "green_2022"
-url_template = "https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.parquet"
+file_template_csv_gz = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv.gz'
+file_template_csv = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv'
+file_template_parquet = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.parquet'
+consolidated_table_name = "green_2019"
+url_template = "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/green/green_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.csv.gz"
 
-# Task 1: Download file
+
+# Task 1: Download and unzip file
 download_task = PythonOperator(
     task_id="download",
     python_callable=download,
     op_kwargs={
-        'file': file_template,
+        'file_gz': file_template_csv_gz,
+        'file_csv': file_template_csv,
+        'file_parquet': file_template_parquet,
         'url': url_template
+    },
+    retries=10,
+    dag=dag
+)
+
+# Task 2: Format to parquet
+process_task = PythonOperator(
+    task_id="format_to_parquet",
+    python_callable=format_to_parquet,
+    op_kwargs={
+        "src_file": f"{path_to_local_home}/{file_template_csv}"
     },
     dag=dag
 )
 
 
-
-# Task 2: Upload file to google storage
+# Task 3: Upload file to google storage
 local_to_gcs_task = PythonOperator(
-    task_id="local_to_gcs_task",
+    task_id="upload_to_gcs",
     python_callable=upload_to_gcs,
     op_kwargs={
         "bucket": BUCKET,
-        "object_name": f"raw/{file_template}",
-        "local_file": f"{path_to_local_home}/{file_template}",
+        "object_name": f"raw/{file_template_parquet}",
+        "local_file": f"{path_to_local_home}/{file_template_parquet}",
         "gcp_conn_id": "gcp-airflow"
     },
     dag=dag
 )
 
-# Task 3: Create final table
+# Task 4: Create final table
 create_final_table_task = BigQueryInsertJobOperator(
-    task_id="create_final_table_task",
+    task_id="create_final_table",
     gcp_conn_id="gcp-airflow",
     configuration={
         "query": {
@@ -1454,21 +1265,21 @@ create_final_table_task = BigQueryInsertJobOperator(
                     lpep_pickup_datetime TIMESTAMP,
                     lpep_dropoff_datetime TIMESTAMP,
                     store_and_fwd_flag STRING,
-                    RatecodeID FLOAT64,
+                    RatecodeID INT64,
                     PULocationID INT64,
                     DOLocationID INT64,
-                    passenger_count FLOAT64,
+                    passenger_count INT64,
                     trip_distance FLOAT64,
                     fare_amount FLOAT64,
                     extra FLOAT64,
                     mta_tax FLOAT64,
                     tip_amount FLOAT64,
                     tolls_amount FLOAT64,
-                    ehail_fee INT64,
+                    ehail_fee FLOAT64,
                     improvement_surcharge FLOAT64,
                     total_amount FLOAT64,
-                    payment_type FLOAT64,
-                    trip_type FLOAT64,
+                    payment_type INT64,
+                    trip_type INT64,
                     congestion_surcharge FLOAT64
                 )    
             """,
@@ -1478,9 +1289,9 @@ create_final_table_task = BigQueryInsertJobOperator(
     dag=dag,
 )
 
-# Task 4: Create external monthly table
+# Task 5: Create external monthly table
 create_external_table_task = BigQueryInsertJobOperator(
-    task_id="create_external_table_task",
+    task_id="create_external_table",
     gcp_conn_id="gcp-airflow",
     configuration={
         "query": {
@@ -1491,25 +1302,25 @@ create_external_table_task = BigQueryInsertJobOperator(
                     lpep_pickup_datetime TIMESTAMP,
                     lpep_dropoff_datetime TIMESTAMP,
                     store_and_fwd_flag STRING,
-                    RatecodeID FLOAT64,
+                    RatecodeID INT64,
                     PULocationID INT64,
                     DOLocationID INT64,
-                    passenger_count FLOAT64,
+                    passenger_count INT64,
                     trip_distance FLOAT64,
                     fare_amount FLOAT64,
                     extra FLOAT64,
                     mta_tax FLOAT64,
                     tip_amount FLOAT64,
                     tolls_amount FLOAT64,
-                    ehail_fee INT64,
+                    ehail_fee FLOAT64,
                     improvement_surcharge FLOAT64,
                     total_amount FLOAT64,
-                    payment_type FLOAT64,
-                    trip_type FLOAT64,
+                    payment_type INT64,
+                    trip_type INT64,
                     congestion_surcharge FLOAT64
                 )
                 OPTIONS (
-                    uris = ['gs://{BUCKET}/raw/{file_template}'],
+                    uris = ['gs://{BUCKET}/raw/{file_template_parquet}'],
                     format = 'PARQUET'
                 );
             """,
@@ -1519,9 +1330,9 @@ create_external_table_task = BigQueryInsertJobOperator(
     dag=dag
 )
 
-# Task 5: Create native monthly table
+# Task 6: Create native monthly table
 create_temp_table_task = BigQueryInsertJobOperator(
-    task_id="create_temp_table_task",
+    task_id="create_temp_table",
     gcp_conn_id="gcp-airflow",
     configuration={
         "query": {
@@ -1536,7 +1347,7 @@ create_temp_table_task = BigQueryInsertJobOperator(
                         COALESCE(CAST(PULocationID AS STRING), ""),
                         COALESCE(CAST(DOLocationID AS STRING), "")
                     )) AS unique_row_id,
-                    "{file_template}" AS filename,
+                    "{file_template_parquet}" AS filename,
                     *
                 FROM `{PROJECT_ID}.{BIGQUERY_DATASET}.{table_name_template}_ext`;
             """,
@@ -1547,9 +1358,9 @@ create_temp_table_task = BigQueryInsertJobOperator(
 )
 
 
-# Task 6: Merge
+# Task 7: Merge
 merge_to_final_table_task = BigQueryInsertJobOperator(
-    task_id="merge_to_final_table_task",
+    task_id="merge_to_final_table",
     gcp_conn_id="gcp-airflow",
     configuration={
         "query": {
@@ -1568,11 +1379,65 @@ merge_to_final_table_task = BigQueryInsertJobOperator(
 )
 
 
-download_task >> local_to_gcs_task >> create_final_table_task >> create_external_table_task >> create_temp_table_task >> merge_to_final_table_task
+download_task >> process_task >> local_to_gcs_task >> create_final_table_task >> create_external_table_task >> create_temp_table_task >> merge_to_final_table_task
 
 ```
 
-**2: Unpause the DAG**
+**Let's explain step by step what this code does:**
+
+Modules:
+
+- BigQueryInsertJobOperator: Executes SQL queries in Google BigQuery as tasks.
+- GCSHook:  A helper class to interact with Google Cloud Storage (GCS). Uploads Parquet files to GCS.
+- requests: Makes HTTP requests to external APIs or URLs.
+- gzip: Handles reading and decompressing .gz files.
+- pyarrow: Converts the CSV file into a Parquet file. Modifies the schema to handle specific data types (e.g., ehail_fee as float64).
+
+
+Configuration Variables:
+
+- PROJECT_ID: The Google Cloud project ID.
+- BUCKET: The Google Cloud Storage bucket name.
+- BIGQUERY_DATASET: The BigQuery dataset name.
+- path_to_local_home: Local directory path for Airflow tasks.
+
+Utility Functions:
+
+- download: Downloads a .csv.gz file from a URL. Decompresses the file into a .csv format.
+
+- format_to_parquet: Converts a CSV file to a Parquet file using PyArrow. It also ensures that specific columns (like ehail_fee) have consistent data types.
+
+- upload_to_gcs: Uploads a local file to a specified GCS bucket. Uses the Airflow GCSHook for the connection.
+
+
+Dynamic Variables:
+
+- Table Name Template: This creates a template for the BigQuery table name. For example "yellow_taxi_2025_01"
+- file_template_csv_gz: This template generates the file name for the compressed .csv.gz file. For example "output_2019_01.csv.gz"
+- file_template_csv: This template generates the file name for the decompressed .csv file. For example "output_2019_01.csv"
+- file_template_parquet: This template generates the file name for the .parquet file. For example "output_2019_01.parquet"
+- url_template: This template generates the download URL for the .csv.gz file. The {{ execution_date.strftime('%Y-%m') }} dynamically inserts the YYYY-MM format of the execution date into the URL.
+
+Task Definitions:
+
+- download_task: Uses the download function to download and unzip the .csv.gz file for the specified month.
+
+- process_task: Converts the downloaded .csv file into Parquet format.
+
+- local_to_gcs_task: This task uploads the downloaded file from the local machine to Google Cloud Storage (GCS).
+The upload_to_gcs utility function is used to upload the file to the specified bucket and path (raw/{file_template}).
+
+- create_final_table_task: This task creates a final BigQuery table (green_2019) if it doesn't already exist.
+The table schema includes various fields related to the green taxi trip data (e.g., VendorID, pickup/dropoff datetime, fare amount, etc.). This task uses the BigQueryInsertJobOperator to execute a SQL query in BigQuery.The query creates the table green_2019 in the dataset specified (airflow2025), if it doesn't already exist.The table is created using a CREATE TABLE IF NOT EXISTS statement to ensure it is only created once.
+
+- create_external_table_task: This task creates an external BigQuery table for a given month from the parquet file in GCS. The external table references the raw data in GCS, using parquet file and specifies the format as PARQUET. This task uses the BigQueryInsertJobOperator to run another SQL query
+
+- create_temp_table_task: This task creates a temporary native table in BigQuery for a given month by reading from the external table created earlier. It generates a unique unique_row_id for each record by hashing certain fields, and stores the file name for reference.
+
+- merge_to_final_table_task: This task performs a merge operation to update the final table (green_2022) with data from the temporary table. It inserts records into the final table where there is no match (based on the unique_row_id), ensuring that only new or updated data is added. This task uses the BigQueryInsertJobOperator to perform a MERGE SQL operation.
+
+### 3: Unpause the DAG
+
 
 Unpause the DAG and after a few minutes, should look like this:
 
@@ -1583,6 +1448,32 @@ Once the DAG finishes, you can go to your GCP project's dashboard and search for
 
 ![airflowgcp8](images/airflowgcp8.jpg)
 <br><br>
+
+### 4: Check GCP
+
+Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see the final table, the external tables and the temp tables:
+
+![airflownew3](images/airflownew3.jpg)
+<br><br>
+
+And you can query the final table:
+
+<br>
+![airflownew4](images/airflownew4.jpg)
+<br><br>
+
+<br>
+![airflownew5](images/airflownew5.jpg)
+<br><br>
+
+
+You can also see the uploaded parquet files by searching the Cloud Storage service, selecting your bucket and then clicking on the raw/ folder. 
+
+
+![airflowgcp6](images/airflowgcp6.jpg)
+<br><br>
+
+You may now shutdown Airflow by running docker-compose down on the terminal where you run it.
 
 # Airflow and Kubernetes
 
