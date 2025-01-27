@@ -1158,18 +1158,13 @@ def download(file_gz, file_csv, url):
             f_out.write(response.content)
     else:
         print(f"Error downloading file: {response.status_code}")
-        print(url)
         return False
     
-    print(url)
-    print(f"Guardando .gz en: {file_gz}")
-
     # Unzip the CSV file
     with gzip.open(file_gz, 'rb') as f_in:
         with open(file_csv, 'wb') as f_out:
             shutil.copyfileobj(f_in, f_out)
     
-    print(f"Guardando .csv en: {file_csv}")
 
 def format_to_parquet(src_file):
 
@@ -1199,7 +1194,7 @@ def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="gcp-airflow"):
 
 # Defining the DAG
 dag = DAG(
-    "GCP_ingestion_v10",
+    "GCP_ingestion",
     schedule_interval="0 6 2 * *",
     start_date=datetime(2019, 1, 1),
     end_date=datetime(2019, 12, 5),
