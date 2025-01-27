@@ -1448,15 +1448,11 @@ Unpause the DAG and after a few minutes, should look like this:
 ![airflowgcp7](images/airflowgcp7.jpg)
 <br><br>
 
-Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should query the 2022 table:
-<br>
 
-![airflowgcp8](images/airflowgcp8.jpg)
-<br><br>
 
 ### 4: Check GCP
 
-Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see the final table, the external tables and the temp tables:
+Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see the final 2019 table, the external tables and the temp tables:
 <br>
 
 ![airflownew3](images/airflownew3.jpg)
