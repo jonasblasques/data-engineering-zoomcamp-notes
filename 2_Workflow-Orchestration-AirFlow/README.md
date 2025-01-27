@@ -1087,6 +1087,7 @@ We will now run a slightly more complex DAG that will:
 - Update the final table with data from the temporary table
 
 <br>
+
 ![airflowgcp10](images/airflowgcp10.jpg)
 <br><br>
 
@@ -1108,6 +1109,8 @@ To create a connection with Google Cloud Platform (GCP) from the Airflow UI go t
 On the Connections page, click the + button. 
 
 Complete Connection id, Connection type, your project id and Keyfile Path (with your json name)
+
+<br>
 
 ![gcpairflow](images/gcpairflow.jpg)
 
@@ -1440,11 +1443,13 @@ The table schema includes various fields related to the green taxi trip data (e.
 
 
 Unpause the DAG and after a few minutes, should look like this:
+<br>
 
 ![airflowgcp7](images/airflowgcp7.jpg)
 <br><br>
 
 Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should query the 2022 table:
+<br>
 
 ![airflowgcp8](images/airflowgcp8.jpg)
 <br><br>
@@ -1452,6 +1457,7 @@ Once the DAG finishes, you can go to your GCP project's dashboard and search for
 ### 4: Check GCP
 
 Once the DAG finishes, you can go to your GCP project's dashboard and search for BigQuery. You should see your project ID; expand it and you should see the final table, the external tables and the temp tables:
+<br>
 
 ![airflownew3](images/airflownew3.jpg)
 <br><br>
@@ -1459,16 +1465,19 @@ Once the DAG finishes, you can go to your GCP project's dashboard and search for
 And you can query the final table:
 
 <br>
+
 ![airflownew4](images/airflownew4.jpg)
 <br><br>
 
 <br>
+
 ![airflownew5](images/airflownew5.jpg)
 <br><br>
 
 
 You can also see the uploaded parquet files by searching the Cloud Storage service, selecting your bucket and then clicking on the raw/ folder. 
 
+<br>
 
 ![airflowgcp6](images/airflowgcp6.jpg)
 <br><br>
