@@ -477,7 +477,7 @@ services:
       - "5433:5432"
 
   kestra:
-    image: kestra/kestra:develop
+    image: kestra/kestra:latest
     pull_policy: always
     user: "root"
     command: server standalone
