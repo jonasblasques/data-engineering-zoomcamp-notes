@@ -11,39 +11,64 @@
 
 Answer: Output --> Extract --> Outputfiles --> 128,3 mb
 
-2) What is the task run state of tasks bq_green_tripdata, bq_green_tmp_table and bq_merge_green when you run the flow with the `taxi` input set to value `yellow`?
-- `SUCCESS`
-- `FAILED`
-- `SKIPPED`
-- `CANCELED`
+2) What is the rendered value of the variable file when the inputs taxi is set to green, year is set to 2020, and month is set to 04 during execution?
 
-Answer: `SKIPPED`
+- {{inputs.taxi}}_tripdata_{{inputs.year}}-{{inputs.month}}.csv
+- green_tripdata_2020-04.csv
+- green_tripdata_04_2020.csv
+- green_tripdata_2020.csv
 
-3) How do we deal with table schema in the Google Cloud ingestion pipeline?
-- We don't define the schema at all because this is a data lake after all
-- We let BigQuery autodetect the schema
-- Kestra automatically infers the schema from the extracted data
-- We explicitly define the schema in the tasks that create external source tables and final target tables
+file: "{{inputs.taxi}}_tripdata_{{inputs.year}}-{{inputs.month}}.csv"
 
-Answer: We explicitly define the schema
+Answer: green_tripdata_2020-04.csv
 
-4) How does Kestra handles backfills in the scheduled flow?
-- You need to define backfill properties in the flow configuration
-- You have to run CLI commands to backfill the data
-- You can run backfills directly from the UI from the Flow Triggers tab by selecting the time period
-- Kestra doesn't support backfills
+3) How many rows are there for the Yellow Taxi data for all CSV files in the year 2020?
 
-Answer: You can run backfills directly from the UI from the Flow Triggers
+- 13,537.299
+- 24,648,499
+- 18,324,219
+- 29,430,127
 
-5) Which of the following CRON expressions schedules a flow to run at 09:00 UTC on the first day of every month?
-- `0 9 1 * *`
-- `0 1 9 * *`
-- `0 9 * * *`
-- `1 9 * * *`
+```sql
 
-Answer: `0 9 1 * *`
+SELECT count(1) FROM `zoomcamp-airflow-444903.zoomcamp.yellow_tripdata` 
+WHERE filename LIKE '%2020%';
+```
+
+Answer: 24,648,499
+
+4) How many rows are there for the Green Taxi data for all CSV files in the year 2020?
+
+- 5,327,301
+- 936,199
+- 1,734,051
+- 1,342,034
+
+```sql
+
+SELECT count(1) FROM `zoomcamp-airflow-444903.zoomcamp.green_tripdata` 
+WHERE filename LIKE '%2020%';
+```
+
+Answer: 1,734,051
+
+5) How many rows are there for the Yellow Taxi data for the March 2021 CSV file?
+
+- 1,428,092
+- 706,911
+- 1,925,152
+- 2,561,031
+
+```sql
+
+SELECT count(1) FROM `zoomcamp-airflow-444903.zoomcamp.yellow_tripdata` 
+WHERE filename LIKE '%2021-03%';
+```
+
+Answer: 1,925,152
 
 6) How would you configure the timezone to New York in a Schedule trigger?
+
 - Add a `timezone` property set to `EST` in the `Schedule` trigger configuration  
 - Add a `timezone` property set to `America/New_York` in the `Schedule` trigger configuration
 - Add a `timezone` property set to `UTC-5` in the `Schedule` trigger configuration
