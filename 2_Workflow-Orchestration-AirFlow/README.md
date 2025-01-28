@@ -568,9 +568,7 @@ Volumes:
 Copy from this repo to your dags folder:
 
 - data_ingestion_local.py 
-- data_ingestion_local2.py 
 - data_ingestion_gcp.py 
-- data_ingestion_gcp2.py 
 
 ### 6:  Create a requirements.txt
 
@@ -881,7 +879,7 @@ def process_and_insert_to_db(csv_name, user, password, host, port, db, table_nam
 
 # Defining the DAG
 dag = DAG(
-    "yellow_taxi_ingestion_original",
+    "yellow_taxi_ingestion",
     schedule_interval="0 6 2 * *",
     start_date=datetime(2021, 1, 1),
     end_date=datetime(2021, 3, 28),
@@ -951,7 +949,7 @@ The data is downloaded and extracted before being processed and ingested into th
 
 **7: Unpause DAG** 
 
-Open the Airflow dashboard and unpause the "yellow_taxi_ingestion_original" DAG from data_ingestion_local.py.
+Open the Airflow dashboard and unpause the "yellow_taxi_ingestion" DAG from data_ingestion_local.py.
 
 While ingesting the data, you can check logs:
 

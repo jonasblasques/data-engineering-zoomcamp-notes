@@ -67,7 +67,7 @@ def process_and_insert_to_db(csv_name, user, password, host, port, db, table_nam
 
 # Defining the DAG
 dag = DAG(
-    "yellow_taxi_ingestion_original",
+    "yellow_taxi_ingestion",
     schedule_interval="0 6 2 * *",
     start_date=datetime(2021, 1, 1),
     end_date=datetime(2021, 3, 28),
