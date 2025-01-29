@@ -568,7 +568,7 @@ Volumes:
 Copy from this repo to your dags folder:
 
 - data_ingestion_local.py 
-- data_ingestion_gcp.py 
+- data_ingestion_gcp_green.py 
 
 ### 6:  Create a requirements.txt
 
@@ -590,9 +590,7 @@ The directory structure now should look like this:
 ├── airflow
 │   ├── dags
 │   |   ├── data_ingestion_local.py
-│   |   ├── data_ingestion_local2.py
-│   |   ├── data_ingestion_gcp.py
-|   |   └── data_ingestion_gcp.py
+|   |   └── data_ingestion_gcp_green.py
 │   ├── google
 │   |   └── credentials.json
 |   |
@@ -1040,7 +1038,7 @@ Complete Connection id, Connection type, your project id and Keyfile Path (with 
 
 As an example, we will download and process the green files from January 2019 to December 2019.
 
-data_ingestion_gcp.py looks like this:
+data_ingestion_gcp_green.py looks like this:
 
 ```python
 
@@ -1113,10 +1111,10 @@ def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="gcp-airflow"):
 
 # Defining the DAG
 dag = DAG(
-    "GCP_ingestion",
+    "GCP_ingestion_green",
     schedule_interval="0 6 2 * *",
     start_date=datetime(2019, 1, 1),
-    end_date=datetime(2019, 12, 5),
+    end_date=datetime(2019, 12, 31),
     catchup=True, 
     max_active_runs=1,
 )
@@ -1125,7 +1123,7 @@ table_name_template = 'green_taxi_{{ execution_date.strftime(\'%Y_%m\') }}'
 file_template_csv_gz = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv.gz'
 file_template_csv = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv'
 file_template_parquet = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.parquet'
-consolidated_table_name = "green_2019"
+consolidated_table_name = "green_{{ execution_date.strftime(\'%Y\') }}"
 url_template = "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/green/green_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.csv.gz"
 
 

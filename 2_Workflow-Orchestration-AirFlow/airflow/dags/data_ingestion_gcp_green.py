@@ -67,10 +67,10 @@ def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="gcp-airflow"):
 
 # Defining the DAG
 dag = DAG(
-    "GCP_ingestion",
+    "GCP_ingestion_green",
     schedule_interval="0 6 2 * *",
     start_date=datetime(2019, 1, 1),
-    end_date=datetime(2019, 12, 5),
+    end_date=datetime(2019, 12, 31),
     catchup=True, 
     max_active_runs=1,
 )
@@ -79,7 +79,7 @@ table_name_template = 'green_taxi_{{ execution_date.strftime(\'%Y_%m\') }}'
 file_template_csv_gz = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv.gz'
 file_template_csv = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.csv'
 file_template_parquet = 'output_{{ execution_date.strftime(\'%Y_%m\') }}.parquet'
-consolidated_table_name = "green_2019"
+consolidated_table_name = "green_{{ execution_date.strftime(\'%Y\') }}"
 url_template = "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/green/green_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.csv.gz"
 
 
