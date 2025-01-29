@@ -569,6 +569,7 @@ Copy from this repo to your dags folder:
 
 - data_ingestion_local.py 
 - data_ingestion_gcp_green.py 
+- data_ingestion_gcp_yellow.py 
 
 ### 6:  Create a requirements.txt
 
@@ -590,7 +591,8 @@ The directory structure now should look like this:
 ├── airflow
 │   ├── dags
 │   |   ├── data_ingestion_local.py
-|   |   └── data_ingestion_gcp_green.py
+|   |   ├── data_ingestion_gcp_green.py
+|   |   └── data_ingestion_gcp_yellow.py
 │   ├── google
 │   |   └── credentials.json
 |   |
@@ -1037,6 +1039,8 @@ Complete Connection id, Connection type, your project id and Keyfile Path (with 
 ### 2: Prepare the DAG
 
 As an example, we will download and process the green files from January 2019 to December 2019.
+
+To process the Yellow Taxi data, the DAG is similar, slightly changing the schema of the tables and the utility function to convert to parquet is done in chunks to avoid overloading the PC.
 
 data_ingestion_gcp_green.py looks like this:
 
