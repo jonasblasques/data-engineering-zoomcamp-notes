@@ -1050,6 +1050,7 @@ import os
 from datetime import datetime
 
 from airflow import DAG
+from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
 from airflow.providers.google.cloud.hooks.gcs import GCSHook
@@ -1116,10 +1117,10 @@ def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="gcp-airflow"):
 
 # Defining the DAG
 dag = DAG(
-    "GCP_ingestion_green",
+    "GCP_ingestion_green_v99",
     schedule_interval="0 6 2 * *",
-    start_date=datetime(2019, 1, 1),
-    end_date=datetime(2019, 12, 31),
+    start_date=datetime(2020, 1, 1),
+    end_date=datetime(2020, 1, 5),
     catchup=True, 
     max_active_runs=1,
 )
@@ -1153,6 +1154,7 @@ process_task = PythonOperator(
     op_kwargs={
         "src_file": f"{path_to_local_home}/{file_template_csv}"
     },
+    retries=10,
     dag=dag
 )
 
@@ -1167,6 +1169,7 @@ local_to_gcs_task = PythonOperator(
         "local_file": f"{path_to_local_home}/{file_template_parquet}",
         "gcp_conn_id": "gcp-airflow"
     },
+    retries=10,
     dag=dag
 )
 
@@ -1206,6 +1209,7 @@ create_final_table_task = BigQueryInsertJobOperator(
             "useLegacySql": False,
         }
     },
+    retries=3,
     dag=dag,
 )
 
@@ -1247,6 +1251,7 @@ create_external_table_task = BigQueryInsertJobOperator(
             "useLegacySql": False,
         }
     },
+    retries=3,
     dag=dag
 )
 
@@ -1274,6 +1279,7 @@ create_temp_table_task = BigQueryInsertJobOperator(
             "useLegacySql": False,
         }
     },
+    retries=3,
     dag=dag,
 )
 
@@ -1295,11 +1301,19 @@ merge_to_final_table_task = BigQueryInsertJobOperator(
             "useLegacySql": False,
         }
     },
+    retries=3,
+    dag=dag,
+)
+
+# Task 8: Delete local files after upload
+cleanup_task = BashOperator(
+    task_id="cleanup_files",
+    bash_command=f"rm -f {path_to_local_home}/{file_template_csv_gz} {path_to_local_home}/{file_template_csv} {path_to_local_home}/{file_template_parquet}",
     dag=dag,
 )
 
 
-download_task >> process_task >> local_to_gcs_task >> create_final_table_task >> create_external_table_task >> create_temp_table_task >> merge_to_final_table_task
+download_task >> process_task >> local_to_gcs_task >> create_final_table_task >> create_external_table_task >> create_temp_table_task >> merge_to_final_table_task >> cleanup_task
 
 ```
 

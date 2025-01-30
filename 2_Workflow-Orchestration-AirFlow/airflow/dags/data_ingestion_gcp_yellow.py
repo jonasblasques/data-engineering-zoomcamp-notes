@@ -157,6 +157,7 @@ create_final_table_task = BigQueryInsertJobOperator(
             "useLegacySql": False,
         }
     },
+    retries=3,
     dag=dag,
 )
 
@@ -196,6 +197,7 @@ create_external_table_task = BigQueryInsertJobOperator(
             "useLegacySql": False,
         }
     },
+    retries=3,
     dag=dag
 )
 
@@ -223,6 +225,7 @@ create_temp_table_task = BigQueryInsertJobOperator(
             "useLegacySql": False,
         }
     },
+    retries=3,
     dag=dag,
 )
 
@@ -244,8 +247,16 @@ merge_to_final_table_task = BigQueryInsertJobOperator(
             "useLegacySql": False,
         }
     },
+    retries=3,
+    dag=dag,
+)
+
+# Task 8: Delete local files after upload
+cleanup_task = BashOperator(
+    task_id="cleanup_files",
+    bash_command=f"rm -f {path_to_local_home}/{file_template_csv_gz} {path_to_local_home}/{file_template_csv} {path_to_local_home}/{file_template_parquet}",
     dag=dag,
 )
 
 
-download_task >> process_task >> local_to_gcs_task >> create_final_table_task >> create_external_table_task >> create_temp_table_task >> merge_to_final_table_task
+download_task >> process_task >> local_to_gcs_task >> create_final_table_task >> create_external_table_task >> create_temp_table_task >> merge_to_final_table_task >> cleanup_task
