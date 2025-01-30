@@ -588,19 +588,20 @@ The directory structure now should look like this:
 
 ```
 
-├── airflow
-│   ├── dags
-│   |   ├── data_ingestion_local.py
-|   |   ├── data_ingestion_gcp_green.py
-|   |   └── data_ingestion_gcp_yellow.py
-│   ├── google
-│   |   └── credentials.json
-|   |
-│   └──  logs
-|
-├── docker-compose.yaml
-├── Dockerfile
-└── requirements.txt
+└── airflow
+    ├── dags
+    |   ├── data_ingestion_local.py
+    |   ├── data_ingestion_gcp_green.py
+    |   └── data_ingestion_gcp_yellow.py
+    |
+    ├── google
+    |   └── credentials.json
+    |
+    ├── logs
+    |
+    ├── docker-compose.yaml
+    ├── Dockerfile
+    └── requirements.txt
 ```
 
 
@@ -697,24 +698,23 @@ The directory structure now should look like this:
 
 ```
 ├── airflow
-│   ├── dags
-│   |   ├── data_ingestion_local.py
-│   |   ├── data_ingestion_local2.py
-│   |   ├── data_ingestion_gcp.py
-|   |   └── data_ingestion_gcp.py
-│   ├── google
-│   |   └── credentials.json
+|   ├── dags
+|   |   ├── data_ingestion_local.py
+|   |   ├── data_ingestion_gcp_green.py
+|   |   └── data_ingestion_gcp_yellow.py
 |   |
-│   └──  logs
-|
-├── docker-compose.yaml
-├── Dockerfile
-└── requirements.txt
+|   ├── google
+|   |   └── credentials.json
+|   |
+|   ├── logs
+|   |
+|   ├── docker-compose.yaml
+|   ├── Dockerfile
+|   └── requirements.txt
 │
-│
-├── database_ny_taxi
-│   ├── ny_taxi_postgres_data
-│   └── docker-compose-lesson1.yaml
+└── database_ny_taxi
+    ├── ny_taxi_postgres_data
+    └── docker-compose-lesson1.yaml
 
 ```
 
