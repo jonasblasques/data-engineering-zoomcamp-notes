@@ -61,7 +61,8 @@ def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="gcp-airflow"):
     hook.upload(
         bucket_name=bucket,
         object_name=object_name,
-        filename=local_file
+        filename=local_file,
+        timeout=600
     )
 
 
