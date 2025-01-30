@@ -1117,10 +1117,10 @@ def upload_to_gcs(bucket, object_name, local_file, gcp_conn_id="gcp-airflow"):
 
 # Defining the DAG
 dag = DAG(
-    "GCP_ingestion_green_v99",
+    "GCP_ingestion_green",
     schedule_interval="0 6 2 * *",
-    start_date=datetime(2020, 1, 1),
-    end_date=datetime(2020, 1, 5),
+    start_date=datetime(2019, 1, 1),
+    end_date=datetime(2019, 12, 31),
     catchup=True, 
     max_active_runs=1,
 )
