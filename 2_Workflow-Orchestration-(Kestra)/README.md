@@ -430,24 +430,8 @@ Tasks Query --> Outputs uri --> Preview :
 
 ## Launch Kestra using Docker Compose
 
-_([Video source](https://www.youtube.com/watch?v=SGL8ywf3OJQ))_
 
-When you first jump into the documentation you'll find this quick example where you can just copy and paste
- this and put it into your terminal, and this will spin up an instance of kestra:
-
- ```
-docker run --pull=always --rm -it -p 8080:8080 --user=root \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /tmp:/tmp kestra/kestra:latest server local
-```
-
-Now this is great for being able to spin up Kestra really quickly and get jumped in, but it makes it a little
-bit tricky for being able to configure settings for kestra as well as have a persistent database. If you just
-create a flow and you save that, when you restart the docker container, the flow will not be there anymore.
-
-Not ideal long term, but great for being able to just play around with Kestra and get started.
-
-Now we can resolve this by adding Docker Compose to spin up both a postgres database as well as a kestra server.
+### 1: Create a Docker-compose.yaml
 
 Lets create a docker-compose.yml file inside your 02-workflow-orchestration:
 
@@ -474,7 +458,7 @@ services:
       timeout: 10s
       retries: 10
     ports:
-      - "5433:5432"
+      - "5432:5432"
 
   kestra:
     image: kestra/kestra:latest
@@ -519,7 +503,18 @@ services:
         condition: service_started
 
 
-  
+  pgdatabase:
+    image: postgres
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=ny_taxi
+    volumes:
+      - "./ny_taxi_postgres_data:/var/lib/postgresql/data:rw"
+    ports:
+      - "5433:5432"
+
+
   pgadmin:
     image: dpage/pgadmin4
     environment:
@@ -530,35 +525,76 @@ services:
     ports:
       - "8090:80"
     depends_on:
-      - postgres      
+      - postgres       
 ```
 
+This docker-compose.yml file defines four services: postgres, kestra, pgdatabase, and pgadmin, along with two named volumes: postgres-data and kestra-data.
+
+**Volumes:**
+
+- postgres-data: Stores PostgreSQL data persistently.
+- kestra-data: Stores Kestra-related metadata persistently.
+
+**Services**
+
+- postgres: PostgreSQL Database for kestra metadata
+- kestra: Kestra Workflow Orchestrator
+- pgdatabase: Another PostgreSQL Database for NY Taxi Data
+- pgadmin: pgAdmin for Database Management
 
 > [!NOTE]  
 I added the pgadmin service myself, it is optional but recommended to interact with the database
 
 ---
 
+### 2: Create ny_taxi_postgres_data folder
+
+Create a ny_taxi_postgres_data folder in the same directory as the docker-compose.yaml file.
+
+The directory structure now should look like this:
+
+```
+
+├── Workflow-Orchestration
+    ├── flows
+    |
+    ├── ny_taxi_postgres_data
+    |
+    └── docker-compose.yaml
+
+```
+
+### 3: Run Kestra and Postgres
+
 In a new terminal, go to the path where the docker-compose file is and run the following command:
 
 ```
-docker-compose up -d
+docker-compose up -p kestra-postgres up -d
 ```
+
+The -p option specifies a custom project name (kestra-postgres in this case).
+
+The -d option stands for "detached mode," meaning the containers will run in the background, allowing you to continue using the terminal without being attached to the container logs.
 
 Once the container starts, you can access the Kestra UI at http://localhost:8080 and the pgadmin web 
 in http://localhost:8090
 
-To connect pgadmin with the kestra db: Right-click on Servers on the left sidebar --> Register--> Server
+To connect pgadmin with the postgress db: Right-click on Servers on the left sidebar --> Register--> Server
 
 Under General give the Server a name: kestra taxi
 
 Under Connection add:
 
-- host name: postgres
+- host name: pgdatabase
 - port:5432 
-- user:kestra
-- password:kestra
+- user:root
+- password:root
 
+<br>
+
+![kestra17](images/kestra17.jpg)
+
+<br><br>
 
 
 # 2. Hands-On Coding Project: Build Data Pipelines with Kestra
@@ -571,9 +607,6 @@ _([Video source](https://www.youtube.com/watch?v=OkfLX28Ecjg))_
 - CSV files accessible here: https://github.com/DataTalksClub/nyc-tlc-data/releases
 - Flow: [`02_postgres_taxi.yaml`](flows/02_postgres_taxi.yaml)
 
-
-
-To keep things simple, we'll use the same database as the one we set up for Kestra in Docker Compose.
 
 
 ![local1](images/local1.jpg) 
@@ -811,9 +844,9 @@ This task ensures that any files downloaded or generated during the flow executi
 
 All PostgreSQL tasks use a pre-configured connection:
 
-URL: jdbc:postgresql://host.docker.internal:5433/kestra
-Username: kestra
-Password: kestra
+URL: jdbc:postgresql://host.docker.internal:5433/ny_taxi
+Username: root
+Password: root
 
 
 **Execute!**
@@ -822,13 +855,12 @@ Lets try with this example:
 
 ![local2](images/local2.jpg) 
 
-Head over to pgadmin, temporary table looks like this:
 
-![local2](images/local3.jpg) 
+Head over to PgAdmin --> Servers --> kestra taxi --> Databases --> ny_taxi --> Schemas --> public --> Tables --> green_tripdata
 
-final table looks like this:
+final table for green taxi looks like this:
 
-![local2](images/local4.jpg) 
+![local2](images/local18.jpg) 
 
 
 ## Load Data to Local Postgres with backfill
@@ -868,16 +900,23 @@ Select triggers --> Backfill executions
 
 Lets try with this example:
 
-![local5](images/local5.jpg) 
+<br>
 
+![local19](images/local19.jpg) 
 
-Select executions
+<br>
 
-![local6](images/local6.jpg) 
+Select executions:
 
-Head over to pgadmin, final table looks like this:
+<br>
 
-![local7](images/local7.jpg) 
+![local20](images/local20.jpg) 
+
+<br>
+
+After backfilling January and February and manually loading May 2019, you can now, for example, run queries on the table:
+
+![local21](images/local21.jpg) 
 
 
 ## Load Data to GCP

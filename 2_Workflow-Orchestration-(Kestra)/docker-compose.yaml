@@ -19,7 +19,7 @@ services:
       timeout: 10s
       retries: 10
     ports:
-      - "5433:5432"
+      - "5432:5432"
 
   kestra:
     image: kestra/kestra:latest
@@ -64,16 +64,27 @@ services:
         condition: service_started
 
 
+  pgdatabase:
+    image: postgres
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=ny_taxi
+    volumes:
+      - "./ny_taxi_postgres_data:/var/lib/postgresql/data:rw"
+    ports:
+      - "5433:5432"
 
-  #pgadmin:
-    #image: dpage/pgadmin4
-    #environment:
-      #- PGADMIN_DEFAULT_EMAIL=admin@admin.com
-      #- PGADMIN_DEFAULT_PASSWORD=root
-    #volumes:
-      #- "./data_pgadmin:/var/lib/pgadmin"
-    #ports:
-      #- "8090:80"
-    #depends_on:
-      #- postgres         
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=root
+    volumes:
+      - "./data_pgadmin:/var/lib/pgadmin"
+    ports:
+      - "8090:80"
+    depends_on:
+      - postgres         
 
