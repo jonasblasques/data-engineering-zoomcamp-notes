@@ -860,7 +860,7 @@ Head over to PgAdmin --> Servers --> kestra taxi --> Databases --> ny_taxi --> S
 
 final table for green taxi looks like this:
 
-![local2](images/local18.jpg) 
+![local2](images/kestra18.jpg) 
 
 
 ## Load Data to Local Postgres with backfill
@@ -902,7 +902,7 @@ Lets try with this example:
 
 <br>
 
-![local19](images/local19.jpg) 
+![local19](images/kestra19.jpg) 
 
 <br>
 
@@ -910,13 +910,13 @@ Select executions:
 
 <br>
 
-![local20](images/local20.jpg) 
+![local20](images/kestra20.jpg) 
 
 <br>
 
 After backfilling January and February and manually loading May 2019, you can now, for example, run queries on the table:
 
-![local21](images/local21.jpg) 
+![local21](images/kestra21.jpg) 
 
 
 ## Load Data to GCP
