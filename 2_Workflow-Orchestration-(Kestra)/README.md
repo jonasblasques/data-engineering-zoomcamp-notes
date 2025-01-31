@@ -1211,7 +1211,7 @@ This table is created as an external table that links to the raw data stored in 
 
 Example: green_tripdata_2019_07
 
-This is a temporary table created in BigQuery using the data from the external table. The purpose of this table is to perform transformations, such as generating a unique_row_id based on concatenating certain columns. After reading the raw data from the external table, it may need to be transformed or enriched before inserting it into the final table. This temporary table serves as an intermediary step where any necessary data processing can occur.
+This is a native table created in BigQuery using the data from the external table. Copies the entire dataset from the associated external table into this table, while enriching it with the additional columns unique_row_id and filename
 
 ![gcp5](images/gcp5.jpg) 
 
@@ -1221,11 +1221,10 @@ This is a temporary table created in BigQuery using the data from the external t
 
 Example: green_tripdata
 
-After processing the data and ensuring there are no duplicates or inconsistencies, the final data is merged into this table. It represents the cleaned, transformed, and de-duplicated dataset.
+After processing the data and ensuring there are no duplicates or inconsistencies, the final data is merged into this table. It represents the cleaned, transformed, and de-duplicated dataset including data from all months.
 
 External Table → Temporary Table → Final Table.
 
-![gcp7](images/gcp7.jpg) 
 
 
 ## Load Data to GCP with backfill
