@@ -612,7 +612,7 @@ _([Video source](https://www.youtube.com/watch?v=OkfLX28Ecjg))_
 ![local1](images/local1.jpg) 
 
 
-### Flow explanation step by step
+### 1: Flow explanation step by step
 
 #### Variables
 
@@ -851,13 +851,15 @@ Username: root
 Password: root
 
 
-### Execute flow
+### 2: Execute flow
 
 
 Lets try with this example:
 
 ![local2](images/local2.jpg) 
 
+
+### 3: Check PgAdmin
 
 Head over to PgAdmin --> Servers --> kestra taxi --> Databases --> ny_taxi --> Schemas --> public --> Tables --> green_tripdata
 
@@ -876,7 +878,7 @@ Backfill is the process of running a workflow or data pipeline for historical da
 
 Now we can start using schedules and backfills to automate our pipeline. All we need here is an input for the type of taxi. Previously, we had the month and the year to go with that too. We don't need that this time because we're going to use the trigger to automatically add that.
 
-### Flow explanation
+### 1: Flow explanation
 
 **concurrency**
 
@@ -899,7 +901,7 @@ It's worth noting that we need to run these one at a time because we only have o
 - Initiates the workflow to process monthly data for yellow taxis at the scheduled time.
 
 
-### Execute flow
+### 2: Execute flow
 
 Select triggers --> Backfill executions
 
@@ -918,6 +920,8 @@ Select executions:
 ![local20](images/kestra20.jpg) 
 
 <br>
+
+### 3: Check PgAdmin
 
 After backfilling January and February and manually loading May 2019, you can now, for example, run queries on the table:
 
