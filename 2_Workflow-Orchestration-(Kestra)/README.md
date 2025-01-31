@@ -612,7 +612,9 @@ _([Video source](https://www.youtube.com/watch?v=OkfLX28Ecjg))_
 ![local1](images/local1.jpg) 
 
 
-#### > Variables
+### Flow explanation step by step
+
+#### Variables
 
 ```yaml
 variables:
@@ -630,7 +632,7 @@ variables:
 
 
 
-#### > Task: Set Labels
+#### Task: Set Labels
 
 Adds labels to the flow execution to track the selected file and taxi type.
 
@@ -638,7 +640,7 @@ Labels are metadata tags that help organize, identify, and track workflow execut
 
 Labels appear in the Kestra UI or logs, making it easier to understand the context of an execution. Useful for filtering or searching workflow executions by specific criteria
 
-#### > Task: Extract Data
+#### Task: Extract Data
 
 ```yaml
   - id: extract
@@ -654,7 +656,7 @@ Labels appear in the Kestra UI or logs, making it easier to understand the conte
 
 Downloads the compressed CSV file using wget from the GitHub repository and decompresses it and saves it as a .csv file.
 
-#### > Task: yellow_table/green_table
+#### Task: yellow_table/green_table
 
 ```yaml
   - id: yellow_table
@@ -683,7 +685,7 @@ is because we need to be able to render the variable which has an expression in 
 Schema has two extra columns: unique grow ID and file name so we can see which file the data came and a unique ID generated based on the data in order to prevent adding duplicates later 
 
 
-#### > Task: yellow_create_staging_table/green_create_staging_table
+#### Task: yellow_create_staging_table/green_create_staging_table
 
 ```yaml
   - id: yellow_create_staging_table
@@ -703,7 +705,7 @@ Schema has two extra columns: unique grow ID and file name so we can see which f
 Creates a temporary table for monthly yellow/green taxi data with schema aligned to the CSV file.
 
 
-#### > Task: truncate_table
+#### Task: truncate_table
 
 ```yaml
   - id: truncate_table
@@ -714,7 +716,7 @@ Creates a temporary table for monthly yellow/green taxi data with schema aligned
 
 Ensures the staging table is empty before loading new data.
 
-#### > Task: green_copy_in_to_staging_table/yellow_copy_in_to_staging_table
+#### Task: green_copy_in_to_staging_table/yellow_copy_in_to_staging_table
 
 ```yaml
   - id: green_copy_in_to_staging_table
@@ -739,7 +741,7 @@ This task is responsible for copying data from the extracted CSV file into a tem
 - columns: Lists the columns in the PostgreSQL table that correspond to the data in the CSV file. These include fields like VendorID, lpep_pickup_datetime, trip_distance, etc., ensuring the data is mapped correctly during the import.
 
 
-#### > Task: yellow_add_unique_id_and_filename/green_add_unique_id_and_filename
+#### Task: yellow_add_unique_id_and_filename/green_add_unique_id_and_filename
 
 ```yaml
   - id: yellow_add_unique_id_and_filename
@@ -768,7 +770,7 @@ This task is responsible for copying data from the extracted CSV file into a tem
 - Updates the table by generating a unique hash ID for each row and stores the file name.
 
 
-#### > Task: yellow_merge_data/green_merge_data
+#### Task: yellow_merge_data/green_merge_data
 
 ```yaml
   - id: yellow_merge_data
@@ -835,12 +837,12 @@ Merges monthly data from the temporary table into the yellow_table/green_table u
 
 
 
-#### > Task: purge_files
+#### Task: purge_files
 
 This task ensures that any files downloaded or generated during the flow execution are deleted once they are no longer needed. Its purpose is to keep the storage clean and free of unnecessary clutter.
 
 
-#### > Plugin Defaults
+#### Plugin Defaults
 
 All PostgreSQL tasks use a pre-configured connection:
 
@@ -849,7 +851,8 @@ Username: root
 Password: root
 
 
-**Execute!**
+### Execute flow
+
 
 Lets try with this example:
 
@@ -873,6 +876,8 @@ Backfill is the process of running a workflow or data pipeline for historical da
 
 Now we can start using schedules and backfills to automate our pipeline. All we need here is an input for the type of taxi. Previously, we had the month and the year to go with that too. We don't need that this time because we're going to use the trigger to automatically add that.
 
+### Flow explanation
+
 **concurrency**
 
 ```yaml
@@ -894,7 +899,7 @@ It's worth noting that we need to run these one at a time because we only have o
 - Initiates the workflow to process monthly data for yellow taxis at the scheduled time.
 
 
-**Execute!**
+### Execute flow
 
 Select triggers --> Backfill executions
 
