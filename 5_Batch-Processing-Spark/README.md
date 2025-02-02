@@ -201,3 +201,77 @@ And you should see something like this:
 ![b3](images/b3.jpg)
 
 <br><br>
+
+And follow this to run PySpark
+
+- [`PySpark`](install/pyspark.md)
+
+
+To test that pyspark works correctly, let's create a file called test.py, in this case in opt/spark:
+
+```
+touch test.py
+```
+
+And then open vscode:
+
+```
+code test.py
+```
+
+copy the file "taxi_zone_lookup.csv" inside the opt/spark folder and copy this code in test.py:
+
+```python
+
+import pyspark
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder \
+    .master("local[*]") \
+    .appName('test') \
+    .getOrCreate()
+
+df = spark.read \
+    .option("header", "true") \
+    .csv('taxi_zone_lookup.csv')
+
+df.show()
+
+```
+
+and run test.py in the ubuntu terminal:
+
+```
+python2 test.py
+```
+
+you should look something like this:
+
+```
+
++----------+-------------+--------------------+------------+                    
+|LocationID|      Borough|                Zone|service_zone|
++----------+-------------+--------------------+------------+
+|         1|          EWR|      Newark Airport|         EWR|
+|         2|       Queens|         Jamaica Bay|   Boro Zone|
+|         3|        Bronx|Allerton/Pelham G...|   Boro Zone|
+|         4|    Manhattan|       Alphabet City| Yellow Zone|
+|         5|Staten Island|       Arden Heights|   Boro Zone|
+|         6|Staten Island|Arrochar/Fort Wad...|   Boro Zone|
+|         7|       Queens|             Astoria|   Boro Zone|
+|         8|       Queens|        Astoria Park|   Boro Zone|
+|         9|       Queens|          Auburndale|   Boro Zone|
+|        10|       Queens|        Baisley Park|   Boro Zone|
+|        11|     Brooklyn|          Bath Beach|   Boro Zone|
+|        12|    Manhattan|        Battery Park| Yellow Zone|
+|        13|    Manhattan|   Battery Park City| Yellow Zone|
+|        14|     Brooklyn|           Bay Ridge|   Boro Zone|
+|        15|       Queens|Bay Terrace/Fort ...|   Boro Zone|
+|        16|       Queens|             Bayside|   Boro Zone|
+|        17|     Brooklyn|             Bedford|   Boro Zone|
+|        18|        Bronx|        Bedford Park|   Boro Zone|
+|        19|       Queens|           Bellerose|   Boro Zone|
+|        20|        Bronx|             Belmont|   Boro Zone|
++----------+-------------+--------------------+------------+
+only showing top 20 rows
+```
