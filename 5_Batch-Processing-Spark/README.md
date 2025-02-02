@@ -5,6 +5,8 @@
 - [Introduction to Batch Processing](#introduction-to-batch-processing)
 - [Introduction to Spark](#introduction-to-spark)
 - [Installation](#installation)
+- [Spark SQL and DataFrames](#spark-sql-and-dataframes)
+    - [First Look at PySpark](#first-look-at-pyspark)
 
 
 
@@ -275,3 +277,120 @@ you should look something like this:
 +----------+-------------+--------------------+------------+
 only showing top 20 rows
 ```
+
+
+## Spark SQL and DataFrames
+
+### First Look at PySpark
+
+ _[Video source](https://www.youtube.com/watch?v=r_Sf6fCB40c)_
+
+In this section, we will take a first look at PySpark, load some data, and save it using PySpark:
+
+- We will see how to read a CSV file. 
+- We will talk about partitions. What they are and why they matter.
+- We will save this data to Parquet.
+- We will explore the Spark Master UI.
+
+SparkSession is the main entry point for interacting with Spark. We use it to read data and perform 
+operations:
+
+```python
+
+import pyspark
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder \
+    .master("local[*]") \
+    .appName('test') \
+    .getOrCreate()
+```    
+
+Rather than using yellow or green taxi records, we will work with high-volume for-hire vehicle trip 
+records. Download the file:
+
+```
+wget https://github.com/DataTalksClub/nyc-tlc-data/releases/download/fhvhv/fhvhv_tripdata_2021-01.csv.gz
+
+```
+
+Unzip it:
+
+```
+gunzip fhvhv_tripdata_2021-01.csv.gz
+```
+
+Next, I want to use the same approach as last time to read the CSV file into Spark. We specify the 
+header, then run show(). It correctly detects the column names.
+
+```python
+df = spark.read \
+    .option("header", "true") \
+    .csv('fhvhv_tripdata_2021-01.csv')
+
+df.show()
+```
+
+Run pyspark in the terminal
+
+When you type pyspark in the Ubuntu terminal, it launches an interactive PySpark shell. This shell 
+allows you to interact with Apache Spark using Python. 
+
+- It initializes a Spark session (SparkSession)  with default configurations.
+- You can run PySpark commands interactively, which is useful for testing and debugging Spark code.
+
+Paste this code in the interactive PySpark shell:
+
+```python
+import pyspark
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder \
+    .master("local[*]") \
+    .appName('test') \
+    .getOrCreate()
+
+df = spark.read \
+    .option("header", "true") \
+    .csv('fhvhv_tripdata_2021-01.csv')
+
+df.show()
+```
+
+You should look something like this:
+
+<br>
+
+![b4](images/b4.jpg)
+
+<br><br>
+
+
+If we check the Spark cluster UI and refresh it, we see new entries appear. Each time we execute an 
+operation, a new job is logged. If I run the command again, another job will appear in the UI.
+
+<br>
+
+![b5](images/b5.jpg)
+
+<br><br>
+
+Now, instead of using show(), I will use df.head(5), which returns the first five records.
+
+<br>
+
+![b6](images/b6.jpg)
+
+<br><br>
+
+We can see that Spark is reading the data as strings instead of timestamps or numbers. Unlike Pandas, 
+Spark does not infer data types automatically, so everything is treated as a string by default.
+
+We can confirm this by checking the schema. It’s not well formatted, but we can see that all fields are
+classified as string type. I will use df.schema:
+
+<br>
+
+![b7](images/b7.jpg)
+
+<br><br>
