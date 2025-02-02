@@ -4,6 +4,7 @@
 
 - [Introduction to Batch Processing](#introduction-to-batch-processing)
 - [Introduction to Spark](#introduction-to-spark)
+- [Installation](#installation)
 
 
 
@@ -175,3 +176,28 @@ Another common workflow involves utilizing a trained machine learning model. For
 This is a typical scenario where multiple components are involved, with most preprocessing occurring in
  the data lake. Therefore, my recommendation is to use SQL whenever possible, but for tasks that go 
  beyond SQL's capabilities, Spark is the better choice.
+
+
+ ## Installation
+
+ _[Video source](https://www.youtube.com/watch?v=hqUbB9c8sKg)_
+
+ Install instructions for:
+ 
+- [`Linux`](install/linux.md)
+- [`MacOs`](install/macos.md)
+- [`Windows`](install/windows.md)
+
+If it was installed correctly and after configuring JAVA_HOME and SPARK_HOME, in the terminal (ubuntu WSL2 in this case) run this command:
+
+```
+spark-shell
+```
+
+And you should see something like this:
+
+<br>
+
+![b3](images/b3.jpg)
+
+<br><br>
