@@ -242,7 +242,7 @@ df.show()
 and run test.py in the ubuntu terminal:
 
 ```
-python2 test.py
+python3 test.py
 ```
 
 you should look something like this:
