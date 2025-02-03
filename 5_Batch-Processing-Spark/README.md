@@ -331,7 +331,7 @@ df = spark.read \
 df.show()
 ```
 
-Run pyspark in the terminal
+**Run pyspark in the terminal**
 
 When you type pyspark in the Ubuntu terminal, it launches an interactive PySpark shell. This shell 
 allows you to interact with Apache Spark using Python. 
@@ -345,14 +345,9 @@ Paste this code in the interactive PySpark shell:
 import pyspark
 from pyspark.sql import SparkSession
 
-spark = SparkSession.builder \
-    .master("local[*]") \
-    .appName('test') \
-    .getOrCreate()
+spark = SparkSession.builder.master("local[*]").appName('test').getOrCreate()
 
-df = spark.read \
-    .option("header", "true") \
-    .csv('fhvhv_tripdata_2021-01.csv')
+df = spark.read.option("header", "true").csv('fhvhv_tripdata_2021-01.csv')
 
 df.show()
 ```
@@ -392,5 +387,98 @@ classified as string type. I will use df.schema:
 <br>
 
 ![b7](images/b7.jpg)
+
+<br><br>
+
+**Defining the schema**
+
+To properly define a schema for our DataFrame, I will format the inferred schema in Visual Studio Code. Spark schemas use StructType, which is a Scala construct, so I need to convert it into Python code.
+
+```python
+
+schema = types.StructType([
+    types.StructField('hvfhs_license_num', types.StringType(), True),
+    types.StructField('dispatching_base_num', types.StringType(), True),
+    types.StructField('pickup_datetime', types.TimestampType(), True),
+    types.StructField('dropoff_datetime', types.TimestampType(), True),
+    types.StructField('PULocationID', types.IntegerType(), True),
+    types.StructField('DOLocationID', types.IntegerType(), True),
+    types.StructField('SR_Flag', types.StringType(), True)
+])
+```
+
+After defining the schema, I need to specify it when reading the CSV file. Adding the schema parameter ensures that Spark correctly interprets the data types. 
+
+```python
+
+df = spark.read \
+    .option("header", "true") \
+    .schema(schema) \
+    .csv('fhvhv_tripdata_2021-01.csv')
+```    
+
+Running df.head(10) on the loaded data confirms that timestamps are parsed correctly, location IDs are treated as numbers without quotes, and SR_Flag remains a nullable string:
+
+<br>
+
+![b8](images/b8.jpg)
+
+<br><br>
+
+This is how we define and apply a schema in Spark.
+
+**Partitions**
+
+So here we have one huge CSV file, and actually, having just one file is not good. I want to tell you a bit about the internals of Spark. We will cover that in more detail later.
+
+Imagine that this is our Spark cluster, and inside the Spark cluster, we have a bunch of executors. These are computers that are actually doing computational work. They pull the files from our data lake and perform computations.
+
+If we have only one large file, only one executor can process it, while the others remain idle. This is inefficient, so we want multiple smaller files instead of one large file.
+
+<br>
+
+![b9](images/b9.jpg)
+
+<br><br>
+
+Now, let's say we have fewer executors than files. Each file will be assigned to an executor. One executor will get one file, another will get another file, and so on. When an executor finishes processing its file, it will pick the next available one. This way, all files will eventually be processed.
+
+<br>
+
+![b10](images/b10.jpg)
+
+<br><br>
+
+In Spark, these subdivisions are called partitions. Instead of having one large partition, which only one executor can handle, we want multiple partitions. If we take one large file and split it into, say, 24 partitions, each executor can process a smaller part of the file in parallel.
+
+To achieve this, Spark has a special command called df.repartition(), which takes the number of partitions as a parameter. When we read a file into a DataFrame, Spark creates as many partitions as there are files in the folder.
+
+Executing df.repartition(24) does not immediately change the DataFrame because repartitioning is lazy. The change is applied only when we perform an action, such as saving the DataFrame.
+
+**Saves as Parquet file**
+
+Now, let's write the DataFrame to Parquet:
+
+```python
+
+df = df.repartition(24)
+df.write.parquet("for_hire_vehicles/2021.01")
+```
+
+When we execute this, Spark starts processing. We can see the job in the Spark UI under "Parquet." Clicking on it reveals the partitioning process. The operation is quite expensive, so it takes some time to complete.
+
+<br>
+
+![b11](images/b11.jpg)
+
+<br><br>
+
+Now, if I look at this folder, I can see that there's a bunch of files. Each file follows a naming pattern: the part number of the partition, a long name, snappy (which is the compression algorithm used in Parquet), and then .parquet.
+
+We see multiple files—there should be 24, as we requested, or 26, because we also have a SUCCESS file. This SUCCESS file is empty (size zero) and simply indicates that the job finished successfully. If this file is missing, we can't be sure that the files are complete or not corrupted. Once the flag is there, we know the job has finished. This acts like a commit message at the end of a Spark job.
+
+<br>
+
+![b12](images/b12.jpg)
 
 <br><br>
