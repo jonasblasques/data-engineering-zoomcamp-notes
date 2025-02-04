@@ -7,6 +7,7 @@
 - [Installation](#installation)
 - [Spark SQL and DataFrames](#spark-sql-and-dataframes)
     - [First Look at PySpark](#first-look-at-pyspark)
+    - [Spark DataFrames](#spark-dataframes)    
 
 
 
@@ -482,3 +483,236 @@ We see multiple files—there should be 24, as we requested, or 26, because we a
 ![b12](images/b12.jpg)
 
 <br><br>
+
+### Spark DataFrames
+
+ _[Video source](https://www.youtube.com/watch?v=ti3aC1m3rE8)_
+
+In this section, we will talk more about Spark DataFrames. We already saw DataFrames, these are what we
+call df, where df is short for DataFrame.Now, I want to use the Parquet files that we created in the 
+previous section. I will read them using:
+
+```python
+df = spark.read.parquet('fhvhv/2021/01/')
+```
+
+Since Parquet files contain schema information, they remember the types for each column. We don’t need to specify the schema 
+explicitly because it is already stored in the file. We can print the schema using:
+
+```python
+
+df.printSchema()
+```
+
+You should look something like this:
+
+```
+root
+ |-- hvfhs_license_num: string (nullable = true)
+ |-- dispatching_base_num: string (nullable = true)
+ |-- pickup_datetime: timestamp (nullable = true)
+ |-- dropoff_datetime: timestamp (nullable = true)
+ |-- PULocationID: integer (nullable = true)
+ |-- DOLocationID: integer (nullable = true)
+ |-- SR_Flag: string (nullable = true)
+``` 
+
+One advantage of Parquet files is that they are smaller. They store the schema and use more efficient 
+ways of compressing the data. For example, instead of using multiple bytes like a CSV file with plain
+text, Parquet can store an integer in just four bytes per value.
+
+**Select and filter**
+
+So we have this DataFrame. What can we do with it? We can perform the usual operations we do with Pandas.
+If we only want to select a few columns, we use dataframe.select(), providing a list of the columns we 
+want. For example, if we want to select pickup_datetime, off_datetime, pickup_location_id, and 
+dropoff_location_id, we do it like this:
+
+```python
+df.select("pickup_datetime", "dropoff_datetime", "PULocationID", "DOLocationID")
+
+```
+
+We can also filter data. For example, we can use a filter statement to get only the records where a 
+specific license number matches a given value:
+
+```python
+df.select("pickup_datetime", "dropoff_datetime", "PULocationID", "DOLocationID")\
+    .filter(df.hvfhs_license_num == 'HV003')
+
+```
+
+At first, when executing this, nothing appears to happen. However, this is because Spark operates 
+lazily. The computation isn’t executed immediately.
+
+But now if we add show(), then spark will do something. Lets execute this:
+
+```python
+df.select("pickup_datetime", "dropoff_datetime", "PULocationID", "DOLocationID") \
+    .filter(df.hvfhs_license_num == 'HV0003') \
+    .show()
+
+```
+
+And you should see something like this:
+
+<br>
+
+![b13](images/b13.jpg)
+
+<br><br>
+
+In Spark, there is a distinction between operations that are executed right away and those that are 
+deferred. These are called actions and transformations.
+
+**Actions and Transformations**
+
+Transformations are operations that do not execute right away. These operations create a sequence of transformations that Spark tracks internally. Spark does not execute anything immediately. Instead, it builds a logical plan of transformations. For example:
+
+- Selecting columns
+- Filtering data
+- Applying functions to each column
+
+However, when we call an action like .show(), Spark evaluates the entire transformation sequence and executes the computation. At this point, Spark processes all previous transformations and returns the result. Actions are eager and trigger execution. Examples of actions include:
+
+- show(): Displays the DataFrame.
+- take(5): Retrieves the first five records. Similar to head()
+- write.csv() or write.parquet() – Triggers execution to write results to storage.
+
+**Built-in functions available in Spark**
+
+You might be wondering if this is the same as using SQL
+
+```python
+df.select("pickup_datetime", "dropoff_datetime", "PULocationID", "DOLocationID") \
+    .filter(df.hvfhs_license_num == 'HV0003') 
+
+```
+
+In SQL, we can simply write:
+
+```sql
+
+SELECT pickup_datetime, dropoff_datetime, PULocationID, DOLocationID
+FROM df
+WHERE hvfhs_license_num == HV0003;
+```
+
+So why use Spark instead? Spark is more flexible and provides additional functionality, such as User-Defined Functions (UDFs).
+
+Before diving into UDFs, let's first look at the built-in functions available in Spark.
+
+In Spark, we have pyspark.sql.functions, a collection of functions that Spark provides. To use them, we typically import them as follows:
+
+```python
+from pyspark.sql import functions as F
+```
+
+Using F, we can explore available functions by typing F. and pressing Tab. There are many built-in functions.
+
+One useful function is to_date(), which extracts only the date from a datetime column, discarding hours, minutes, and seconds.
+
+We can also use withColumn() to create new columns. For example:
+
+```python
+
+df \
+    .withColumn("pickup_date", F.to_date(df.pickup_datetime)) \
+    .withColumn("dropoff_date", F.to_date(df.dropoff_datetime)) \
+    .show()    
+```
+
+This code performs the following operations:
+
+- Creates a new column named "pickup_date". Converts the "pickup_datetime" column into a date format using F.to_date(). 
+
+- Creates another new column named "dropoff_date". Converts the "dropoff_datetime" column to a date format, similar to the previous step.
+
+And you should see something like this:
+
+<br>
+
+![b14](images/b14.jpg)
+
+<br><br>
+
+If we use a column name that already exists, Spark overwrites it. 
+
+Finally, we can add a select():
+
+```python
+
+df \
+    .withColumn("pickup_date", F.to_date(df.pickup_datetime)) \
+    .withColumn("dropoff_date", F.to_date(df.dropoff_datetime)) \
+    .select("pickup_date","dropoff_date","PULocationID","DOLocationID") \
+    .show()    
+```
+
+And you should see something like this:
+
+<br>
+
+![b15](images/b15.jpg)
+
+<br><br>
+
+**User-Defined Functions**
+
+Let's say we have a function that performs complex logic, something not easy to express with SQL. I'll call this function crazy_stuff.
+
+For example, suppose it processes a column called dispatching_base_number. The logic could be:
+
+- Extracts the numeric part of the string by removing the first character (base_num[1:]) and converts it to an integer (num).
+
+- If the number is divisible by 7, return an ID starting with "S" followed by the number in hexadecimal format.
+- If the number is divisible by 3, return an ID starting with "A" followed by the number in hexadecimal format.
+- Otherwise, return an ID starting with "E" followed by the number in hexadecimal format.
+
+```python
+
+def crazy_stuff(base_num):
+
+    num = int(base_num[1:])
+    if num % 7 == 0:
+        return f's/{num:03x}'
+    elif num % 3 == 0:
+        return f'a/{num:03x}'
+    else:
+        return f'e/{num:03x}'
+```        
+
+Expressing this in SQL would be cumbersome, especially as the logic grows more complex with multiple conditions. The advantage of implementing this logic in Python is that it can live in a separate module and it can be unit-tested.
+
+Now, to turn this Python function into a User-Defined Function (UDF) in PySpark:
+
+```python
+
+crazy_stuff_udf = F.udf(crazy_stuff, returnType=types.StringType())
+```
+
+Now we can use this udf:
+
+```python
+
+df \
+    .withColumn('pickup_date', F.to_date(df.pickup_datetime)) \
+    .withColumn('dropoff_date', F.to_date(df.dropoff_datetime)) \
+    .withColumn('base_id', crazy_stuff_udf(df.dispatching_base_num)) \
+    .select('base_id', 'pickup_date', 'dropoff_date', 'PULocationID', 'DOLocationID') \
+    .show()
+```    
+
+And you should see something like this:
+
+<br>
+
+![b16](images/b16.jpg)
+
+<br><br>
+
+Although this example is artificial, some business rules can be quite complex. SQL queries with multiple CASE statements can become unreadable. While SQL-based tools like dbt allow testing, Python makes it much easier.
+
+This is how you perform transformations in PySpark using DataFrames. While many operations resemble SQL, the ability to define custom UDFs gives Spark an edge.
+
+In the next section, we'll explore how to use SQL in Spark, but the key takeaway is that Spark allows you to combine SQL with complex Python logic, offering the best of both worlds. This flexibility is especially useful in machine learning workflows, where logic often resembles this crazy_stuff function.
