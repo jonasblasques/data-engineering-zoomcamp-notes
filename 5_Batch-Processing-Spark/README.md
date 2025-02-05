@@ -729,6 +729,8 @@ especially useful in machine learning workflows, where logic often resembles thi
 
  _[Video source](https://www.youtube.com/watch?v=CI3P4tAtru4)_
 
+**1: Downloading the data** 
+
 We are going to use this bash script to download Yellow and Green Taxi Data. We save the code in a file 
 called script.sh
 
@@ -764,6 +766,8 @@ Then we run the script in the terminal, for example :
 ```
 bash script.sh yellow 2020
 ```
+
+**2: Reading CSVs and converting to parquet**
 
 To read the csv and convert them to parquet, we will use this script, for example for green taxi data:
 
@@ -836,6 +840,8 @@ Finally, we can run the script for yellow taxi data:
 ```
 spark-submit yellow_taxi_data.py
 ```
+
+**3: Reading parquet with pyspark**
 
 Now open a new PySpark Shell:
 
