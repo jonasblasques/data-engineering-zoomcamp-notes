@@ -9,7 +9,7 @@
     - [First Look at PySpark](#first-look-at-pyspark)
     - [Spark DataFrames](#spark-dataframes)    
     - [Preparing Taxi Data](#preparing-taxi-data)  
-
+    - [SQL with Spark](#sql-with-spark)  
 
 
 
@@ -876,3 +876,80 @@ You should see something like this:
 
 <br>    
 
+
+### SQL with Spark
+
+In this section, we will talk about Spark SQL. What we will do is take the query from Week Four about revenue calculation and use Spark to execute it. We will use the data prepared in the previous section.
+
+**Loading the data**
+
+We want to load the green and yellow taxi datasets, which contain taxi trip data for 2020 and 2021. We will use spark.read.parquet since the data is already stored in Parquet format. To load both 2020 and 2021 datasets, we can use a wildcard (*). Since the data has a nested structure (organized by year and month),For example:
+
+```python
+df_green = spark.read.parquet('data/pq/green/*/*')
+
+df_yellow = spark.read.parquet('data/pq/yellow/*/*')
+```
+
+**Finding common columns**
+
+To unify the data, we will select only the common columns between both datasets. 
+
+First, we will rename the pickup and drop-off time columns in each dataset so they match:
+
+```python
+
+df_green = df_green \
+    .withColumnRenamed('lpep_pickup_datetime', 'pickup_datetime') \
+    .withColumnRenamed('lpep_dropoff_datetime', 'dropoff_datetime')
+
+df_yellow = df_yellow \
+    .withColumnRenamed('tpep_pickup_datetime', 'pickup_datetime') \
+    .withColumnRenamed('tpep_dropoff_datetime', 'dropoff_datetime')    
+```    
+
+Then we will find the common columns:
+
+```python
+common_colums = []
+
+yellow_columns = set(df_yellow.columns)
+
+for col in df_green.columns:
+    if col in yellow_columns:
+        common_colums.append(col)
+```        
+
+**Combining yellow and green data**
+
+Next, we will add a new column, service_type, to distinguish records from green and yellow taxi data:
+
+```python
+
+from pyspark.sql import functions as F
+
+df_green_sel = df_green \
+    .select(common_colums) \
+    .withColumn('service_type', F.lit('green'))
+
+df_yellow_sel = df_yellow \
+    .select(common_colums) \
+    .withColumn('service_type', F.lit('yellow'))
+```
+
+Now, we can combine both datasets using unionAll:
+
+```python
+
+df_trips_data = df_green_sel.unionAll(df_yellow_sel)
+
+df_trips_data.groupBy('service_type').count().show()
+```
+
+You should see something like this:
+
+<br>
+
+![b19](images/b19.jpg)
+
+<br>  
