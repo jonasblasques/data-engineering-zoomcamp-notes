@@ -8,6 +8,8 @@
 - [Spark SQL and DataFrames](#spark-sql-and-dataframes)
     - [First Look at PySpark](#first-look-at-pyspark)
     - [Spark DataFrames](#spark-dataframes)    
+    - [Preparing Taxi Data](#preparing-taxi-data)  
+
 
 
 
@@ -711,8 +713,126 @@ And you should see something like this:
 
 <br><br>
 
-Although this example is artificial, some business rules can be quite complex. SQL queries with multiple CASE statements can become unreadable. While SQL-based tools like dbt allow testing, Python makes it much easier.
+Although this example is artificial, some business rules can be quite complex. SQL queries with multiple
+CASE statements can become unreadable. While SQL-based tools like dbt allow testing, Python makes it 
+much easier.
 
-This is how you perform transformations in PySpark using DataFrames. While many operations resemble SQL, the ability to define custom UDFs gives Spark an edge.
+This is how you perform transformations in PySpark using DataFrames. While many operations resemble SQL,
+the ability to define custom UDFs gives Spark an edge.
 
-In the next section, we'll explore how to use SQL in Spark, but the key takeaway is that Spark allows you to combine SQL with complex Python logic, offering the best of both worlds. This flexibility is especially useful in machine learning workflows, where logic often resembles this crazy_stuff function.
+In the next section, we'll explore how to use SQL in Spark, but the key takeaway is that Spark allows
+you to combine SQL with complex Python logic, offering the best of both worlds. This flexibility is 
+especially useful in machine learning workflows, where logic often resembles this crazy_stuff function.
+
+
+### Preparing Taxi Data
+
+ _[Video source](https://www.youtube.com/watch?v=CI3P4tAtru4)_
+
+We are going to use this bash script to download Yellow and Green Taxi Data. We save the code in a file 
+called script.sh
+
+```bash
+set -e
+
+TAXI_TYPE=$1 # "yellow"
+YEAR=$2 # 2020
+
+URL_PREFIX="https://github.com/DataTalksClub/nyc-tlc-data/releases/download"
+
+for MONTH in {1..12}; do
+  FMONTH=`printf "%02d" ${MONTH}`
+
+  URL="${URL_PREFIX}/${TAXI_TYPE}/${TAXI_TYPE}_tripdata_${YEAR}-${FMONTH}.csv.gz"
+
+  LOCAL_PREFIX="data/raw/${TAXI_TYPE}/${YEAR}/${FMONTH}"
+  LOCAL_FILE="${TAXI_TYPE}_tripdata_${YEAR}_${FMONTH}.csv.gz"
+  LOCAL_PATH="${LOCAL_PREFIX}/${LOCAL_FILE}"
+
+  echo "downloading ${URL} to ${LOCAL_PATH}"
+  mkdir -p ${LOCAL_PREFIX}
+  wget ${URL} -O ${LOCAL_PATH}
+
+done
+```
+
+The script automates the process of downloading NYC taxi trip data for a given taxi type and year, 
+saving each month’s data in an organized folder structure.
+
+Then we run the script in the terminal, for example :
+
+```
+bash script.sh yellow 2020
+```
+
+To read the csv and convert them to parquet, we will use this script, for example for green taxi data:
+
+```python
+
+import pyspark
+from pyspark.sql import SparkSession
+from pyspark.sql import types
+
+spark = SparkSession.builder.master("local[*]").appName('test').getOrCreate()
+
+green_schema = types.StructType([
+    types.StructField("VendorID", types.IntegerType(), True),
+    types.StructField("lpep_pickup_datetime", types.TimestampType(), True),
+    types.StructField("lpep_dropoff_datetime", types.TimestampType(), True),
+    types.StructField("store_and_fwd_flag", types.StringType(), True),
+    types.StructField("RatecodeID", types.IntegerType(), True),
+    types.StructField("PULocationID", types.IntegerType(), True),
+    types.StructField("DOLocationID", types.IntegerType(), True),
+    types.StructField("passenger_count", types.IntegerType(), True),
+    types.StructField("trip_distance", types.DoubleType(), True),
+    types.StructField("fare_amount", types.DoubleType(), True),
+    types.StructField("extra", types.DoubleType(), True),
+    types.StructField("mta_tax", types.DoubleType(), True),
+    types.StructField("tip_amount", types.DoubleType(), True),
+    types.StructField("tolls_amount", types.DoubleType(), True),
+    types.StructField("ehail_fee", types.DoubleType(), True),
+    types.StructField("improvement_surcharge", types.DoubleType(), True),
+    types.StructField("total_amount", types.DoubleType(), True),
+    types.StructField("payment_type", types.IntegerType(), True),
+    types.StructField("trip_type", types.IntegerType(), True),
+    types.StructField("congestion_surcharge", types.DoubleType(), True)
+])
+
+
+years = [2020,2021]
+
+for year in years:
+    for month in range(1, 13):
+        print(f'processing data for {year}/{month}')
+
+        input_path = f'data/raw/green/{year}/{month:02d}/'
+        output_path = f'data/pq/green/{year}/{month:02d}/'
+
+        df_green = spark.read.option("header", "true").schema(green_schema).csv(input_path)
+
+        df_green.repartition(4).write.parquet(output_path)
+```
+
+This script uses PySpark to process and transform raw CSV files containing green taxi trip data into Parquet format. It creates a StructType schema (green_schema) that defines the expected structure of the dataset, including column names and data types. Loop through Years and Months. Constructs input (input_path) and output (output_path) file paths.
+
+Reads the CSV file from the input_path, applying the green_schema and writes the transformed data to Parquet format in output_path
+
+We can run the script in the /opt/spark directory, for example :
+
+```
+spark-submit green_taxi_data.py
+```
+
+After a couple of minutes, you should see something like this:
+
+<br>
+
+![b17](images/b17.jpg)
+
+<br>
+
+Finally, we can run the script for yellow taxi data:
+
+```
+spark-submit yellow_taxi_data.py
+```
