@@ -336,6 +336,11 @@ df.show()
 
 **Run pyspark in the terminal**
 
+> [!NOTE]  
+> Instead of using a jupyter notebook, I'm going to use the ubuntu terminal and the pyspark interactive > shell
+
+---
+
 When you type pyspark in the Ubuntu terminal, it launches an interactive PySpark shell. This shell 
 allows you to interact with Apache Spark using Python. 
 
@@ -768,6 +773,9 @@ bash script.sh yellow 2020
 ```
 
 **2: Reading CSVs and converting to parquet**
+
+Green taxi code: [`green_taxi_data.py`](code/green_taxi_data.py)
+Yellow taxi code: [`yellow_taxi_data.py`](code/yellow_taxi_data.py)
 
 To read the csv and convert them to parquet, we will use this script, for example for green taxi data:
 
