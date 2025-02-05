@@ -879,9 +879,11 @@ You should see something like this:
 
 ### SQL with Spark
 
-In this section, we will talk about Spark SQL. What we will do is take the query from Week Four about revenue calculation and use Spark to execute it. We will use the data prepared in the previous section.
+ _[Video source](https://www.youtube.com/watch?v=uAlp2VuZZPY)_
 
-**Loading the data**
+In this section, we will talk about Spark SQL. What we will do is take the query from module 4 about revenue calculation and use Spark to execute it. We will use the data prepared in the previous section.
+
+**1: Loading the data**
 
 We want to load the green and yellow taxi datasets, which contain taxi trip data for 2020 and 2021. We will use spark.read.parquet since the data is already stored in Parquet format. To load both 2020 and 2021 datasets, we can use a wildcard (*). Since the data has a nested structure (organized by year and month),For example:
 
@@ -891,7 +893,7 @@ df_green = spark.read.parquet('data/pq/green/*/*')
 df_yellow = spark.read.parquet('data/pq/yellow/*/*')
 ```
 
-**Finding common columns**
+**2: Finding common columns**
 
 To unify the data, we will select only the common columns between both datasets. 
 
@@ -920,7 +922,7 @@ for col in df_green.columns:
         common_colums.append(col)
 ```        
 
-**Combining yellow and green data**
+**3: Combining yellow and green data**
 
 Next, we will add a new column, service_type, to distinguish records from green and yellow taxi data:
 
@@ -943,6 +945,12 @@ Now, we can combine both datasets using unionAll:
 
 df_trips_data = df_green_sel.unionAll(df_yellow_sel)
 
+```
+
+To verify the merge, we can perform a simple groupBy operation:
+
+```python
+
 df_trips_data.groupBy('service_type').count().show()
 ```
 
@@ -953,3 +961,91 @@ You should see something like this:
 ![b19](images/b19.jpg)
 
 <br>  
+
+
+**4: Querying with SQL**
+
+Now we can see how to use SQL for querying this data. First, we need to tell Spark that this DataFrame is a table. For that, we use:
+
+```python
+
+df_trips_data.registerTempTable('trips_data')
+```
+
+For example, let's count records by service type:
+
+```python
+
+spark.sql("""
+SELECT
+    service_type,
+    count(1)
+FROM
+    trips_data
+GROUP BY 
+    service_type
+""").show()
+```
+
+The result should be exactly the same as we had before:
+
+<br>
+
+![b20](images/b20.jpg)
+
+<br>  
+
+Now let's execute this query from module 4:
+
+```python
+
+df_result = spark.sql("""
+SELECT 
+    -- Reveneue grouping 
+    PULocationID AS revenue_zone,
+    date_trunc('month', pickup_datetime) AS revenue_month, 
+    service_type, 
+
+    -- Revenue calculation 
+    SUM(fare_amount) AS revenue_monthly_fare,
+    SUM(extra) AS revenue_monthly_extra,
+    SUM(mta_tax) AS revenue_monthly_mta_tax,
+    SUM(tip_amount) AS revenue_monthly_tip_amount,
+    SUM(tolls_amount) AS revenue_monthly_tolls_amount,
+    SUM(improvement_surcharge) AS revenue_monthly_improvement_surcharge,
+    SUM(total_amount) AS revenue_monthly_total_amount,
+    SUM(congestion_surcharge) AS revenue_monthly_congestion_surcharge,
+
+    -- Additional calculations
+    AVG(passenger_count) AS avg_montly_passenger_count,
+    AVG(trip_distance) AS avg_montly_trip_distance
+FROM
+    trips_data
+GROUP BY
+    1, 2, 3
+""")
+```
+
+We can show the results with:
+
+```python
+
+df_result \
+    .select('revenue_zone', 'revenue_month', 'service_type', 'revenue_monthly_total_amount', 'avg_montly_passenger_count') \
+    .show()
+```    
+
+<br>
+
+![b21](images/b21.jpg)
+
+<br>  
+
+**5: Saving the result**
+
+Finally we can save the result:
+
+```python
+
+df_result.coalesce(1).write.parquet('data/report/revenue/', mode='overwrite')
+```
