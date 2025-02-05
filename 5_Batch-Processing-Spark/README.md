@@ -836,3 +836,29 @@ Finally, we can run the script for yellow taxi data:
 ```
 spark-submit yellow_taxi_data.py
 ```
+
+Now open a new PySpark Shell:
+
+```
+pyspark
+```
+
+and type for example:
+
+```python
+
+df_green = spark.read.parquet('data/pq/green/*/*')
+
+df_green \
+    .select('lpep_pickup_datetime', 'lpep_dropoff_datetime', 'PULocationID', 'DOLocationID', 'trip_distance') \
+    .show()
+```    
+
+You should see something like this:
+
+<br>
+
+![b18](images/b18.jpg)
+
+<br>    
+
