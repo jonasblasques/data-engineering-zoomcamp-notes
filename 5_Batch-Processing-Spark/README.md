@@ -777,7 +777,7 @@ bash script.sh yellow 2020
 - Green taxi code: [`green_taxi_data.py`](code/green_taxi_data.py)
 - Yellow taxi code: [`yellow_taxi_data.py`](code/yellow_taxi_data.py)
 
-To read the csv and convert them to parquet, we will use this script, for example for green taxi data:
+To read the csv and convert them to parquet, we will use "green_taxi_data.py" script:
 
 ```python
 
