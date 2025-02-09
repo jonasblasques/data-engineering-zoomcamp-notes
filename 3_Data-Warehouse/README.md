@@ -12,6 +12,7 @@
 - [Creating a clustered table](#creating-a-clustered-table)
 - [Partitioning vs Clustering](#partitioning-vs-clustering)
 - [Best practices](#best-practices)
+- [Internals of BigQuery](#internals-of-bigquery)
 
 
 
@@ -554,3 +555,21 @@ they can actually increase your cost drastically.
 
 
 * Place the table with the _largest_ number of rows first, followed by the table with the _fewest_ rows, and then place the remaining tables by decreasing size. This is due to how BigQuery works internally: the first table will be distributed evenly and the second table will be broadcasted to all the nodes. 
+
+
+## Internals of BigQuery
+
+**Column-oriented vs record-oriented storage**
+
+Traditional methods for tabular data storage are record-oriented (also known as row-oriented). Data is read sequentially row by row and then the columns are accessed per row. An example of this is a CSV file: each new line in the file is a record and all the info for that specific record is contained within that line.
+
+BigQuery uses a columnar storage format. Data is stored according to the columns of the table rather than the rows. This is beneficial when dealing with massive amounts of data because it allows us to discard right away the columns we're not interested in when performing queries, thus reducing the amount of processed data.
+
+<br>
+
+![dw20](images/dw20.jpg)
+<br>
+
+When performing queries, Dremel modifies them in order to create an execution tree: parts of the query are assigned to different mixers which in turn assign even smaller parts to different slots which will access Colossus and retrieve the data.
+
+The columnar storage format is perfect for this workflow as it allows very fast data retrieval from colossus by multiple workers, which then perform any needed computation on the retrieved datapoints and return them to the mixers, which will perform any necessary aggregation before returning that data to the root server, which will compose the final output of the query.
