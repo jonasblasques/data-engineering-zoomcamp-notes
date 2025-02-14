@@ -10,6 +10,8 @@
     - [Spark DataFrames](#spark-dataframes)    
     - [Preparing Taxi Data](#preparing-taxi-data)  
     - [SQL with Spark](#sql-with-spark)  
+- [Spark Internals](#spark-internals)    
+    - [Anatomy of a Spark Cluster](#anatomy-of-a-spark-cluster)
 
 
 
@@ -1049,3 +1051,57 @@ Finally we can save the result:
 
 df_result.coalesce(1).write.parquet('data/report/revenue/', mode='overwrite')
 ```
+
+
+## Spark Internals
+
+### Anatomy of a Spark Cluster
+
+_[Video source](https://www.youtube.com/watch?v=68CipcZt7ZA)_
+
+So far, we've been running everything locally. In this setup, we have a local environment where the executor, responsible for running Spark jobs, operates on a single machine. This is known as a local setup.
+
+When configuring a Spark context, we specify the master node. For example, we set:
+
+```python
+
+spark = SparkSession.builder.master("local[*]").appName('test').getOrCreate()
+```
+
+This creates a local Spark cluster. However, in this section, we will discuss how Spark works in a real distributed cluster setup and introduce some concepts we haven’t covered yet.
+
+**Submitting Jobs to a Spark Cluster**
+
+Typically, you write a Spark script in Python, Scala, or Java. This script can be executed from your laptop or submitted through a scheduler like Airflow. Let’s consider the case where you submit a job from your laptop.
+
+Your script contains Spark code, which needs to be executed on a Spark cluster. In a cluster setup, there is a central machine called the Spark Master, responsible for coordinating jobs. When you submit a Spark job, it is sent to the Spark Master using the ```spark-submit``` command.
+
+The Spark Master has a web UI, usually accessible on port ```4040```, which allows you to monitor job execution. Once a job is submitted, the Spark Master assigns tasks to executors, which are the machines that perform the actual computation.
+
+<br>
+
+![b22](images/b22.jpg)
+
+<br>  
+
+**How Executors Process Data**
+
+Executors first pull data, process it, and then save the results. Imagine a Spark DataFrame consisting of multiple partitions—each partition corresponds to a file (e.g., Parquet files).
+
+When a job is submitted, the Spark Master assigns partitions to different executors:
+
+- Each executor processes its assigned partition.
+
+- If an executor fails, the Spark Master reassigns its tasks to another executor.
+
+Previously, Hadoop’s HDFS was widely used for storing data. In HDFS, files are distributed across multiple machines with redundancy, ensuring data availability even if some nodes fail.
+
+However, with cloud-based storage solutions like AWS S3 and Google Cloud Storage, HDFS has become less popular. Since cloud storage and Spark clusters are usually located in the same data center, pulling data from storage is fast, making HDFS less necessary.
+
+To summarize, a Spark cluster consists of:
+
+- Driver: The entity that submits a job. It could be your laptop, an Airflow task, or another system running spark-submit.
+
+- Master: Coordinates job execution, assigns tasks to executors, and monitors their status.
+
+- Executors: Perform actual computations, processing partitions of data and writing results back to storage.
