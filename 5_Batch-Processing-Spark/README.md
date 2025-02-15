@@ -12,6 +12,9 @@
     - [SQL with Spark](#sql-with-spark)  
 - [Spark Internals](#spark-internals)    
     - [Anatomy of a Spark Cluster](#anatomy-of-a-spark-cluster)
+    - [GroupBy in Spark](#groupby-in-spark)    
+
+    
 
 
 
@@ -1105,3 +1108,52 @@ To summarize, a Spark cluster consists of:
 - Master: Coordinates job execution, assigns tasks to executors, and monitors their status.
 
 - Executors: Perform actual computations, processing partitions of data and writing results back to storage.
+
+
+### GroupBy in Spark
+
+In this section, we will dive into the ```GROUP BY``` operation and we will show how Spark implements it. A few 
+sections ago, we executed a query that grouped data by revenue zone, revenue month, and service type 
+while performing various calculations. Let's take a closer look at that query and explain 
+how it works internally in Spark.
+
+```sql
+df_green_revenue = spark.sql("""
+SELECT 
+    date_trunc('hour', lpep_pickup_datetime) AS hour, 
+    PULocationID AS zone,
+
+    SUM(total_amount) AS amount,
+    COUNT(1) AS number_records
+FROM
+    green
+WHERE
+    lpep_pickup_datetime >= '2020-01-01 00:00:00'
+GROUP BY
+    1, 2  
+""")
+```
+
+This query will output the total revenue and amount of trips per hour per zone. 
+
+**Understanding Spark’s GROUP BY Execution**
+
+Let’s assume we have multiple partitions. Each executor processes one partition at a time.
+
+1. Initial Grouping: Each executor groups data within its partition by hour (HOUR) and zone (ZONE).
+
+2. Intermediate Results: After grouping, each partition produces temporary results. At this point, 
+each partition has grouped its own data, but Spark needs to combine these results into a final grouped
+ dataset.
+
+3. Reshuffling and Merging: The next step is reshuffling, where Spark redistributes records so that
+ all data with the same key (HOUR, ZONE) ends up in the same partition. Internally, this reshuffling 
+ is implemented using External Merge Sort, which sorts records across distributed partitions. 
+ Once reshuffled, Spark performs a final aggregation within each partition
+
+
+ <br>
+
+![b23](images/b23.jpg)
+
+<br>  
