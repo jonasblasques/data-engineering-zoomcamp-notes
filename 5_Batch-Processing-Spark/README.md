@@ -13,7 +13,7 @@
 - [Spark Internals](#spark-internals)    
     - [Anatomy of a Spark Cluster](#anatomy-of-a-spark-cluster)
     - [GroupBy in Spark](#groupby-in-spark)    
-
+- [Running Spark in the Cloud](#running-spark-in-the-cloud)   
     
 
 
@@ -1157,3 +1157,164 @@ each partition has grouped its own data, but Spark needs to combine these result
 ![b23](images/b23.jpg)
 
 <br>  
+
+
+## Running Spark in the Cloud
+
+### Connecting to Google Cloud Storage
+
+_[Video source](https://www.youtube.com/watch?v=Yyz293hBVcQ)_
+
+To upload the pq/ folder, make sure to use the following command in spark/data directory:
+
+```
+gsutil -m cp -r pq/ gs://your-bucket-name/pq   
+```
+
+- gsutil: is a command-line tool for interacting with Google Cloud Storage and manage storage bucket
+
+- -r: (recursive) ensures all files in the folder are uploaded
+
+- -m: (multi-threaded) enables parallel uploads for efficiency
+
+- your-bucket-name: Name of the bucket. Make sure to use your bucket name
+
+After a few minutes, you can check GCP:
+
+ <br>
+
+![b24](images/b24.jpg)
+
+<br>  
+
+**Downloading the Cloud Storage Connector for Hadoop**
+
+To enable Spark to read from Google Cloud Storage, we need to download the Cloud Storage Connector for
+Hadoop. Even though we're not directly using Hadoop, Spark requires this library to establish a 
+connection.
+
+We need the Cloud Storage Connector for Hadoop 3. The required library is hosted on Google Cloud 
+Storage, so we can download it using gsutil. Create a lib folder in your spark directory and run the
+following command from it:
+
+```
+gsutil cp gs://hadoop-lib/gcs/gcs-connector-hadoop3-2.2.5.jar gcs-connector-hadoop3-2.2.5.jar
+```
+
+- gsutil cp copies the file from the remote Google Cloud Storage location to our local system.
+
+
+**Configuring Spark to Use the Cloud Storage Connector**
+
+To read the files stored in the bucket, we will use "spark_bucket.py" script. We can run the script in the /opt/spark directory, for example :
+
+```
+spark-submit --jars /opt/spark/lib/gcs-connector-hadoop3-2.2.5.jar spark_bucket.py    
+```
+
+spark_bucket.py:
+
+```python
+
+from pyspark.sql import SparkSession
+from pyspark.conf import SparkConf
+from pyspark.context import SparkContext
+
+credentials_location = '/opt/spark/google/google_credentials.json'
+
+conf = SparkConf() \
+    .setMaster('local[*]') \
+    .setAppName('test') \
+    .set("spark.jars", "/opt/spark/lib/gcs-connector-hadoop3-2.2.5.jar") \
+    .set("spark.hadoop.google.cloud.auth.service.account.enable", "true") \
+    .set("spark.hadoop.google.cloud.auth.service.account.json.keyfile", credentials_location)
+
+
+sc = SparkContext(conf=conf)
+
+hadoop_conf = sc._jsc.hadoopConfiguration()
+
+hadoop_conf.set("fs.AbstractFileSystem.gs.impl",  "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS")
+hadoop_conf.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
+hadoop_conf.set("fs.gs.auth.service.account.json.keyfile", credentials_location)
+hadoop_conf.set("fs.gs.auth.service.account.enable", "true")
+
+spark = SparkSession.builder \
+    .config(conf=sc.getConf()) \
+    .getOrCreate()
+
+df_green = spark.read.parquet('gs://444903_spark_bucket/pq/green/*/*')
+
+print(df_green.count())
+
+```
+
+**Setting Up the Spark Configuration**
+
+```python
+
+    .set("spark.jars", "/opt/spark/lib/gcs-connector-hadoop3-2.2.5.jar") \
+    .set("spark.hadoop.google.cloud.auth.service.account.enable", "true") \
+    .set("spark.hadoop.google.cloud.auth.service.account.json.keyfile", credentials_location)
+```    
+
+We still run Spark in local mode, and the application name remains test. However, we now need to specify:
+
+- spark.jars: Points to the JAR file containing the Cloud Storage Connector.
+
+- spark.hadoop.google.cloud.auth.service.account.enable: Enables service account authentication.
+
+- spark.hadoop.google.cloud.auth.service.account.json.keyfile: Specifies the path to the credentials file.
+
+
+**Creating a Spark Context**
+
+```python
+sc = SparkContext(conf=conf)
+```
+
+**Configure Hadoop for Google Cloud Storage**
+
+```python
+
+hadoop_conf = sc._jsc.hadoopConfiguration()
+hadoop_conf.set("fs.AbstractFileSystem.gs.impl",  "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS")
+hadoop_conf.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
+hadoop_conf.set("fs.gs.auth.service.account.json.keyfile", credentials_location)
+hadoop_conf.set("fs.gs.auth.service.account.enable", "true")
+```
+
+- Hadoop needs to be configured to understand Google Cloud Storage (gs:// paths).
+
+- These settings tell Hadoop to use the GoogleHadoopFileSystem implementation and authenticate using the service account.
+
+**Create a Spark Session**
+
+```python
+
+spark = SparkSession.builder \
+    .config(conf=sc.getConf()) \
+    .getOrCreate()
+```
+
+- Initializes a SparkSession, which allows working with DataFrames.
+
+- It inherits the configuration from the previously created SparkContext.
+
+**Read Data from Google Cloud Storage**
+
+```python
+df_green = spark.read.parquet('gs://444903_spark_bucket/pq/green/*/*')
+```
+
+**Count the Rows**
+
+```python
+print(df_green.count())
+```
+
+Counts the number of records in the Parquet dataset and prints the result:
+
+```
+2304517   
+```
