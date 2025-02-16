@@ -14,6 +14,7 @@
     - [Anatomy of a Spark Cluster](#anatomy-of-a-spark-cluster)
     - [GroupBy in Spark](#groupby-in-spark)    
 - [Running Spark in the Cloud](#running-spark-in-the-cloud)   
+    - [Connecting to Google Cloud Storage](#connecting-to-google-cloud-storage)    
     
 
 
