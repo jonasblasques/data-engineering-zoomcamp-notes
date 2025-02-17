@@ -1534,3 +1534,15 @@ root@DESKTOP-GDVELUL:/opt/spark/data/report# ls
 report-2021  revenue
 ```
 
+**Shutting down worker and master**
+
+After you're done running Spark in standalone mode, you will need to manually shut it down. Simply run:
+
+ ```
+ ./sbin/stop-worker.sh
+ ```
+ and:
+
+```
+./sbin/stop-master.sh
+```
