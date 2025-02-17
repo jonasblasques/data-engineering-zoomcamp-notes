@@ -1324,3 +1324,213 @@ Counts the number of records in the Parquet dataset and prints the result:
 ```
 2304517   
 ```
+
+
+### Creating a Local Spark Cluster
+
+Previously, we covered how to connect a local Spark instance to Google Cloud Storage. Now, we’ll focus
+ on setting up a local Spark cluster, even though the main goal is to run Spark in the cloud.
+
+ **Spark standalone master and workers**
+
+ At the beginning of this lesson we saw how to create a Spark session from a notebook, like so:
+
+ ```python
+ spark = SparkSession.builder \
+    .master("local[*]") \
+    .appName('test') \
+    .getOrCreate()
+
+```
+
+This code will stard a local cluster, but once the notebook kernel is shut down, the cluster will 
+disappear. We will now see how to crate a Spark cluster in Standalone Mode so that the cluster can 
+remain running even after we stop running our notebooks.
+
+Simply go to your Spark install directory from a terminal and run the following command:
+
+```
+./sbin/start-master.sh
+```
+
+You should now be able to open the main Spark dashboard by browsing to localhost:8080. At the very top
+ of the dashboard the URL for the dashboard should appear:
+
+  <br>
+
+![b25](images/b25.jpg)
+
+<br> 
+
+You may note that in the Spark dashboard there aren't any workers listed. Similarly to how we created
+ the Spark master, we can run a worker from the command line by running the following command:
+
+```
+./sbin/start-worker.sh spark://DESKTOP-GDVELUL.:7077     
+```
+
+Or more generally:
+
+```
+./sbin/start-worker.sh <master-spark-URL>
+```
+
+Now you should see the worker in the spark UI:
+
+  <br>
+
+![b26](images/b26.jpg)
+
+<br> 
+
+
+**Parameterizing our scripts for Spark**
+
+So far we've hard-coded many of the values such as folders and dates in our code, but with a little 
+bit of tweaking we can make our code so that it can receive parameters from Spark 
+
+
+code: [`pyspark_sql2.py`](code/pyspark_sql2.py)
+
+```python
+
+import argparse
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--input_green', required=True)
+parser.add_argument('--input_yellow', required=True)
+parser.add_argument('--output', required=True)
+
+args = parser.parse_args()
+
+input_green = args.input_green
+input_yellow = args.input_yellow
+output = args.output
+
+
+spark = SparkSession.builder \
+    .appName('test') \
+    .getOrCreate()
+
+df_green = spark.read.parquet(input_green)
+
+df_green = df_green \
+    .withColumnRenamed('lpep_pickup_datetime', 'pickup_datetime') \
+    .withColumnRenamed('lpep_dropoff_datetime', 'dropoff_datetime')
+
+df_yellow = spark.read.parquet(input_yellow)
+
+
+df_yellow = df_yellow \
+    .withColumnRenamed('tpep_pickup_datetime', 'pickup_datetime') \
+    .withColumnRenamed('tpep_dropoff_datetime', 'dropoff_datetime')
+
+
+common_colums = [
+    'VendorID',
+    'pickup_datetime',
+    'dropoff_datetime',
+    'store_and_fwd_flag',
+    'RatecodeID',
+    'PULocationID',
+    'DOLocationID',
+    'passenger_count',
+    'trip_distance',
+    'fare_amount',
+    'extra',
+    'mta_tax',
+    'tip_amount',
+    'tolls_amount',
+    'improvement_surcharge',
+    'total_amount',
+    'payment_type',
+    'congestion_surcharge'
+]
+
+
+
+df_green_sel = df_green \
+    .select(common_colums) \
+    .withColumn('service_type', F.lit('green'))
+
+df_yellow_sel = df_yellow \
+    .select(common_colums) \
+    .withColumn('service_type', F.lit('yellow'))
+
+
+df_trips_data = df_green_sel.unionAll(df_yellow_sel)
+
+df_trips_data.registerTempTable('trips_data')
+
+
+df_result = spark.sql("""
+SELECT 
+    -- Reveneue grouping 
+    PULocationID AS revenue_zone,
+    date_trunc('month', pickup_datetime) AS revenue_month, 
+    service_type, 
+
+    -- Revenue calculation 
+    SUM(fare_amount) AS revenue_monthly_fare,
+    SUM(extra) AS revenue_monthly_extra,
+    SUM(mta_tax) AS revenue_monthly_mta_tax,
+    SUM(tip_amount) AS revenue_monthly_tip_amount,
+    SUM(tolls_amount) AS revenue_monthly_tolls_amount,
+    SUM(improvement_surcharge) AS revenue_monthly_improvement_surcharge,
+    SUM(total_amount) AS revenue_monthly_total_amount,
+    SUM(congestion_surcharge) AS revenue_monthly_congestion_surcharge,
+
+    -- Additional calculations
+    AVG(passenger_count) AS avg_montly_passenger_count,
+    AVG(trip_distance) AS avg_montly_trip_distance
+FROM
+    trips_data
+GROUP BY
+    1, 2, 3
+""")
+
+
+df_result.coalesce(1) \
+    .write.parquet(output, mode='overwrite')
+
+```    
+
+**Submitting Spark jobs with Spark submit**
+
+spark-submit is a command-line tool used to submit Apache Spark applications to a cluster. It allows you to configure various parameters, such as the deployment mode, memory allocation, and dependencies, making it the standard way to run Spark jobs.
+
+The basic usage is as follows:
+
+```
+spark-submit \
+    --master="spark://<URL>" \
+    my_script.py \
+        --input_green=data/pq/green/2020/*/ \
+        --input_yellow=data/pq/yellow/2020/*/ \
+        --output=data/report-2020
+```        
+
+In this case for example:
+
+```
+
+spark-submit \
+    --master="spark://DESKTOP-GDVELUL.:7077" \
+    pyspark_sql2.py \
+        --input_green=data/pq/green/2021/*/ \
+        --input_yellow=data/pq/yellow/2021/*/ \
+        --output=data/report/report-2021
+```        
+
+After a few minutes, you can check the report:
+
+```
+root@DESKTOP-GDVELUL:/opt/spark/data/report# ls
+
+report-2021  revenue
+```
+
