@@ -1343,8 +1343,8 @@ Previously, we covered how to connect a local Spark instance to Google Cloud Sto
 
 ```
 
-This code will stard a local cluster, but once the notebook kernel is shut down, the cluster will 
-disappear. We will now see how to crate a Spark cluster in Standalone Mode so that the cluster can 
+This code will create a local cluster, but once the notebook kernel is shut down, the cluster will 
+disappear. We will now see how to create a Spark cluster in Standalone Mode so that the cluster can 
 remain running even after we stop running our notebooks.
 
 Simply go to your Spark install directory from a terminal and run the following command:
@@ -1384,7 +1384,7 @@ Now you should see the worker in the spark UI:
 <br> 
 
 
-**Parameterizing our scripts for Spark**
+**Parameterizing our script for Spark**
 
 So far we've hard-coded many of the values such as folders and dates in our code, but with a little 
 bit of tweaking we can make our code so that it can receive parameters from Spark 
