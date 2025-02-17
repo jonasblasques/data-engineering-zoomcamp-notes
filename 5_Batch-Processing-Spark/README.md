@@ -1166,6 +1166,11 @@ each partition has grouped its own data, but Spark needs to combine these result
 
 _[Video source](https://www.youtube.com/watch?v=Yyz293hBVcQ)_
 
+In this section, we are going to run spark locally and read the files from a bucket in google cloud 
+storage.
+
+**Uploading the files to GCS**
+
 To upload the pq/ folder, make sure to use the following command in spark/data directory:
 
 ```
