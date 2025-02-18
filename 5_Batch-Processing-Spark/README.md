@@ -1658,3 +1658,5 @@ After a few minutes, head over to the bucket and check the report:
 ![b31](images/b31.jpg)
 
 <br> 
+
+You may now stop the cluster on the Cluster details page
