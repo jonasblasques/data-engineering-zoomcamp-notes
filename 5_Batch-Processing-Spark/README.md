@@ -16,6 +16,7 @@
 - [Running Spark in the Cloud](#running-spark-in-the-cloud)   
     - [Connecting to Google Cloud Storage](#connecting-to-google-cloud-storage)    
     - [Creating a Local Spark Cluster](#creating-a-local-spark-cluster)    
+    - [Setting up a Dataproc Cluster](#setting-up-a-dataproc-cluster) 
 
 
 
@@ -1328,6 +1329,8 @@ Counts the number of records in the Parquet dataset and prints the result:
 
 ### Creating a Local Spark Cluster
 
+_[Video source](https://www.youtube.com/watch?v=HXBwSlXo5IA)_
+
 Previously, we covered how to connect a local Spark instance to Google Cloud Storage. Now, we’ll focus
  on setting up a local Spark cluster, even though the main goal is to run Spark in the cloud.
 
@@ -1546,3 +1549,112 @@ After you're done running Spark in standalone mode, you will need to manually sh
 ```
 ./sbin/stop-master.sh
 ```
+
+### Setting up a Dataproc Cluster
+
+_[Video source](https://www.youtube.com/watch?v=osAiAYahvh8)_
+
+Google Cloud Dataproc is a managed service for running Apache Spark, Apache Hadoop, Apache Flink, and other open-source big data frameworks on Google Cloud. It allows you to process and analyze large datasets efficiently by leveraging Google Cloud’s infrastructure.
+
+Google handles cluster provisioning, scaling, and management, so you don't need to manually configure or maintain Hadoop/Spark clusters.
+
+You may access Dataproc from the GCP dashboard and typing dataproc on the search bar. The first time you access it you will have to enable the API.
+
+
+- Click on CREATE CLUSTER --> Cluster on Computer Engine 
+- Give it a name 
+- Choose the same region as your bucket.
+- Select cluster type
+- Click on CREATE
+
+You may leave all other optional settings with their default values. After you click on Create, it will take a few seconds to create the cluster. 
+
+In the image below you may find some example values for creating a simple cluster.
+
+<br>
+
+![b27](images/b27.jpg)
+
+<br> 
+
+**Running a job with the web UI**
+
+In Dataproc's Clusters page, choose your cluster and on the Cluster details page, click on Submit job.
+
+- Under Job type choose PySpark
+- Under Main Python file write the path to your script (you may upload the script to your bucket and then copy the URL).
+- Under Arguments we must specify where the data comes from and where to save the report:
+    -  --input_green=gs://444903_spark_bucket/pq/green/2021/*/ 
+    -  --input_yellow=gs://444903_spark_bucket/pq/yellow/2021/*/ 
+    -  --output=gs://444903_spark_bucket/report/report-2021
+
+<br>
+
+![b28](images/b28.jpg)
+
+<br> 
+
+Make sure that your script does not specify the master cluster! Your script should take the connection details from Dataproc; make sure it looks something like this:
+
+```python
+
+spark = SparkSession.builder \
+    .appName('test') \
+    .getOrCreate()
+```    
+
+After a few minutes, head over to the bucket and check the report:
+
+<br>
+
+![b29](images/b29.jpg)
+
+<br> 
+
+
+We successfully submitted our job to the cluster we created on Google Cloud Platform. It computed something and saved the result to this location. We did it through the web interface, which is not convenient. We wouldn't do this from Airflow, for example. That's why there is a different way of doing this, and you can do it through Google SDK.
+
+**Running a job with the gcloud SDK**
+
+Before you can submit jobs with the SDK, you will need to grant permissions to the Service Account we've been using so far. Go to IAM & Admin and edit your Service Account so that the Dataproc Administrator role is added to it.
+
+We can now submit a job from the command line, like this:
+
+```
+gcloud dataproc jobs submit pyspark \
+    --cluster=<your-cluster-name> \
+    --region=europe-west6 \
+    gs://<url-of-your-script> \
+    -- \
+        --param1=<your-param-value> \
+        --param2=<your-param-value>
+```
+
+For example:
+
+```
+gcloud dataproc jobs submit pyspark \
+    --cluster=zoomcamp-spark \
+    --region=us-central1 \
+    gs://444903_spark_bucket/code/pyspark_sql2.py \
+    -- \
+        --input_green=gs://444903_spark_bucket/pq/green/2020/*/ \
+        --input_yellow=gs://444903_spark_bucket/pq/yellow/2020/*/ \
+        --output=gs://444903_spark_bucket/report/report-2020
+```        
+
+
+<br>
+
+![b30](images/b30.jpg)
+
+<br> 
+
+
+After a few minutes, head over to the bucket and check the report:
+
+<br>
+
+![b31](images/b31.jpg)
+
+<br> 
