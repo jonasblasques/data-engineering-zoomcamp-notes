@@ -30,7 +30,7 @@ For the course you'll need:
 * Terraform
 * Setting up infrastructure on GCP with Terraform
 
-### [Module 2: Workflow Orchestration (Kestra)](2_Workflow-Orchestration-(Kestra)/)
+### [Module 2: Workflow Orchestration with Kestra](2_Workflow-Orchestration-(Kestra)/)
 
 * Introduction to Workflow Orchestration
 * Introduction to Kestra
@@ -38,7 +38,7 @@ For the course you'll need:
 * ETL Pipelines: Load Data to Local Postgres
 * ETL Pipelines: Load Data to Google Cloud Platform (GCP)
 
-### [Module 3: Data Warehouse](3_Data-Warehouse/)
+### [Module 3: Data Warehouse with BigQuery](3_Data-Warehouse/)
 
 * OLAP vs OLTP
 * Data Warehouse
@@ -47,7 +47,7 @@ For the course you'll need:
 * Partitioning and clustering
 * BigQuery best practices
 
-### [Module 4: Analytics Engineering](4_Analytics-Engineering/)
+### [Module 4: Analytics Engineering with dbt](4_Analytics-Engineering/)
 
 * Introduction to analytics engineering
 * Introduction to dbt
@@ -58,9 +58,18 @@ For the course you'll need:
 * Deployment 
 * Visualizing the data 
 
+### [Module 5: Batch Processing with spark](5_Batch-Processing-Spark/)
+
+* Introduction to Batch Processing
+* Introduction to Spark
+* Spark SQL and DataFrames
+* Spark Internals
+* Running Spark in the Cloud
+
+
 ## Extra:
 
-### [Module 2: Workflow Orchestration (Airflow)](2_Workflow-Orchestration-AirFlow/)
+### [Module 2: Workflow Orchestration with Airflow](2_Workflow-Orchestration-AirFlow/)
 
 * Data Lake vs Data Warehouse
 * ETL vs ELT
