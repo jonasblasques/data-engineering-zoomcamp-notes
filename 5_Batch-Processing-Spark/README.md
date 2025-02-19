@@ -1790,6 +1790,8 @@ df_result.write.format('bigquery') \
 
 **Submitting Spark job with Spark submit**
 
+First make sure you have created a new dataset in bigquery, for example in my case "spark_trips"
+
 We can now submit a job from the command line, like this:
 
 ```
