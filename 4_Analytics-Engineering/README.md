@@ -947,7 +947,7 @@ We’ll copy this data, save it as a CSV file, and include it in our project und
 
 The seed contains fields like location_id, which is also present in both the green and yellow trip data. This will allow us to connect the data with the taxi_zone_lookup table for additional context. The dim_zones model is under the core folder.
 
-dim_zones.dql looks like this:
+dim_zones.sql looks like this:
 
 ```sql
 
