@@ -215,3 +215,61 @@ That all being said, regarding macro above, select all statements that are true 
 - When using stg, it materializes in the dataset defined in DBT_BIGQUERY_STAGING_DATASET, or defaults to DBT_BIGQUERY_TARGET_DATASET: If DBT_BIGQUERY_STAGING_DATASET is defined, it will be used; otherwise, DBT_BIGQUERY_TARGET_DATASET is used as the fallback. **TRUE**
 
 - When using staging, it materializes in the dataset defined in DBT_BIGQUERY_STAGING_DATASET, or defaults to DBT_BIGQUERY_TARGET_DATASET:  Same logic as in the previous case. **TRUE**
+
+
+## Question 5: Taxi Quarterly Revenue Growth
+
+1. Create a new model fct_taxi_trips_quarterly_revenue.sql
+2. Compute the Quarterly Revenues for each year for based on total_amount
+3. Compute the Quarterly YoY (Year-over-Year) revenue growth
+
+Head over to dbt and create a new file under core models "fct_taxi_trips_quarterly_revenue.sql": 
+
+```sql
+
+{{ config(materialized='table') }}
+
+
+with quarterly_revenue as (
+    SELECT
+        service_type,
+        EXTRACT(YEAR FROM pickup_datetime) AS year,
+        EXTRACT(QUARTER FROM pickup_datetime) AS quarter,
+        SUM(total_amount) AS revenue
+
+    FROM {{ ref('fact_trips') }}
+    WHERE EXTRACT(YEAR FROM pickup_datetime) IN (2019, 2020)
+    GROUP BY service_type,year,quarter
+),
+
+quarterly_growth AS (
+    SELECT 
+        year,
+        quarter,
+        service_type,
+        revenue,
+        LAG(revenue) OVER (PARTITION BY service_type, quarter ORDER BY year) AS prev_year_revenue,
+        (revenue - LAG(revenue) OVER (PARTITION BY service_type, quarter ORDER BY year)) / 
+        NULLIF(LAG(revenue) OVER (PARTITION BY service_type, quarter ORDER BY year), 0) AS yoy_growth
+    FROM quarterly_revenue
+)
+SELECT * FROM quarterly_growth
+
+```
+
+run:
+
+```
+dbt build --select +fct_taxi_trips_quarterly_revenue.sql+ --vars '{is_test_run: false}'
+```
+
+
+Check BigQuery:
+
+<br>
+
+![ae63](images/ae63.jpg)
+<br>
+
+
+Answer: green: {best: 2020/Q1, worst: 2020/Q2}, yellow: {best: 2020/Q1, worst: 2020/Q2}
