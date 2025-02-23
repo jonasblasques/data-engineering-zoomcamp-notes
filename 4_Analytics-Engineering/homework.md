@@ -273,3 +273,64 @@ Check BigQuery:
 
 
 Answer: green: {best: 2020/Q1, worst: 2020/Q2}, yellow: {best: 2020/Q1, worst: 2020/Q2}
+
+
+## Question 6: P97/P95/P90 Taxi Monthly Fare
+
+1. Create a new model fct_taxi_trips_monthly_fare_p95.sql
+2. Filter out invalid entries (fare_amount > 0, trip_distance > 0, and payment_type_description in ('Cash', 'Credit Card'))
+3. Compute the continous percentile of fare_amount partitioning by service_type, year and and month
+
+Now, what are the values of p97, p95, p90 for Green Taxi and Yellow Taxi, in April 2020?
+
+
+Head over to dbt and create a new file under core models "fct_taxi_trips_monthly_fare_p95.sql": 
+
+```sql
+
+{{ config(materialized='table') }}
+
+WITH valid_trips AS (
+    SELECT
+        service_type,
+        EXTRACT(YEAR FROM pickup_datetime) AS year,
+        EXTRACT(MONTH FROM pickup_datetime) AS month,
+        fare_amount
+
+    FROM {{ ref('fact_trips') }}
+    WHERE 
+        fare_amount > 0
+        AND trip_distance > 0
+        AND payment_type_description IN ('Cash', 'Credit card')
+),
+
+percentiles AS (
+    SELECT 
+        service_type,
+        year,
+        month,
+        PERCENTILE_CONT(fare_amount, 0.97) OVER (PARTITION BY service_type, year, month) AS p97,
+        PERCENTILE_CONT(fare_amount, 0.95) OVER (PARTITION BY service_type, year, month) AS p95,
+        PERCENTILE_CONT(fare_amount, 0.90) OVER (PARTITION BY service_type, year, month) AS p90
+    FROM valid_trips
+    
+)
+
+SELECT DISTINCT service_type, year, month, p97, p95, p90 
+FROM percentiles
+WHERE month = 4 AND year = 2020
+
+```
+
+run:
+
+```
+dbt build --select +fct_taxi_trips_monthly_fare_p95.sql+ --vars '{is_test_run: false}'
+```
+
+Check BigQuery:
+
+<br>
+
+![ae64](images/ae64.jpg)
+<br>
