@@ -463,6 +463,14 @@ from trip_duration_calculated
 
 ```
 
+**dbt build**
+
+run:
+
+```
+dbt build --select +fct_fhv_monthly_zone_traveltime_p90.sql+ --vars '{is_test_run: false}'
+```
+
 
 **Query**
 
