@@ -284,7 +284,9 @@ Answer: green: {best: 2020/Q1, worst: 2020/Q2}, yellow: {best: 2020/Q1, worst: 2
 Now, what are the values of p97, p95, p90 for Green Taxi and Yellow Taxi, in April 2020?
 
 
-Head over to dbt and create a new file under core models "fct_taxi_trips_monthly_fare_p95.sql": 
+Head over to dbt and create a new file under core models "fct_taxi_trips_monthly_fare_p95.sql"
+
+**fct_taxi_trips_monthly_fare_p95.sql:**
 
 ```sql
 
@@ -316,11 +318,11 @@ percentiles AS (
     
 )
 
-SELECT DISTINCT service_type, year, month, p97, p95, p90 
-FROM percentiles
-WHERE month = 4 AND year = 2020
+SELECT * FROM percentiles
 
 ```
+
+**dbt build:**
 
 run:
 
@@ -328,12 +330,24 @@ run:
 dbt build --select +fct_taxi_trips_monthly_fare_p95.sql+ --vars '{is_test_run: false}'
 ```
 
-Check BigQuery:
+**Query:**
+
+```sql
+
+SELECT DISTINCT service_type, year, month, p97, p95, p90 
+FROM `zoomcamp-airflow-444903.dbt_mguerra.fct_taxi_trips_monthly_fare_p95`
+WHERE month = 4 AND year = 2020;
+```
+
+
+**Check results:**
 
 <br>
 
 ![ae64](images/ae64.jpg)
 <br>
+
+Answer: green: {p97: 55.0, p95: 45.0, p90: 26.5}, yellow: {p97: 31.5, p95: 25.5, p90: 19.0}
 
 
 ## Question 7: Top #Nth longest P90 travel time Location for FHV
