@@ -45,24 +45,6 @@ How many taxi trips were there on the 15th of October?
 
 Consider only trips that started on the 15th of October.
 
-```python
-
-from pyspark.sql.functions import to_date
-
-df_filtered = df.filter(to_date(df["tpep_pickup_datetime"]) == "2024-10-15")
-
-print(df_filtered.count())
-
-```
-
-Result:
-
-```
-128811   
-
-```
-
-Using sql:
 
 ```sql
 
@@ -74,6 +56,12 @@ SELECT count(1) FROM trips_data
 WHERE cast(tpep_pickup_datetime as date) = '2024-10-15';
 """).show()
 
+```
+
+Result:
+
+```
+128811   
 ```
 
 ## Question 4: Longest trip
