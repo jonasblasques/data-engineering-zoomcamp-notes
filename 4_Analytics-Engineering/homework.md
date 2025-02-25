@@ -496,15 +496,17 @@ WITH ranked_data AS (
         pickup_zone,
         dropoff_zone,
         trip_duration_p90,
-        DENSE_RANK() OVER (
-            PARTITION BY pickup_zone 
-            ORDER BY trip_duration_p90 DESC
-        ) AS rank
+        DENSE_RANK() OVER (PARTITION BY pickup_zone ORDER BY trip_duration_p90 DESC) AS rank
+
     FROM `zoomcamp-airflow-444903.dbt_mguerra.fct_fhv_monthly_zone_traveltime_p90`
-    WHERE month = 11 AND year = 2019 
-      AND pickup_zone IN ('Newark Airport', 'SoHo', 'Yorkville East')
+    WHERE month = 11 AND year = 2019 AND pickup_zone IN ('Newark Airport', 'SoHo', 'Yorkville East')
 )
-SELECT DISTINCT pickup_zone, dropoff_zone, trip_duration_p90
+
+SELECT DISTINCT 
+    pickup_zone, 
+    dropoff_zone, 
+    trip_duration_p90
+    
 FROM ranked_data
 WHERE rank = 2;
 
