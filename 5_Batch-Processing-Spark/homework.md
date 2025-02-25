@@ -99,7 +99,7 @@ ORDER BY trip_duration DESC LIMIT 5;
 
 <br>
 
-![b33](images/b33.jpg)
+![b34](images/b34.jpg)
 
 <br>
 
@@ -135,6 +135,6 @@ Result:
 
 <br>
 
-![b34](images/b34.jpg)
+![b35](images/b35.jpg)
 
 <br>
