@@ -477,7 +477,7 @@ Now, let's write the DataFrame to Parquet:
 ```python
 
 df = df.repartition(24)
-df.write.parquet("for_hire_vehicles/2021.01")
+df.write.parquet('fhvhv/2021/01')
 ```
 
 When we execute this, Spark starts processing. We can see the job in the Spark UI under "Parquet." Clicking on it reveals the partitioning process. The operation is quite expensive, so it takes some time to complete.
