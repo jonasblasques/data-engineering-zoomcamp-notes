@@ -70,18 +70,13 @@ What is the length of the longest trip in the dataset in hours?
 
 ```python
 
-from pyspark.sql.functions import unix_timestamp, col
- 
-df = df.withColumn("trip_duration", 
-                   (unix_timestamp(col("tpep_dropoff_datetime")) - unix_timestamp(col("tpep_pickup_datetime"))) / 3600)
-
-df.registerTempTable('trips_data')  
-
 spark.sql("""
-
-SELECT trip_duration FROM trips_data 
-ORDER BY trip_duration DESC LIMIT 5;
-""").show()                   
+SELECT 
+    (unix_timestamp(tpep_dropoff_datetime) - unix_timestamp(tpep_pickup_datetime)) / 3600 AS trip_duration
+FROM trips_data
+ORDER BY trip_duration DESC
+LIMIT 5;
+""").show()                  
 
 ```
 
