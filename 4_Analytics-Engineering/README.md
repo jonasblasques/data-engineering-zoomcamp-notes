@@ -1668,13 +1668,14 @@ dbt init dbtcore_bigquery
 
 ### Project Structure
 
+```
 dbtcore_bigquery/
 │── models/             
 │── models/staging/      
 │── models/core/        
 │── seeds/               
 │── dbt_project.yml    
-    
+```
 
 ### Debug the Configuration
 
