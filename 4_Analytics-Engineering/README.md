@@ -23,7 +23,7 @@
 - [Deployment](#deployment)
 - [Visualising the transformed data](#visualising-the-transformed-data)
 
-
+- [dbt core](#dbt-core)
 
 
 ## Introduction to analytics engineering
@@ -1639,3 +1639,76 @@ The table should look like this:
 
 ![ae61](images/ae61.jpg)
 <br><br>
+
+
+## dbt core
+
+dbt Core is an open-source command-line tool that enables engineers to transform and model data within a data warehouse. dbt Core is free and open-source, but requires manual setup and infrastructure management. dbt Cloud is a paid, managed service that offers a web interface and scheduling.
+
+### Installation Steps
+
+Install DBT Core:
+
+```
+pip install dbt-core
+```
+
+Install the BigQuery Adapter for DBT:
+
+```
+pip install dbt-bigquery
+```
+
+### Initialize a New DBT Project
+
+This creates a new DBT project directory named dbtcore_bigquery with the necessary configuration files:
+
+```
+dbt init dbtcore_bigquery
+```
+
+### Project Structure
+
+dbtcore_bigquery/
+│── models/             
+│── models/staging/      
+│── models/core/        
+│── seeds/               
+│── dbt_project.yml    
+    
+
+### Debug the Configuration
+
+This command checks if DBT is properly configured and can connect to BigQuery:
+
+```
+dbt debug
+```
+
+###  Load Seed Data into BigQuery
+
+This command loads predefined CSV data into BigQuery tables:
+
+```
+dbt seed
+```
+
+### Execute DBT Models
+
+This command runs all DBT models, transforming and materializing data in BigQuery:
+
+```
+dbt run
+```
+
+<br>
+
+![ae66](images/ae66.jpg)
+<br>
+
+Check BigQuery:
+
+<br>
+
+![ae67](images/ae67.jpg)
+<br>
