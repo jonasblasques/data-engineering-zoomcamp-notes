@@ -22,7 +22,6 @@
 - [Documentation](#documentation)
 - [Deployment](#deployment)
 - [Visualising the transformed data](#visualising-the-transformed-data)
-
 - [dbt core](#dbt-core)
 
 
