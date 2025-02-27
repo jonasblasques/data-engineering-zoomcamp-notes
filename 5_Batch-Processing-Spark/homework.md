@@ -53,7 +53,7 @@ df.registerTempTable('trips_data')
 spark.sql("""
 
 SELECT count(1) FROM trips_data 
-WHERE cast(tpep_pickup_datetime as date) = '2024-10-15';
+WHERE DATE(tpep_pickup_datetime) = '2024-10-15';
 """).show()
 
 ```
