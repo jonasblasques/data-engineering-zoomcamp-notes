@@ -1646,6 +1646,8 @@ dbt Core is an open-source command-line tool that enables engineers to transform
 
 ### Installation Steps
 
+I'm going to be installing dbt core on linux ubuntu
+
 Install DBT Core:
 
 ```
@@ -1666,24 +1668,155 @@ This creates a new DBT project directory named dbtcore_bigquery with the necessa
 dbt init dbtcore_bigquery
 ```
 
-### Project Structure
+<br>
 
-```
-dbtcore_bigquery/
-│── models/             
-│── models/staging/      
-│── models/core/        
-│── seeds/               
-│── dbt_project.yml    
-```
+![ae68](images/ae68.jpg)
+<br>
+
+Then we choose the database. In this case we only have the bigquery adapter installed:
+
+<br>
+
+![ae69](images/ae69.jpg)
+<br>
+
+Then we choose authentication method
+
+- oauth: This option uses OAuth authentication, which typically requires you to log in through a browser to authorize access. 
+
+- service_account: This option uses a service account, which is an account associated with a Google Cloud project rather than a specific user. It requires a JSON key file.
+
+I will use service_account:
+
+<br>
+
+![ae70](images/ae70.jpg)
+<br>
+
+We enter the path to the Google credentials, the GCP project ID, the name that the dbt dataset will have in bigquery, the number of threads, the job execution runout and the location:
+
+<br>
+
+![ae71](images/ae71.jpg)
+<br>
+
+- dataset (the name of your dbt dataset): This is the name of the BigQuery dataset where dbt will create and manage tables/views.
+
+- threads (1 or more): Defines the number of parallel threads dbt can use when running models. A higher number can speed up execution but may increase resource usage. Here, it's set to 1, meaning dbt will process models sequentially.
+
+- job_execution_timeout_seconds [300]: This sets the timeout (in seconds) for each dbt job execution in BigQuery. If a query takes longer than that, it will be terminated.
+
+
 
 ### Debug the Configuration
 
-This command checks if DBT is properly configured and can connect to BigQuery:
+change directory to dbtcore_bigquery:
+
+```
+cd dbtcore_bigquery
+```
+
+And execute:
 
 ```
 dbt debug
 ```
+
+This command checks if DBT is properly configured and can connect to BigQuery:
+
+<br>
+
+![ae72](images/ae72.jpg)
+<br>
+
+### Copy staging/core models, macros, seeds and dbt_project.yml
+
+dbt_project.yml, package-lock.yml and packages.yml:
+
+- [`dbt_project.yml`](dbtcore_bigquery/dbt_project.yml)
+
+- [`package-lock.yml`](dbtcore_bigquery/package-lock.yml)
+
+- [`packages.yml`](dbtcore_bigquery/packages.yml)
+
+
+Staging models:
+
+- [`stg_green_tripdata.sql`](dbtcore_bigquery/models/staging/stg_green_tripdata.sql)
+
+- [`stg_yellow_tripdata.sql`](dbtcore_bigquery/models/staging/stg_yellow_tripdata.sql)
+
+- [`schema.yml`](dbtcore_bigquery/models/staging/schema.yml)
+
+Core models:
+
+- [`dim_zones.sql`](dbtcore_bigquery/models/core/dim_zones.sql)
+
+- [`fact_trips.sql`](dbtcore_bigquery/models/core/fact_trips.sql)
+
+- [`dm_monthly_zone_revenue.sql`](dbtcore_bigquery/models/core/dm_monthly_zone_revenue.sql)
+
+- [`schema.yml`](dbtcore_bigquery/models/core/schema.yml)
+
+Macros:
+
+- [`get_payment_type_description.sql`](dbtcore_bigquery/macros/get_payment_type_description.sql)
+
+- [`macros_properties.yml`](dbtcore_bigquery/macros/macros_properties.yml)
+
+Seeds:
+
+- [`seeds_properties.yml`](dbtcore_bigquery/seeds/seeds_properties.yml)
+
+- [`taxi_zone_lookup.csv`](dbtcore_bigquery/seeds/taxi_zone_lookup.csv)
+
+
+
+The dbt project looks like this:
+
+```
+
+└── dbtcore_bigquery
+    |
+    ├── Macros
+    |   ├── get_payment_type_description.sql
+    |   └── macros_properties.yml
+    |
+    ├── Models
+    |   ├── Staging
+    |   | ├── stg_green_tripdata.sql
+    |   | ├── stg_yellow_tripdata.sql   
+    |   | └── schema.yml       
+    |   |
+    |   └── Core  
+    |        ├── dim_zones.sql
+    |        ├── fact_trips.sql
+    |        ├── dm_monthly_zone_revenue.sql  
+    |        └── schema.yml    
+    |    
+    ├── Seeds
+    |   ├── taxi_zone_lookup.csv
+    |   └── seeds_properties.yml
+    |
+    ├── dbt_project.yml
+    ├── package-lock.yml
+    └── packages.yml
+```
+
+###  Install dependencies
+
+If your dbt project relies on external packages (e.g., macros, models, utilities from the dbt Hub or private repositories), these dependencies need to be installed before running dbt run or dbt build.
+
+Execute:
+
+```
+dbt deps
+```
+
+<br>
+
+![ae73](images/ae73.jpg)
+<br>
 
 ###  Load Seed Data into BigQuery
 
@@ -1692,6 +1825,12 @@ This command loads predefined CSV data into BigQuery tables:
 ```
 dbt seed
 ```
+
+<br>
+
+![ae74](images/ae74.jpg)
+
+<br>
 
 ### Execute DBT Models
 
