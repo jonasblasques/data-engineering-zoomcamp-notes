@@ -104,6 +104,7 @@ The query returns the top 10 highest total_amount values from the table, along w
 | 9  | 1762.8 | 9      |
 | 10 | 1600.8 | 10     |
 
+The column generated with ROW_NUMBER() is temporary and does not modify the original table. It is just a calculation applied to the data in the query result.
 
 
 ## Common Table Expression
