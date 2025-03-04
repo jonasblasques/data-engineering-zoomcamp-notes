@@ -59,7 +59,7 @@ Lag and Lead Functions
 
 ### Row Number
 
-The ROW_NUMBER() window function in SQL assigns a unique sequential integer to rows within a partition of a result set. It is typically used to generate row numbers for each row in a query result, based on a specified ordering.
+ROW_NUMBER() does just what it sounds like—displays the number of a given row. It starts are 1 and numbers the rows according to the ORDER BY part of the window statement. Using the PARTITION BY clause will allow you to begin counting 1 again in each partition.
 
 Syntax:
 
