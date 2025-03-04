@@ -81,7 +81,7 @@ Example:
 
 SELECT 
   total_amount,
-  ROW_NUMBER() OVER (ORDER BY total_amount DESC) 
+  ROW_NUMBER() OVER (ORDER BY total_amount DESC) AS ranking
 
 FROM `greentaxi_trips` 
 LIMIT 10;
