@@ -154,7 +154,6 @@ LEAD(total_amount) OVER (ORDER BY lpep_pickup_datetime) as next_total_amount
 
 FROM `greentaxi_trips` 
 ORDER BY lpep_pickup_datetime
-LIMIT 10;
 
 ```
 
