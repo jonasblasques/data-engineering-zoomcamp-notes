@@ -6,7 +6,8 @@
 - [Window Funtions](#window-funtions)
     - [Row Number](#row-number)
     - [Rank and Dense Rank](#rank-and-dense-rank)    
-    - [Lag and Lead](#lag-and-lead)      
+    - [Lag and Lead](#lag-and-lead)   
+    - [Percentile Cont](#percentile-cont)         
 - [Common Table Expression](#common-table-expression)
 
 
@@ -165,6 +166,56 @@ The query retrieves the lpep_pickup_datetime, total_amount, the previous trip's 
 | 2008-12-31 23:47:51 UTC   | 14.55        | 5.3               | 19.55             |
 | 2008-12-31 23:57:46 UTC   | 19.55        | 14.55             | 9.8               |
 | 2009-01-01 00:00:00 UTC   | 9.8          | 19.55             | 81.3              |
+
+
+### Percentile Cont
+
+Computes the specified percentile value for the value_expression, with linear interpolation.
+
+**Syntax:**
+
+```sql
+
+PERCENTILE_CONT(expression, percentile ) OVER (PARTITION BY partition_expression)
+```
+
+**Example:**
+
+Lets calculate the 90th percentile of total_amount for each unique pickup location (PULocationID)
+
+```sql
+
+SELECT 
+  PULocationID,
+  total_amount,
+  PERCENTILE_CONT(total_amount, 0.9 ) OVER (PARTITION BY PULocationID) AS p90
+
+FROM `greentaxi_trips` 
+
+```
+
+- PERCENTILE_CONT(total_amount, 0.9): calculates the 90th percentile (p90) of total_amount
+- PARTITION BY PULocationID: This groups the calculations by PULocationID, so the 90th percentile is computed separately for each location.
+
+
+Query results looks like this:
+
+| PULocationID | total_amount  | p90  |
+|------|-------|-------|
+| 224  | 17.3    | 51.9  |
+| 224  | 20.67    | 51.9  |
+| 224  | 21    | 51.9  |
+| 224  | 26.06 | 51.9  |
+| 224  | 27.13 | 51.9  |
+| 224  | 40.14 | 51.9  |
+| 224  | 55.46 | 51.9  |
+| 224  | 25.74 | 51.9  |
+| 224  | 27.02 | 51.9  |
+| 224  | 37    | 51.9  |
+
+
+The P90 value is essentially the amount below which 90% of the values fall. In this table, the P90 
+is constant at 51.9, which means that for location "224", 90% of the total amounts are below 51.9.
 
 
 ## Common Table Expression
