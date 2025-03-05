@@ -130,6 +130,13 @@ It can often be useful to compare rows to preceding or following rows. You can u
 
 The LAG function in SQL is a window function that provides access to a previous row in the result set, without the need for a self-join. It allows you to compare values in the current row with values from previous rows within the same result set.
 
+Syntax:
+
+```sql
+
+LAG(expression) OVER (PARTITION BY partition_expression ORDER BY order_expression)
+```
+
 Example:
 
 ```sql
