@@ -137,6 +137,11 @@ Syntax:
 LAG(expression) OVER (PARTITION BY partition_expression ORDER BY order_expression)
 ```
 
+- expression: The column whose value you want to retrieve from the previous row
+- offset (optional): The number of rows back from the current row to look. The default is 1, meaning it looks at the immediate previous row.
+- PARTITION BY (optional): Divides the result set into partitions to apply the function to each partition separately.
+- ORDER BY: Specifies the order in which the rows are processed.
+
 Example:
 
 ```sql
