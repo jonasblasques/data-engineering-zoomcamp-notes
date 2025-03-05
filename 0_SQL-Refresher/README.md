@@ -92,18 +92,18 @@ LIMIT 10;
 The query returns the top 10 highest total_amount values from the table, along with a row number indicating their ranking.
 
 
-| Row | total_amount | ranking |
-|----|--------|--------|
-| 1  | 4012.3 | 1      |
-| 2  | 2878.3 | 2      |
-| 3  | 2438.8 | 3      |
-| 4  | 2156.3 | 4      |
-| 5  | 2109.8 | 5      |
-| 6  | 2017.3 | 6      |
-| 7  | 1971.05| 7      |
-| 8  | 1958.8 | 8      |
-| 9  | 1762.8 | 9      |
-| 10 | 1600.8 | 10     |
+| total_amount | ranking |
+|--------|--------|
+| 4012.3 | 1      |
+| 2878.3 | 2      |
+| 2438.8 | 3      |
+| 2156.3 | 4      |
+| 2109.8 | 5      |
+| 2017.3 | 6      |
+| 1971.05| 7      |
+| 1958.8 | 8      |
+| 1762.8 | 9      |
+| 1600.8 | 10     |
 
 The column generated with ROW_NUMBER() is temporary and does not modify the original table. It is just a calculation applied to the data in the query result.
 
@@ -158,13 +158,13 @@ ORDER BY lpep_pickup_datetime
 
 The query retrieves the lpep_pickup_datetime, total_amount, the previous trip's total_amount, and the next trip's total_amount.
 
-| Row | lpep_pickup_datetime      | total_amount | prev_total_amount | next_total_amount |
-|-----|---------------------------|--------------|-------------------|-------------------|
-| 1  | 2008-12-31 23:33:38 UTC   | 7.3          | 6.3               | 5.3               |
-| 2  | 2008-12-31 23:42:31 UTC   | 5.3          | 7.3               | 14.55             |
-| 3  | 2008-12-31 23:47:51 UTC   | 14.55        | 5.3               | 19.55             |
-| 4  | 2008-12-31 23:57:46 UTC   | 19.55        | 14.55             | 9.8               |
-| 5  | 2009-01-01 00:00:00 UTC   | 9.8          | 19.55             | 81.3              |
+| lpep_pickup_datetime      | total_amount | prev_total_amount | next_total_amount |
+|---------------------------|--------------|-------------------|-------------------|
+| 2008-12-31 23:33:38 UTC   | 7.3          | 6.3               | 5.3               |
+| 2008-12-31 23:42:31 UTC   | 5.3          | 7.3               | 14.55             |
+| 2008-12-31 23:47:51 UTC   | 14.55        | 5.3               | 19.55             |
+| 2008-12-31 23:57:46 UTC   | 19.55        | 14.55             | 9.8               |
+| 2009-01-01 00:00:00 UTC   | 9.8          | 19.55             | 81.3              |
 
 
 ## Common Table Expression
@@ -215,6 +215,6 @@ Now, we use the CTE in the main query: ```SELECT * FROM cte WHERE rank = 2;```
 Result of the query:
 
 
-| Row | lpep_pickup_datetime      | total_amount | rank | 
-|-----|---------------------------|--------------|-------------------|
-| 1  | 2019-10-10 15:22:49 UTC  | 2878.3        | 2             | 
+| lpep_pickup_datetime      | total_amount | rank | 
+|---------------------------|--------------|-------------------|
+| 2019-10-10 15:22:49 UTC  | 2878.3        | 2             | 
