@@ -17,9 +17,8 @@ A window function performs a calculation across a set of table rows that are rel
 
 But unlike regular aggregate functions, use of a window function does not cause rows to become grouped into a single output row — the rows retain their separate identities.
 
-**Key Characteristics of Window Functions:**
 
-Syntax:
+**Syntax:**
 
 ```sql
 FUNCTION() OVER (PARTITION BY column_name ORDER BY column_name)
@@ -63,13 +62,13 @@ Lag and Lead Functions
 
 ROW_NUMBER() does just what it sounds like—displays the number of a given row. It starts at 1 and numbers the rows according to the ORDER BY part of the window statement. Using the PARTITION BY clause will allow you to begin counting 1 again in each partition.
 
-Syntax:
+**Syntax:**
 
 ```sql
 ROW_NUMBER() OVER (PARTITION BY column_name ORDER BY column_name)
 ```
 
-Common Uses:
+**Common Uses:**
 
 - Removing Duplicates: You can use ROW_NUMBER() to identify duplicate rows and keep only one by filtering out rows with a row number greater than 1.
 
@@ -77,7 +76,7 @@ Common Uses:
 
 - Selecting the Latest Record: Helps in selecting the most recent entry per category when combined with PARTITION BY.
 
-Example:
+**Example:**
 
 ```sql
 
@@ -129,7 +128,7 @@ For example:
 It can often be useful to compare rows to preceding or following rows. You can use LAG or LEAD to create columns that pull values from other rows without the need for a self-join. All you need to do is enter which column to pull from and how many rows away you'd like to do the pull. LAG pulls from previous rows and LEAD pulls from following rows
 
 
-Syntax:
+**Syntax:**
 
 ```sql
 
@@ -141,7 +140,7 @@ LAG(expression) OVER (PARTITION BY partition_expression ORDER BY order_expressio
 - PARTITION BY (optional): Divides the result set into partitions to apply the function to each partition separately.
 - ORDER BY: Specifies the order in which the rows are processed.
 
-Example:
+**Example:**
 
 ```sql
 
@@ -172,11 +171,11 @@ The query retrieves the lpep_pickup_datetime, total_amount, the previous trip's 
 
 A CTE, short for Common Table Expression, is like a query within a query. With the WITH statement, you can create temporary tables to store results, making complex queries more readable and maintainable. These temporary tables exist only for the duration of the main query.
 
-CTEs and subqueries are both powerful tools and can be used to achieve similar goals, but they have different use cases and advantages.
+CTEs and subqueries are both powerful tools and can be used to achieve similar goals, but they have different use cases and advantages. Differences are CTE is reusable during the entire session and more readable
 
 By declaring CTEs at the beginning of the query, you enhance code readability, enabling a clearer grasp of your analysis logic. Breaking down the query into smaller, more manageable components encourages effortless code maintenance and enhances comprehension.
 
-Syntax:
+**Syntax:**
 
 ```sql
 
@@ -187,3 +186,28 @@ WITH cte_name AS (
 )
 SELECT * FROM cte_name;
 ```
+
+**Example: Let's find the trip with the second largest total_amount**
+
+```sql
+
+WITH cte AS(
+
+  SELECT
+  lpep_pickup_datetime,
+  total_amount,
+  RANK() OVER (ORDER BY total_amount DESC) AS rank
+
+  FROM `greentaxi_trips` 
+
+)
+
+
+SELECT * FROM cte WHERE rank = 2;
+
+```
+
+The query starts with a Common Table Expression (CTE) named cte. We use the RANK() window function to 
+assign a ranking (rank) to each row based on total_amount in descending order (from highest to lowest).
+
+Now, we use the CTE in the main query: ```SELECT * FROM cte WHERE rank = 2;```
