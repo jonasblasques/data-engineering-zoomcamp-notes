@@ -166,7 +166,6 @@ The query retrieves the lpep_pickup_datetime, total_amount, the previous trip's 
 | 3  | 2008-12-31 23:47:51 UTC   | 14.55        | 5.3               | 19.55             |
 | 4  | 2008-12-31 23:57:46 UTC   | 19.55        | 14.55             | 9.8               |
 | 5  | 2009-01-01 00:00:00 UTC   | 9.8          | 19.55             | 81.3              |
-| 6  | 2009-01-01 00:02:13 UTC   | 81.3         | 9.8               | 81.3              |
 
 
 ## Common Table Expression
