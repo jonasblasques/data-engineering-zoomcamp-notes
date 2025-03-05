@@ -126,9 +126,8 @@ For example:
 
 ### Lag and Lead
 
-It can often be useful to compare rows to preceding or following rows. You can use LAG or LEAD to create columns that pull values from other rows—all you need to do is enter which column to pull from and how many rows away you'd like to do the pull. LAG pulls from previous rows and LEAD pulls from following rows
+It can often be useful to compare rows to preceding or following rows. You can use LAG or LEAD to create columns that pull values from other rows without the need for a self-join. All you need to do is enter which column to pull from and how many rows away you'd like to do the pull. LAG pulls from previous rows and LEAD pulls from following rows
 
-The LAG function in SQL is a window function that provides access to a previous row in the result set, without the need for a self-join. It allows you to compare values in the current row with values from previous rows within the same result set.
 
 Syntax:
 
