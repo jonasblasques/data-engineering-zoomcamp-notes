@@ -176,7 +176,7 @@ Computes the specified percentile value for the value_expression, with linear in
 
 ```sql
 
-PERCENTILE_CONT(expression, percentile ) OVER (PARTITION BY partition_expression)
+PERCENTILE_CONT(value_expression, percentile ) OVER (PARTITION BY partition_expression)
 ```
 
 **Example:**
