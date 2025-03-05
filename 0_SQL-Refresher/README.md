@@ -212,6 +212,8 @@ assign a ranking (rank) to each row based on total_amount in descending order (f
 
 Now, we use the CTE in the main query: ```SELECT * FROM cte WHERE rank = 2;```
 
+Result of the query:
+
 
 | Row | lpep_pickup_datetime      | total_amount | rank | 
 |-----|---------------------------|--------------|-------------------|
