@@ -211,3 +211,8 @@ The query starts with a Common Table Expression (CTE) named cte. We use the RANK
 assign a ranking (rank) to each row based on total_amount in descending order (from highest to lowest).
 
 Now, we use the CTE in the main query: ```SELECT * FROM cte WHERE rank = 2;```
+
+
+| Row | lpep_pickup_datetime      | total_amount | rank | 
+|-----|---------------------------|--------------|-------------------|
+| 1  | 2019-10-10 15:22:49 UTC  | 2878.3        | 2             | 
