@@ -5,6 +5,8 @@
 
 - [Window Funtions](#window-funtions)
     - [Row Number](#row-number)
+    - [Rank and Dense Rank](#rank-and-dense-rank)    
+    - [Lag and Lead](#lag-and-lead)      
 - [Common Table Expression](#common-table-expression)
 
 
@@ -105,6 +107,56 @@ The query returns the top 10 highest total_amount values from the table, along w
 | 10 | 1600.8 | 10     |
 
 The column generated with ROW_NUMBER() is temporary and does not modify the original table. It is just a calculation applied to the data in the query result.
+
+### Rank and Dense Rank
+
+ROW_NUMBER(), RANK(), and DENSE_RANK() are window functions used to assign a ranking to rows based on a specified order. However, they behave differently when there are duplicate values in the ranking column.
+
+RANK() assigns a ranking, but skips numbers if there are ties. DENSE_RANK() its similar to RANK(), but does not skip numbers when there are ties.
+
+For example:
+
+| Score | ROW_NUMBER() | RANK() | DENSE_RANK() |
+|-------|--------------|--------|--------------|
+| 95    | 1            | 1      | 1            |
+| 90    | 2            | 2      | 2            |
+| 90    | 3            | 2      | 2            |
+| 85    | 4            | 4      | 3            |
+
+
+### Lag and Lead
+
+It can often be useful to compare rows to preceding or following rows. You can use LAG or LEAD to create columns that pull values from other rows—all you need to do is enter which column to pull from and how many rows away you'd like to do the pull. LAG pulls from previous rows and LEAD pulls from following rows
+
+The LAG function in SQL is a window function that provides access to a previous row in the result set, without the need for a self-join. It allows you to compare values in the current row with values from previous rows within the same result set.
+
+Example:
+
+```sql
+
+SELECT 
+
+lpep_pickup_datetime,
+total_amount,
+LAG(total_amount) OVER (ORDER BY lpep_pickup_datetime) as prev_total_amount,
+LEAD(total_amount) OVER (ORDER BY lpep_pickup_datetime) as next_total_amount
+
+FROM `greentaxi_trips` 
+ORDER BY lpep_pickup_datetime
+LIMIT 10;
+
+```
+
+The query retrieves the lpep_pickup_datetime, total_amount, the previous trip's total_amount, and the next trip's total_amount.
+
+| Row | lpep_pickup_datetime      | total_amount | prev_total_amount | next_total_amount |
+|-----|---------------------------|--------------|-------------------|-------------------|
+| 1  | 2008-12-31 23:33:38 UTC   | 7.3          | 6.3               | 5.3               |
+| 2  | 2008-12-31 23:42:31 UTC   | 5.3          | 7.3               | 14.55             |
+| 3  | 2008-12-31 23:47:51 UTC   | 14.55        | 5.3               | 19.55             |
+| 4  | 2008-12-31 23:57:46 UTC   | 19.55        | 14.55             | 9.8               |
+| 5  | 2009-01-01 00:00:00 UTC   | 9.8          | 19.55             | 81.3              |
+| 6  | 2009-01-01 00:02:13 UTC   | 81.3         | 9.8               | 81.3              |
 
 
 ## Common Table Expression
