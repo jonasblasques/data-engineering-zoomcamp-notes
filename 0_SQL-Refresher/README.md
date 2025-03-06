@@ -1,6 +1,6 @@
 # SQL Refresher
 
-### Table of contents (under construction)
+### Table of contents
 
 
 - [Window Funtions](#window-funtions)
