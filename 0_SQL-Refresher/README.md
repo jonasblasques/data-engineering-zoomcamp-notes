@@ -41,18 +41,18 @@ Your window here is how you want to be viewing your data when you're applying yo
 
 **Common Window Functions:**
 
-Ranking Functions
+Ranking Functions:
 
 - ROW_NUMBER(): Assigns a unique row number within a partition.
 - RANK(): Similar to ROW_NUMBER(), but assigns the same rank to duplicate values, skipping numbers.
 - DENSE_RANK(): Like RANK(), but without gaps in numbering.
 
-Aggregate Functions as Window Functions
+Aggregate Functions as Window Functions:
 
 - SUM() OVER(): Computes a running total.
 - AVG() OVER(): Computes a moving average.
 
-Lag and Lead Functions
+Lag and Lead Functions:
 
 - LAG(): Retrieves the value from a previous row.
 - LEAD(): Retrieves the value from the next row.
