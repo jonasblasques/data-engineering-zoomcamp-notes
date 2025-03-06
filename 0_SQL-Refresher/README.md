@@ -339,12 +339,12 @@ FROM trip_duration_calculated
 
 ```
 
-Step 1: Understanding the CTE
+**Step 1: Understanding the CTE**
 
 The WITH clause creates a CTE named trip_duration_calculated. This CTE acts as a temporary table that 
 contains all columns from the fhv_trips table. Additionally, it calculates the trip duration for each ride
 
-Step 2: Main Query using the CTE and Window Function
+**Step 2: Main Query using the CTE and Window Function**
 
 This query computes the 90th percentile of trip duration for each PUlocationID using a window function:
 
@@ -353,7 +353,7 @@ for each unique PUlocationID.
 
 The percentile 90 means that 90% of the trips have a duration equal to or below this value
 
-Query result looks like this:
+**Query result looks like this:**
 
 | PUlocationID | trip_duration | trip_duration_p90 |
 |-------------|---------------|--------------------|
