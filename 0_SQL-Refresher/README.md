@@ -9,6 +9,7 @@
     - [Lag and Lead](#lag-and-lead)   
     - [Percentile Cont](#percentile-cont)         
 - [Common Table Expression](#common-table-expression)
+- [dbt models and CTEs](#dbt-models-and-ctes)
 
 
 
@@ -77,7 +78,7 @@ ROW_NUMBER() OVER (PARTITION BY column_name ORDER BY column_name)
 
 - Selecting the Latest Record: Helps in selecting the most recent entry per category when combined with PARTITION BY.
 
-**Example:**
+**Example 1:**
 
 ```sql
 
@@ -107,6 +108,41 @@ The query returns the top 10 highest total_amount values from the table, along w
 | 1600.8 | 10     |
 
 The column generated with ROW_NUMBER() is temporary and does not modify the original table. It is just a calculation applied to the data in the query result.
+
+**Example 2:**
+
+Let's modify the previous query to add a partition by pick up location ID
+
+```sql
+
+SELECT 
+
+  total_amount,
+  PULocationID,
+  ROW_NUMBER() OVER (PARTITION BY PULocationID ORDER BY total_amount DESC) AS ranking
+
+FROM `greentaxi_trips` 
+LIMIT 10;
+
+```
+
+This SQL query  assigns a ranking to each row based on total_amount in descending order within each 
+PULocationID group:
+
+| total_amount | PULocationID | ranking |
+|-----------|-----------|-----------|
+| 8.51      | 224       | 432       |
+| 8.3       | 224       | 433       |
+| 8.3       | 224       | 434       |
+| 7.3       | 224       | 435       |
+| 3.3       | 224       | 436       |
+| 86.42     | 234       | 1         |
+| 73.5      | 234       | 2         |
+| 62.7      | 234       | 3         |
+| 61.94     | 234       | 4         |
+| 61.94     | 234       | 5         |
+
+Using the PARTITION BY clause will allow you to begin counting 1 again in each partition.
 
 ### Rank and Dense Rank
 
@@ -224,7 +260,7 @@ A CTE, short for Common Table Expression, is like a query within a query. With t
 
 CTEs and subqueries are both powerful tools and can be used to achieve similar goals, but they have different use cases and advantages. Differences are CTE is reusable during the entire session and more readable
 
-By declaring CTEs at the beginning of the query, you enhance code readability, enabling a clearer grasp of your analysis logic. Breaking down the query into smaller, more manageable components encourages effortless code maintenance and enhances comprehension.
+By declaring CTEs at the beginning of the query, you enhance code readability, enabling a clearer grasp of your analysis logic. 
 
 **Syntax:**
 
@@ -269,3 +305,65 @@ Result of the query:
 | lpep_pickup_datetime      | total_amount | rank | 
 |---------------------------|--------------|-------------------|
 | 2019-10-10 15:22:49 UTC  | 2878.3        | 2             | 
+
+
+
+## dbt models and CTEs
+
+CTEs and window functions will be used a lot in module 4 on dbt. Let's see an example of application in dbt models
+
+**Example:**
+
+Suppose we start from the FHV dataset and we want to create a dbt model that enriches the data by calculating the trip duration and the 90th percentile.
+
+```sql
+
+WITH trip_duration_calculated AS (
+
+    SELECT
+        *,
+        timestamp_diff(dropOff_datetime, pickup_datetime, second) as trip_duration
+
+    FROM `fhv_trips`
+)
+
+SELECT 
+
+    PUlocationID,
+    trip_duration,
+    PERCENTILE_CONT(trip_duration, 0.90) OVER (PARTITION BY PUlocationID) AS trip_duration_p90
+
+
+FROM trip_duration_calculated
+
+
+```
+
+Step 1: Understanding the CTE
+
+The WITH clause creates a CTE named trip_duration_calculated. This CTE acts as a temporary table that 
+contains all columns from the fhv_trips table. Additionally, it calculates the trip duration for each ride
+
+Step 2: Main Query using the CTE and Window Function
+
+This query computes the 90th percentile of trip duration for each PUlocationID using a window function:
+
+The PARTITION BY PUlocationID clause ensures that the percentile calculation is performed separately 
+for each unique PUlocationID.
+
+The percentile 90 means that 90% of the trips have a duration equal to or below this value
+
+Query result looks like this:
+
+| PUlocationID | trip_duration | trip_duration_p90 |
+|-------------|---------------|--------------------|
+| 190         | 451           | 2170.0            |
+| 190         | 1373          | 2170.0            |
+| 190         | 817           | 2170.0            |
+| 190         | 589           | 2170.0            |
+| 190         | 1648          | 2170.0            |
+| 32          | 546           | 1988.0            |
+| 32          | 151           | 1988.0            |
+| 32          | 1752          | 1988.0            |
+| 32          | 2426          | 1988.0            |
+| 32          | 888           | 1988.0            |
