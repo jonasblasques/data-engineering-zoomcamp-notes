@@ -367,3 +367,7 @@ Query result looks like this:
 | 32          | 1752          | 1988.0            |
 | 32          | 2426          | 1988.0            |
 | 32          | 888           | 1988.0            |
+
+
+- For PUlocationID = 190, 90% of trips have a duration ≤ 2170.0   seconds.
+- For PUlocationID = 32, 90% of trips have a duration ≤ 1988.0  seconds.
