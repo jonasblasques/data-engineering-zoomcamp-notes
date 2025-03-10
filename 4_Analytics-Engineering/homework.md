@@ -6,7 +6,18 @@ For this homework, you will need the following datasets:
 - Yellow Taxi dataset (2019 and 2020): 109,047,518 records
 - For Hire Vehicle dataset (2019): 43,244,696 records
 
-**Preparing dataset for FHV**
+- [Preparing dataset for FHV](#preparing-dataset-for-fhv)
+- [Question 1](#question-1)
+- [Question 2](#question-2)
+- [Question 3](#question-3)
+- [Question 4](#question-4)
+- [Question 5](#question-5)
+- [Question 6](#question-6)
+- [Question 7](#question-7)
+
+
+
+## Preparing dataset for FHV
 
 - Upload csv's files into a bucket
 
@@ -65,7 +76,9 @@ FROM `zoomcamp-airflow-444903.zoomcamp.FHV_2019_01`;
 - Repeat for remaining months
 
 
-## Question 1: Understanding dbt model resolution
+## Question 1
+
+**Understanding dbt model resolution**
 
 Provided you've got the following sources.yaml:
 
@@ -112,7 +125,9 @@ The .sql model compiles to:
 ```select * from `myproject.raw_nyc_tripdata.ext_green_taxi` ```
 
 
-## Question 2: dbt Variables & Dynamic Models
+## Question 2
+
+**dbt Variables & Dynamic Models**
 
 Say you have to modify the following dbt_model (fct_recent_taxi_trips.sql) to enable Analytics Engineers
 to dynamically control the date range.
@@ -147,7 +162,9 @@ where pickup_datetime >= CURRENT_DATE - INTERVAL '{{ var("days_back", env_var("D
 - If neither is provided, it defaults to 30 days.
 
 
-## Question 3: dbt Data Lineage and Execution
+## Question 3
+
+**dbt Data Lineage and Execution**
 
 Considering the data lineage below and that taxi_zone_lookup is the only materialization build (from a .csv seed file):
 
@@ -169,7 +186,9 @@ Select the option that does NOT apply for materializing fct_taxi_monthly_zone_re
 - dbt run --select models/staging/+: This only runs models in models/staging/ and their dependencies, but not necessarily fct_taxi_monthly_zone_revenue, as it is located in models/core/ . **NOT VALID**
 
 
-## Question 4: dbt Macros and Jinja
+## Question 4
+
+**dbt Macros and Jinja**
 
 Consider you're dealing with sensitive data, that is only available to your team and very selected few individuals, in the raw layer of your DWH.
 
@@ -217,7 +236,9 @@ That all being said, regarding macro above, select all statements that are true 
 - When using staging, it materializes in the dataset defined in DBT_BIGQUERY_STAGING_DATASET, or defaults to DBT_BIGQUERY_TARGET_DATASET:  Same logic as in the previous case. **TRUE**
 
 
-## Question 5: Taxi Quarterly Revenue Growth
+## Question 5
+
+**Taxi Quarterly Revenue Growth**
 
 1. Create a new model fct_taxi_trips_quarterly_revenue.sql
 2. Compute the Quarterly Revenues for each year for based on total_amount
@@ -275,7 +296,9 @@ Check BigQuery:
 Answer: green: {best: 2020/Q1, worst: 2020/Q2}, yellow: {best: 2020/Q1, worst: 2020/Q2}
 
 
-## Question 6: P97/P95/P90 Taxi Monthly Fare
+## Question 6
+
+**P97/P95/P90 Taxi Monthly Fare**
 
 1. Create a new model fct_taxi_trips_monthly_fare_p95.sql
 2. Filter out invalid entries (fare_amount > 0, trip_distance > 0, and payment_type_description in ('Cash', 'Credit Card'))
@@ -350,7 +373,9 @@ WHERE month = 4 AND year = 2020;
 Answer: green: {p97: 55.0, p95: 45.0, p90: 26.5}, yellow: {p97: 31.5, p95: 25.5, p90: 19.0}
 
 
-## Question 7: Top #Nth longest P90 travel time Location for FHV
+## Question 7
+
+**Top #Nth longest P90 travel time Location for FHV**
 
 Prerequisites:
 
@@ -365,6 +390,14 @@ Now...
 3. Compute the continous p90 of trip_duration partitioning by year, month, pickup_location_id, and dropoff_location_id
 
 For the Trips that respectively started from Newark Airport, SoHo, and Yorkville East, in November 2019, what are dropoff_zones with the 2nd longest p90 trip_duration ?
+
+
+FHV Data looks like this:
+
+<br>
+
+![ae75](images/ae75.jpg)
+<br>
 
 
 **Staging model**
@@ -448,6 +481,14 @@ on tripdata.DOlocationID = dropoff_zone.locationid
 
 ```
 
+dim_fhv_trips looks like this:
+
+<br>
+
+![ae76](images/ae76.jpg)
+<br>
+
+
 **fct_fhv_monthly_zone_traveltime_p90.sql**
 
 
@@ -476,6 +517,14 @@ select
 from trip_duration_calculated
 
 ```
+
+fct_fhv_monthly_zone_traveltime_p90 looks like this:
+
+<br>
+
+![ae77](images/ae77.jpg)
+<br>
+
 
 **dbt build**
 
