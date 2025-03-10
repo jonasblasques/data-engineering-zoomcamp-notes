@@ -6,6 +6,8 @@ For this homework, you will need the following datasets:
 - Yellow Taxi dataset (2019 and 2020): 109,047,518 records
 - For Hire Vehicle dataset (2019): 43,244,696 records
 
+### Table of contents
+
 - [Preparing dataset for FHV](#preparing-dataset-for-fhv)
 - [Question 1](#question-1)
 - [Question 2](#question-2)
