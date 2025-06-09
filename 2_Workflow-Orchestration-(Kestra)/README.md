@@ -682,7 +682,7 @@ CREATE TABLE IF NOT EXISTS {{render(vars.final_table)}}
 
 is because we need to be able to render the variable which has an expression in it so we get a string which will contain green or yellow and then we can use it otherwise we will just receive a string and it will not have the dynamic value.
 
-Schema has two extra columns: unique grow ID and file name so we can see which file the data came and a unique ID generated based on the data in order to prevent adding duplicates later 
+Schema has two extra columns: unique row ID and file name so we can see which file the data came and a unique ID generated based on the data in order to prevent adding duplicates later 
 
 
 #### Task: yellow_create_staging_table/green_create_staging_table
