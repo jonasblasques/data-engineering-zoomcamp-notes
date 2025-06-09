@@ -569,7 +569,7 @@ The directory structure now should look like this:
 In a new terminal, go to the path where the docker-compose file is and run the following command:
 
 ```
-docker-compose up -p kestra-postgres up -d
+docker-compose -p kestra-postgres up -d
 ```
 
 The -p option specifies a custom project name (kestra-postgres in this case).
